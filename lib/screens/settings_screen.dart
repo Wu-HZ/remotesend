@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 import '../models/app_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -23,6 +26,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // Settings
   late double _refreshInterval;
+  String _downloadLocation = '';
   bool _autoDownload = false;
   bool _showNotification = true;
 
@@ -33,7 +37,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Future.microtask(_loadConfig);
   }
 
-  void _loadConfig() {
+  void _loadConfig() async {
     final config = ref.read(configProvider).valueOrNull;
     if (config != null) {
       _urlController.text = config.serverUrl;
@@ -41,8 +45,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _passwordController.text = config.password;
       setState(() {
         _refreshInterval = config.refreshIntervalSeconds.toDouble();
+        _downloadLocation = config.downloadLocation;
       });
     }
+    // If no download location set, get system default
+    if (_downloadLocation.isEmpty) {
+      final defaultPath = await _getSystemDownloadDirectory();
+      if (mounted && defaultPath != null) {
+        setState(() => _downloadLocation = defaultPath);
+      }
+    }
+  }
+
+  Future<String?> _getSystemDownloadDirectory() async {
+    if (Platform.isWindows) {
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null) {
+        return p.join(userProfile, 'Downloads');
+      }
+    } else if (Platform.isLinux || Platform.isMacOS) {
+      final home = Platform.environment['HOME'];
+      if (home != null) {
+        return p.join(home, 'Downloads');
+      }
+    }
+    return null;
   }
 
   @override
@@ -301,6 +328,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ==================== Download Section ====================
   Widget _buildDownloadSection() {
+    final displayPath = _downloadLocation.isNotEmpty
+        ? _downloadLocation
+        : 'System default';
+
     return _SettingsSection(
       title: 'Download',
       icon: Icons.download,
@@ -318,9 +349,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ListTile(
           leading: const Icon(Icons.folder),
           title: const Text('Download location'),
-          subtitle: const Text('Ask every time'),
+          subtitle: Text(
+            displayPath,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showComingSoon('Download location'),
+          onTap: _pickDownloadLocation,
         ),
         SwitchListTile(
           secondary: const Icon(Icons.notifications),
@@ -334,6 +369,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _pickDownloadLocation() async {
+    final result = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Select download location',
+      initialDirectory: _downloadLocation.isNotEmpty ? _downloadLocation : null,
+    );
+
+    if (result != null) {
+      setState(() => _downloadLocation = result);
+      await _saveDownloadLocation(result);
+    }
+  }
+
+  Future<void> _saveDownloadLocation(String path) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+
+    final newConfig = currentConfig.copyWith(downloadLocation: path);
+    final success = await ref.read(configProvider.notifier).updateConfig(newConfig);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Download location updated' : 'Failed to save'),
+          backgroundColor: success ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // ==================== Others Section ====================

@@ -7,6 +7,7 @@ class AppConfig {
   final String password;
   final bool portableMode;
   final int refreshIntervalSeconds;
+  final String downloadLocation; // Empty string means system default
 
   const AppConfig({
     this.serverUrl = '',
@@ -14,6 +15,7 @@ class AppConfig {
     this.password = '',
     this.portableMode = false,
     this.refreshIntervalSeconds = 3,
+    this.downloadLocation = '',
   });
 
   /// Check if the configuration has valid credentials.
@@ -27,6 +29,7 @@ class AppConfig {
     String? password,
     bool? portableMode,
     int? refreshIntervalSeconds,
+    String? downloadLocation,
   }) {
     return AppConfig(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -34,6 +37,7 @@ class AppConfig {
       password: password ?? this.password,
       portableMode: portableMode ?? this.portableMode,
       refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
+      downloadLocation: downloadLocation ?? this.downloadLocation,
     );
   }
 
@@ -45,6 +49,7 @@ class AppConfig {
       'password': password,
       'portableMode': portableMode,
       'refreshIntervalSeconds': refreshIntervalSeconds,
+      'downloadLocation': downloadLocation,
     };
   }
 
@@ -56,6 +61,7 @@ class AppConfig {
       password: json['password'] as String? ?? '',
       portableMode: json['portableMode'] as bool? ?? false,
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
+      downloadLocation: json['downloadLocation'] as String? ?? '',
     );
   }
 
@@ -76,12 +82,13 @@ class AppConfig {
         other.username == username &&
         other.password == password &&
         other.portableMode == portableMode &&
-        other.refreshIntervalSeconds == refreshIntervalSeconds;
+        other.refreshIntervalSeconds == refreshIntervalSeconds &&
+        other.downloadLocation == downloadLocation;
   }
 
   @override
   int get hashCode {
-    return Object.hash(serverUrl, username, password, portableMode, refreshIntervalSeconds);
+    return Object.hash(serverUrl, username, password, portableMode, refreshIntervalSeconds, downloadLocation);
   }
 
   @override

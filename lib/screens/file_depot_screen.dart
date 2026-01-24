@@ -25,6 +25,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   String? _downloadingFileName;
   double _downloadProgress = 0;
 
+  String? _currentDownloadLocation;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +39,71 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     if (connectionStatus.state == WebDavConnectionState.connected) {
       ref.read(fileListProvider.notifier).refresh();
     }
+    // Initialize download location
+    await _initDownloadLocation();
+  }
+
+  Future<void> _initDownloadLocation() async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config != null && config.downloadLocation.isNotEmpty) {
+      _currentDownloadLocation = config.downloadLocation;
+    } else {
+      _currentDownloadLocation = await _getSystemDownloadDirectory();
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<String?> _getSystemDownloadDirectory() async {
+    if (Platform.isWindows) {
+      // Windows: Use user's Downloads folder
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null) {
+        return p.join(userProfile, 'Downloads');
+      }
+    } else if (Platform.isLinux) {
+      final home = Platform.environment['HOME'];
+      if (home != null) {
+        return p.join(home, 'Downloads');
+      }
+    } else if (Platform.isMacOS) {
+      final home = Platform.environment['HOME'];
+      if (home != null) {
+        return p.join(home, 'Downloads');
+      }
+    } else if (Platform.isAndroid) {
+      // On Android, use external storage Downloads or app's external storage
+      final dir = await getExternalStorageDirectory();
+      return dir?.path;
+    }
+    // Fallback to app documents directory
+    final dir = await getApplicationDocumentsDirectory();
+    return dir.path;
+  }
+
+  Future<void> _openDownloadLocation() async {
+    if (_currentDownloadLocation == null) return;
+
+    try {
+      if (Platform.isWindows) {
+        await Process.run('explorer', [_currentDownloadLocation!]);
+      } else if (Platform.isMacOS) {
+        await Process.run('open', [_currentDownloadLocation!]);
+      } else if (Platform.isLinux) {
+        await Process.run('xdg-open', [_currentDownloadLocation!]);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Open folder not supported on this platform')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open folder: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -44,6 +111,17 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final isConfigured = ref.watch(isConfiguredProvider);
     final connectionStatus = ref.watch(connectionStatusProvider);
     final fileListState = ref.watch(fileListProvider);
+    final config = ref.watch(configProvider).valueOrNull;
+
+    // Update download location if config changed
+    if (config != null) {
+      final configLocation = config.downloadLocation.isNotEmpty
+          ? config.downloadLocation
+          : null;
+      if (configLocation != null && configLocation != _currentDownloadLocation) {
+        _currentDownloadLocation = configLocation;
+      }
+    }
 
     final isConnected = connectionStatus.state == WebDavConnectionState.connected;
     final canOperate = isConfigured && isConnected;
@@ -52,6 +130,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       appBar: AppBar(
         title: const Text('File Depot'),
         actions: [
+          // Open download folder button
+          if (_currentDownloadLocation != null)
+            IconButton(
+              onPressed: _openDownloadLocation,
+              icon: const Icon(Icons.folder_open),
+              tooltip: 'Open download folder',
+            ),
           IconButton(
             onPressed: canOperate && !fileListState.isLoading
                 ? () => ref.read(fileListProvider.notifier).refresh()
@@ -467,22 +552,22 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
   Future<void> _downloadFile(RemoteFile file) async {
     try {
-      // Get download directory
+      // Use configured download location or system default
       String? downloadPath;
 
-      if (Platform.isAndroid) {
-        // On Android, use Downloads directory or app's external storage
+      if (_currentDownloadLocation != null) {
+        // Ensure download directory exists
+        final downloadDir = Directory(_currentDownloadLocation!);
+        if (!await downloadDir.exists()) {
+          await downloadDir.create(recursive: true);
+        }
+        downloadPath = p.join(_currentDownloadLocation!, file.name);
+      } else if (Platform.isAndroid) {
+        // Fallback for Android
         final dir = await getExternalStorageDirectory();
         if (dir != null) {
           downloadPath = p.join(dir.path, file.name);
         }
-      } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-        // On desktop, let user choose save location
-        final result = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save file',
-          fileName: file.name,
-        );
-        downloadPath = result;
       } else {
         // Fallback to app documents directory
         final dir = await getApplicationDocumentsDirectory();
@@ -515,9 +600,14 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         if (downloadResult.isSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Downloaded to: $downloadPath'),
+              content: Text('Downloaded: ${file.name}'),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 4),
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Open folder',
+                textColor: Colors.white,
+                onPressed: _openDownloadLocation,
+              ),
             ),
           );
         } else {
