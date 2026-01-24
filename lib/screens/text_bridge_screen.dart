@@ -72,6 +72,16 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       appBar: AppBar(
         title: const Text('Text Bridge'),
         actions: [
+          // Status indicator in app bar (left of auto-pull button)
+          if (bufferState.isLoading || bufferState.isSaving || autoPullState.isPolling)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
           // Auto-pull toggle
           if (canSync)
             IconButton(
@@ -83,16 +93,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     : null,
               ),
               tooltip: autoPullState.isEnabled ? 'Auto-pull ON' : 'Auto-pull OFF',
-            ),
-          // Status indicator in app bar
-          if (bufferState.isLoading || bufferState.isSaving || autoPullState.isPolling)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
             ),
         ],
       ),
@@ -337,40 +337,58 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Future<void> _pullFromRemote() async {
-    final success = await ref.read(bufferProvider.notifier).pullFromRemote();
+    // Pause auto-pull during manual pull
+    ref.read(autoPullProvider.notifier).pause();
 
-    if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Text pulled from server'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+    try {
+      final success = await ref.read(bufferProvider.notifier).pullFromRemote();
+
+      if (mounted) {
+        if (success) {
+          // Update auto-pull's last modified time to prevent re-downloading
+          ref.read(autoPullProvider.notifier).updateLastModifiedTime(DateTime.now());
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Text pulled from server'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        // Error is already shown in the UI
       }
-      // Error is already shown in the UI
+    } finally {
+      // Resume auto-pull
+      ref.read(autoPullProvider.notifier).resume();
     }
   }
 
   Future<void> _pushToRemote() async {
-    final success = await ref.read(bufferProvider.notifier).pushToRemote(
-      _textController.text,
-    );
+    // Pause auto-pull during push
+    ref.read(autoPullProvider.notifier).pause();
 
-    if (mounted) {
-      if (success) {
-        // Update auto-pull's last modified time to prevent re-downloading
-        ref.read(autoPullProvider.notifier).updateLastModifiedTime(DateTime.now());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Text pushed to server'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+    try {
+      final success = await ref.read(bufferProvider.notifier).pushToRemote(
+        _textController.text,
+      );
+
+      if (mounted) {
+        if (success) {
+          // Update auto-pull's last modified time to prevent re-downloading
+          ref.read(autoPullProvider.notifier).updateLastModifiedTime(DateTime.now());
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Text pushed to server'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        // Error is already shown in the UI
       }
-      // Error is already shown in the UI
+    } finally {
+      // Resume auto-pull
+      ref.read(autoPullProvider.notifier).resume();
     }
   }
 

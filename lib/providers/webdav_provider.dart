@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_config.dart';
 import '../services/webdav_service.dart';
@@ -342,7 +341,8 @@ class AutoPullState {
 class AutoPullNotifier extends StateNotifier<AutoPullState> {
   final WebDavService _service;
   final Ref _ref;
-  Timer? _pollTimer;
+  bool _isRunning = false;
+  bool _isPaused = false;
   int _refreshIntervalSeconds = 3;
 
   AutoPullNotifier(this._service, this._ref) : super(const AutoPullState());
@@ -356,7 +356,7 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
 
   /// Disable auto-pull.
   void disable() {
-    _stopPolling();
+    _isRunning = false;
     state = state.copyWith(isEnabled: false, isPolling: false);
   }
 
@@ -369,33 +369,43 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
     }
   }
 
-  /// Update refresh interval (restarts polling if enabled).
+  /// Pause auto-pull temporarily (during manual push/pull).
+  void pause() {
+    _isPaused = true;
+  }
+
+  /// Resume auto-pull after pause.
+  void resume() {
+    _isPaused = false;
+  }
+
+  /// Update refresh interval.
   void updateRefreshInterval(int seconds) {
     _refreshIntervalSeconds = seconds;
-    if (state.isEnabled) {
-      _stopPolling();
-      _startPolling();
-    }
   }
 
   void _startPolling() {
-    _stopPolling();
-    // Do an immediate check
-    _checkForUpdates();
-    // Then start periodic polling
-    _pollTimer = Timer.periodic(
-      Duration(seconds: _refreshIntervalSeconds),
-      (_) => _checkForUpdates(),
-    );
+    if (_isRunning) return;
+    _isRunning = true;
+    _pollLoop();
   }
 
-  void _stopPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
+  Future<void> _pollLoop() async {
+    while (_isRunning && mounted) {
+      // Skip check if paused
+      if (!_isPaused) {
+        await _checkForUpdates();
+      }
+
+      // Wait for interval AFTER the request completes
+      if (_isRunning && mounted) {
+        await Future.delayed(Duration(seconds: _refreshIntervalSeconds));
+      }
+    }
   }
 
   Future<void> _checkForUpdates() async {
-    if (!mounted) return;
+    if (!mounted || _isPaused) return;
 
     state = state.copyWith(isPolling: true);
 
@@ -414,7 +424,7 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
       );
 
       // If server has newer content, pull it
-      if (serverModTime != null) {
+      if (serverModTime != null && !_isPaused) {
         if (lastKnownModTime == null || serverModTime.isAfter(lastKnownModTime)) {
           // Update last modified time first to prevent duplicate pulls
           state = state.copyWith(lastModifiedTime: serverModTime);
@@ -438,7 +448,7 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
 
   @override
   void dispose() {
-    _stopPolling();
+    _isRunning = false;
     super.dispose();
   }
 }
