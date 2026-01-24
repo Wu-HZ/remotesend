@@ -171,6 +171,36 @@ class WebDavService {
     }
   }
 
+  /// Get the last modification time of the buffer file.
+  Future<WebDavResult<DateTime?>> getBufferModifiedTime() async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      // Read directory to get file metadata
+      final files = await _client!.readDir(_remoteSendFolder);
+      final bufferFile = files.firstWhere(
+        (f) => f.path == _bufferFile || f.name == 'buffer.txt',
+        orElse: () => throw const WebDavNotFoundException(
+          message: 'Buffer file not found',
+        ),
+      );
+      return WebDavResult.success(bufferFile.mTime);
+    } on WebDavException catch (e) {
+      return WebDavResult.failure(e);
+    } on DioException catch (e) {
+      if (_isNotFound(e)) {
+        return const WebDavResult.success(null);
+      }
+      return WebDavResult.failure(_mapException(e));
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
   /// List files in the Files folder.
   Future<WebDavResult<List<RemoteFile>>> listFiles() async {
     if (_client == null) {

@@ -15,6 +15,7 @@ class TextBridgeScreen extends ConsumerStatefulWidget {
 class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   final _textController = TextEditingController();
   final _focusNode = FocusNode();
+  bool _isUpdatingFromBuffer = false;
 
   @override
   void initState() {
@@ -32,8 +33,21 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   void _onTextChanged() {
+    // Avoid feedback loop when updating from buffer
+    if (_isUpdatingFromBuffer) return;
     // Update local buffer state without syncing
     ref.read(bufferProvider.notifier).updateLocalContent(_textController.text);
+  }
+
+  void _syncFromBuffer(String content) {
+    if (_textController.text != content && !_focusNode.hasFocus) {
+      _isUpdatingFromBuffer = true;
+      _textController.text = content;
+      _textController.selection = TextSelection.collapsed(
+        offset: content.length,
+      );
+      _isUpdatingFromBuffer = false;
+    }
   }
 
   @override
@@ -41,14 +55,15 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final isConfigured = ref.watch(isConfiguredProvider);
     final connectionStatus = ref.watch(connectionStatusProvider);
     final bufferState = ref.watch(bufferProvider);
+    final autoPullState = ref.watch(autoPullProvider);
+    final config = ref.watch(configProvider).valueOrNull;
 
-    // Sync controller with buffer state when it changes externally
-    if (_textController.text != bufferState.content && !_focusNode.hasFocus) {
-      _textController.text = bufferState.content;
-      _textController.selection = TextSelection.collapsed(
-        offset: bufferState.content.length,
-      );
-    }
+    // Listen for buffer changes and sync to text controller
+    ref.listen<BufferState>(bufferProvider, (previous, next) {
+      if (previous?.content != next.content) {
+        _syncFromBuffer(next.content);
+      }
+    });
 
     final isConnected = connectionStatus.state == WebDavConnectionState.connected;
     final canSync = isConfigured && isConnected;
@@ -57,8 +72,20 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       appBar: AppBar(
         title: const Text('Text Bridge'),
         actions: [
+          // Auto-pull toggle
+          if (canSync)
+            IconButton(
+              onPressed: () => _toggleAutoPull(config?.refreshIntervalSeconds ?? 3),
+              icon: Icon(
+                autoPullState.isEnabled ? Icons.sync : Icons.sync_disabled,
+                color: autoPullState.isEnabled
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
+              tooltip: autoPullState.isEnabled ? 'Auto-pull ON' : 'Auto-pull OFF',
+            ),
           // Status indicator in app bar
-          if (bufferState.isLoading || bufferState.isSaving)
+          if (bufferState.isLoading || bufferState.isSaving || autoPullState.isPolling)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
@@ -75,7 +102,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           if (!canSync) _buildWarningBanner(isConfigured, isConnected),
 
           // Status bar
-          _buildStatusBar(bufferState),
+          _buildStatusBar(bufferState, autoPullState),
 
           // Text field
           Expanded(
@@ -102,7 +129,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ),
 
           // Error message
-          if (bufferState.error != null)
+          if (bufferState.error != null || autoPullState.error != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Card(
@@ -115,7 +142,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          bufferState.error!,
+                          bufferState.error ?? autoPullState.error ?? '',
                           style: const TextStyle(color: Colors.red),
                         ),
                       ),
@@ -130,6 +157,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         ],
       ),
     );
+  }
+
+  void _toggleAutoPull(int refreshInterval) {
+    ref.read(autoPullProvider.notifier).toggle(refreshInterval);
   }
 
   Widget _buildWarningBanner(bool isConfigured, bool isConnected) {
@@ -165,7 +196,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildStatusBar(BufferState bufferState) {
+  Widget _buildStatusBar(BufferState bufferState, AutoPullState autoPullState) {
     String statusText;
     IconData statusIcon;
     Color statusColor;
@@ -178,6 +209,21 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       statusText = 'Pushing to server...';
       statusIcon = Icons.cloud_upload;
       statusColor = Colors.blue;
+    } else if (autoPullState.isEnabled) {
+      if (autoPullState.isPolling) {
+        statusText = 'Checking for updates...';
+        statusIcon = Icons.sync;
+        statusColor = Colors.blue;
+      } else if (bufferState.lastSync != null) {
+        final ago = DateTime.now().difference(bufferState.lastSync!);
+        statusText = '${_formatSyncTime(ago)} • Auto-pull ON';
+        statusIcon = Icons.sync;
+        statusColor = Colors.green;
+      } else {
+        statusText = 'Auto-pull ON • Waiting for updates';
+        statusIcon = Icons.sync;
+        statusColor = Colors.green;
+      }
     } else if (bufferState.lastSync != null) {
       final ago = DateTime.now().difference(bufferState.lastSync!);
       statusText = _formatSyncTime(ago);
@@ -314,6 +360,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     if (mounted) {
       if (success) {
+        // Update auto-pull's last modified time to prevent re-downloading
+        ref.read(autoPullProvider.notifier).updateLastModifiedTime(DateTime.now());
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Text pushed to server'),

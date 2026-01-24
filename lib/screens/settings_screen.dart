@@ -21,14 +21,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isSaving = false;
   bool _isTesting = false;
 
-  // Settings placeholders (to be implemented)
-  double _refreshInterval = 3.0; // seconds
+  // Settings
+  late double _refreshInterval;
   bool _autoDownload = false;
   bool _showNotification = true;
 
   @override
   void initState() {
     super.initState();
+    _refreshInterval = 3.0;
     Future.microtask(_loadConfig);
   }
 
@@ -38,6 +39,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _urlController.text = config.serverUrl;
       _usernameController.text = config.username;
       _passwordController.text = config.password;
+      setState(() {
+        _refreshInterval = config.refreshIntervalSeconds.toDouble();
+      });
     }
   }
 
@@ -199,7 +203,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           label: '${_refreshInterval.toInt()}s',
           onChanged: (value) {
             setState(() => _refreshInterval = value);
-            _showComingSoon('Refresh interval');
+          },
+          onChangeEnd: (value) {
+            _saveRefreshInterval(value.toInt());
           },
         ),
         Text(
@@ -452,8 +458,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       username: _usernameController.text.trim(),
       password: _passwordController.text,
       portableMode: currentConfig?.portableMode ?? false,
+      refreshIntervalSeconds: _refreshInterval.toInt(),
     );
     return ref.read(configProvider.notifier).updateConfig(newConfig);
+  }
+
+  Future<void> _saveRefreshInterval(int seconds) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+
+    final newConfig = currentConfig.copyWith(refreshIntervalSeconds: seconds);
+    final success = await ref.read(configProvider.notifier).updateConfig(newConfig);
+
+    if (success) {
+      // Update auto-pull interval if it's running
+      ref.read(autoPullProvider.notifier).updateRefreshInterval(seconds);
+    }
   }
 
   Future<void> _togglePortableMode(bool enable) async {

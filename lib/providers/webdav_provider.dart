@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_config.dart';
 import '../services/webdav_service.dart';
@@ -302,4 +303,149 @@ final fileListProvider =
     StateNotifierProvider<FileListNotifier, FileListState>((ref) {
   final service = ref.watch(webDavServiceProvider);
   return FileListNotifier(service);
+});
+
+/// State for auto-pull functionality.
+class AutoPullState {
+  final bool isEnabled;
+  final bool isPolling;
+  final DateTime? lastModifiedTime;
+  final DateTime? lastCheckTime;
+  final String? error;
+
+  const AutoPullState({
+    this.isEnabled = false,
+    this.isPolling = false,
+    this.lastModifiedTime,
+    this.lastCheckTime,
+    this.error,
+  });
+
+  AutoPullState copyWith({
+    bool? isEnabled,
+    bool? isPolling,
+    DateTime? lastModifiedTime,
+    DateTime? lastCheckTime,
+    String? error,
+  }) {
+    return AutoPullState(
+      isEnabled: isEnabled ?? this.isEnabled,
+      isPolling: isPolling ?? this.isPolling,
+      lastModifiedTime: lastModifiedTime ?? this.lastModifiedTime,
+      lastCheckTime: lastCheckTime ?? this.lastCheckTime,
+      error: error,
+    );
+  }
+}
+
+/// Notifier for auto-pull functionality.
+class AutoPullNotifier extends StateNotifier<AutoPullState> {
+  final WebDavService _service;
+  final Ref _ref;
+  Timer? _pollTimer;
+  int _refreshIntervalSeconds = 3;
+
+  AutoPullNotifier(this._service, this._ref) : super(const AutoPullState());
+
+  /// Enable auto-pull with the specified refresh interval.
+  void enable(int refreshIntervalSeconds) {
+    _refreshIntervalSeconds = refreshIntervalSeconds;
+    state = state.copyWith(isEnabled: true, error: null);
+    _startPolling();
+  }
+
+  /// Disable auto-pull.
+  void disable() {
+    _stopPolling();
+    state = state.copyWith(isEnabled: false, isPolling: false);
+  }
+
+  /// Toggle auto-pull.
+  void toggle(int refreshIntervalSeconds) {
+    if (state.isEnabled) {
+      disable();
+    } else {
+      enable(refreshIntervalSeconds);
+    }
+  }
+
+  /// Update refresh interval (restarts polling if enabled).
+  void updateRefreshInterval(int seconds) {
+    _refreshIntervalSeconds = seconds;
+    if (state.isEnabled) {
+      _stopPolling();
+      _startPolling();
+    }
+  }
+
+  void _startPolling() {
+    _stopPolling();
+    // Do an immediate check
+    _checkForUpdates();
+    // Then start periodic polling
+    _pollTimer = Timer.periodic(
+      Duration(seconds: _refreshIntervalSeconds),
+      (_) => _checkForUpdates(),
+    );
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (!mounted) return;
+
+    state = state.copyWith(isPolling: true);
+
+    final result = await _service.getBufferModifiedTime();
+
+    if (!mounted) return;
+
+    if (result.isSuccess) {
+      final serverModTime = result.data;
+      final lastKnownModTime = state.lastModifiedTime;
+
+      state = state.copyWith(
+        isPolling: false,
+        lastCheckTime: DateTime.now(),
+        error: null,
+      );
+
+      // If server has newer content, pull it
+      if (serverModTime != null) {
+        if (lastKnownModTime == null || serverModTime.isAfter(lastKnownModTime)) {
+          // Update last modified time first to prevent duplicate pulls
+          state = state.copyWith(lastModifiedTime: serverModTime);
+          // Trigger a pull
+          await _ref.read(bufferProvider.notifier).pullFromRemote();
+        }
+      }
+    } else {
+      state = state.copyWith(
+        isPolling: false,
+        lastCheckTime: DateTime.now(),
+        error: result.error?.userMessage,
+      );
+    }
+  }
+
+  /// Update the last modified time (call after pushing to server).
+  void updateLastModifiedTime(DateTime time) {
+    state = state.copyWith(lastModifiedTime: time);
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
+    super.dispose();
+  }
+}
+
+/// Provider for auto-pull state management.
+final autoPullProvider =
+    StateNotifierProvider<AutoPullNotifier, AutoPullState>((ref) {
+  final service = ref.watch(webDavServiceProvider);
+  return AutoPullNotifier(service, ref);
 });

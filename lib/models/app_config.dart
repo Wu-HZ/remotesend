@@ -6,12 +6,14 @@ class AppConfig {
   final String username;
   final String password;
   final bool portableMode;
+  final int refreshIntervalSeconds;
 
   const AppConfig({
     this.serverUrl = '',
     this.username = '',
     this.password = '',
     this.portableMode = false,
+    this.refreshIntervalSeconds = 3,
   });
 
   /// Check if the configuration has valid credentials.
@@ -24,12 +26,14 @@ class AppConfig {
     String? username,
     String? password,
     bool? portableMode,
+    int? refreshIntervalSeconds,
   }) {
     return AppConfig(
       serverUrl: serverUrl ?? this.serverUrl,
       username: username ?? this.username,
       password: password ?? this.password,
       portableMode: portableMode ?? this.portableMode,
+      refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
     );
   }
 
@@ -40,6 +44,7 @@ class AppConfig {
       'username': username,
       'password': password,
       'portableMode': portableMode,
+      'refreshIntervalSeconds': refreshIntervalSeconds,
     };
   }
 
@@ -50,6 +55,7 @@ class AppConfig {
       username: json['username'] as String? ?? '',
       password: json['password'] as String? ?? '',
       portableMode: json['portableMode'] as bool? ?? false,
+      refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
     );
   }
 
@@ -69,12 +75,13 @@ class AppConfig {
         other.serverUrl == serverUrl &&
         other.username == username &&
         other.password == password &&
-        other.portableMode == portableMode;
+        other.portableMode == portableMode &&
+        other.refreshIntervalSeconds == refreshIntervalSeconds;
   }
 
   @override
   int get hashCode {
-    return Object.hash(serverUrl, username, password, portableMode);
+    return Object.hash(serverUrl, username, password, portableMode, refreshIntervalSeconds);
   }
 
   @override
