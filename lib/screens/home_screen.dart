@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/config_provider.dart';
-import 'connection_screen.dart';
 import 'file_depot_screen.dart';
+import 'settings_screen.dart';
 import 'text_bridge_screen.dart';
 
 /// Main home screen with bottom navigation.
@@ -48,7 +48,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       data: (config) {
-        // If not configured, go directly to connection screen
+        // If not configured, go directly to settings screen
         if (!isConfigured && _selectedIndex != 2) {
           Future.microtask(() {
             setState(() => _selectedIndex = 2);
@@ -91,7 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 NavigationRailDestination(
                   icon: Icon(Icons.settings_outlined),
                   selectedIcon: Icon(Icons.settings),
-                  label: Text('Connection'),
+                  label: Text('Settings'),
                 ),
               ],
             ),
@@ -124,7 +124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
-            label: 'Connection',
+            label: 'Settings',
           ),
         ],
       ),
@@ -138,7 +138,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case 1:
         return const FileDepotScreen();
       case 2:
-        return const ConnectionScreen();
+        return const SettingsScreen();
       default:
         return const SizedBox.shrink();
     }
