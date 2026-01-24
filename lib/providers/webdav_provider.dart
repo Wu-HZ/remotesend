@@ -227,25 +227,35 @@ class FileListState {
   final bool isLoading;
   final String? error;
   final DateTime? lastRefresh;
+  final String currentPath; // Current path relative to Files folder (empty = root)
 
   const FileListState({
     this.files = const [],
     this.isLoading = false,
     this.error,
     this.lastRefresh,
+    this.currentPath = '',
   });
+
+  /// Check if we're at the root of Files folder
+  bool get isAtRoot => currentPath.isEmpty;
+
+  /// Get the display name for current path
+  String get currentPathDisplay => currentPath.isEmpty ? 'Files' : currentPath;
 
   FileListState copyWith({
     List<RemoteFile>? files,
     bool? isLoading,
     String? error,
     DateTime? lastRefresh,
+    String? currentPath,
   }) {
     return FileListState(
       files: files ?? this.files,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       lastRefresh: lastRefresh ?? this.lastRefresh,
+      currentPath: currentPath ?? this.currentPath,
     );
   }
 }
@@ -260,11 +270,90 @@ class FileListNotifier extends StateNotifier<FileListState> {
   Future<bool> refresh() async {
     state = state.copyWith(isLoading: true, error: null);
 
+    final result = await _service.listFiles(state.currentPath);
+
+    if (result.isSuccess) {
+      state = state.copyWith(
+        files: result.data ?? [],
+        isLoading: false,
+        lastRefresh: DateTime.now(),
+      );
+      return true;
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error?.userMessage,
+      );
+      return false;
+    }
+  }
+
+  /// Navigate into a folder.
+  Future<bool> navigateToFolder(String folderName) async {
+    final newPath = state.currentPath.isEmpty
+        ? folderName
+        : '${state.currentPath}/$folderName';
+
+    state = state.copyWith(isLoading: true, error: null, currentPath: newPath);
+
+    final result = await _service.listFiles(newPath);
+
+    if (result.isSuccess) {
+      state = state.copyWith(
+        files: result.data ?? [],
+        isLoading: false,
+        lastRefresh: DateTime.now(),
+      );
+      return true;
+    } else {
+      // Revert to previous path on error
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error?.userMessage,
+        currentPath: state.currentPath,
+      );
+      return false;
+    }
+  }
+
+  /// Navigate up one level.
+  Future<bool> navigateUp() async {
+    if (state.isAtRoot) return true;
+
+    final parts = state.currentPath.split('/');
+    parts.removeLast();
+    final newPath = parts.join('/');
+
+    state = state.copyWith(isLoading: true, error: null, currentPath: newPath);
+
+    final result = await _service.listFiles(newPath.isEmpty ? null : newPath);
+
+    if (result.isSuccess) {
+      state = state.copyWith(
+        files: result.data ?? [],
+        isLoading: false,
+        lastRefresh: DateTime.now(),
+      );
+      return true;
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error?.userMessage,
+      );
+      return false;
+    }
+  }
+
+  /// Navigate to root.
+  Future<bool> navigateToRoot() async {
+    state = state.copyWith(isLoading: true, error: null, currentPath: '');
+
     final result = await _service.listFiles();
 
     if (result.isSuccess) {
-      state = FileListState(
+      state = state.copyWith(
         files: result.data ?? [],
+        isLoading: false,
         lastRefresh: DateTime.now(),
       );
       return true;

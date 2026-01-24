@@ -201,8 +201,8 @@ class WebDavService {
     }
   }
 
-  /// List files in the Files folder.
-  Future<WebDavResult<List<RemoteFile>>> listFiles() async {
+  /// List files and folders in the specified path (defaults to Files folder).
+  Future<WebDavResult<List<RemoteFile>>> listFiles([String? subPath]) async {
     if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
@@ -210,9 +210,12 @@ class WebDavService {
     }
 
     try {
-      final files = await _client!.readDir(_filesFolder);
+      final targetPath = subPath != null && subPath.isNotEmpty
+          ? '$_filesFolder/$subPath'
+          : _filesFolder;
+
+      final files = await _client!.readDir(targetPath);
       final result = files
-          .where((f) => !f.isDir!) // Only files, not directories
           .map((f) => RemoteFile(
                 name: f.name ?? 'Unknown',
                 path: f.path ?? '',
@@ -222,8 +225,12 @@ class WebDavService {
               ))
           .toList();
 
-      // Sort by modified time, newest first
+      // Sort: directories first, then by modified time (newest first)
       result.sort((a, b) {
+        // Directories first
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        // Then by modified time
         if (a.modifiedTime == null && b.modifiedTime == null) return 0;
         if (a.modifiedTime == null) return 1;
         if (b.modifiedTime == null) return -1;
@@ -462,6 +469,121 @@ class WebDavService {
     }
   }
 
+  /// Download a file from a specific remote path.
+  Future<WebDavResult<bool>> downloadFileFromPath(
+    String remotePath,
+    String localPath, {
+    void Function(double progress)? onProgress,
+  }) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      await _client!.read2File(
+        remotePath,
+        localPath,
+        onProgress: onProgress != null
+            ? (count, total) => onProgress(count / total)
+            : null,
+      );
+
+      return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Download a folder and all its contents from the Files folder.
+  ///
+  /// [remoteFolderName] - Name of the folder on the server (relative to Files folder).
+  /// [localFolderPath] - Path where to save the folder locally.
+  /// [onProgress] - Callback with (currentFile, totalFiles, fileProgress).
+  /// Returns the number of files downloaded.
+  Future<WebDavResult<int>> downloadFolder(
+    String remoteFolderName,
+    String localFolderPath, {
+    void Function(String fileName, int current, int total, double fileProgress)? onProgress,
+  }) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final remoteFolderPath = '$_filesFolder/$remoteFolderName';
+
+      // Collect all files to download recursively
+      final filesToDownload = <_RemoteFileInfo>[];
+      await _collectFilesRecursively(remoteFolderPath, '', filesToDownload);
+
+      if (filesToDownload.isEmpty) {
+        // Create empty folder locally
+        await Directory(localFolderPath).create(recursive: true);
+        return const WebDavResult.success(0);
+      }
+
+      // Download each file
+      int downloadedCount = 0;
+      for (int i = 0; i < filesToDownload.length; i++) {
+        final fileInfo = filesToDownload[i];
+        final localFilePath = p.join(localFolderPath, fileInfo.relativePath);
+
+        // Ensure parent directory exists
+        final parentDir = Directory(p.dirname(localFilePath));
+        if (!await parentDir.exists()) {
+          await parentDir.create(recursive: true);
+        }
+
+        final result = await downloadFileFromPath(
+          fileInfo.remotePath,
+          localFilePath,
+          onProgress: onProgress != null
+              ? (progress) => onProgress(fileInfo.fileName, i + 1, filesToDownload.length, progress)
+              : null,
+        );
+
+        if (result.isSuccess) {
+          downloadedCount++;
+        }
+      }
+
+      return WebDavResult.success(downloadedCount);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Recursively collect all files in a remote directory.
+  Future<void> _collectFilesRecursively(
+    String remotePath,
+    String relativePath,
+    List<_RemoteFileInfo> files,
+  ) async {
+    final items = await _client!.readDir(remotePath);
+
+    for (final item in items) {
+      final itemName = item.name ?? '';
+      final itemPath = item.path ?? '$remotePath/$itemName';
+      final itemRelativePath = relativePath.isEmpty ? itemName : '$relativePath/$itemName';
+
+      if (item.isDir == true) {
+        // Recursively collect files from subdirectory
+        await _collectFilesRecursively(itemPath, itemRelativePath, files);
+      } else {
+        // Add file to list
+        files.add(_RemoteFileInfo(
+          remotePath: itemPath,
+          relativePath: itemRelativePath,
+          fileName: itemName,
+        ));
+      }
+    }
+  }
+
   // Private helper methods
 
   Future<void> _createDirectoryIfNotExists(String path) async {
@@ -554,4 +676,17 @@ class WebDavService {
       originalError: error,
     );
   }
+}
+
+/// Helper class to store file info for recursive folder operations.
+class _RemoteFileInfo {
+  final String remotePath;
+  final String relativePath;
+  final String fileName;
+
+  _RemoteFileInfo({
+    required this.remotePath,
+    required this.relativePath,
+    required this.fileName,
+  });
 }

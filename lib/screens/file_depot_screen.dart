@@ -130,7 +130,27 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('File Depot'),
+        leading: fileListState.isAtRoot
+            ? null
+            : IconButton(
+                onPressed: () => ref.read(fileListProvider.notifier).navigateUp(),
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Go back',
+              ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('File Depot'),
+            if (!fileListState.isAtRoot)
+              Text(
+                fileListState.currentPathDisplay,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
         actions: [
           // Open download folder button
           if (_currentDownloadLocation != null)
@@ -231,7 +251,15 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final isUpload = _isUploading;
     final fileName = isUpload ? _uploadingFileName : _downloadingFileName;
     final progress = isUpload ? _uploadProgress : _downloadProgress;
-    final isFolderUpload = isUpload && _uploadingFileTotal > 1;
+    final isFolderOperation = _uploadingFileTotal > 1;
+
+    String statusText;
+    if (isFolderOperation) {
+      final action = isUpload ? 'Uploading' : 'Downloading';
+      statusText = '$action: $fileName ($_uploadingFileIndex/$_uploadingFileTotal)';
+    } else {
+      statusText = '${isUpload ? "Uploading" : "Downloading"}: $fileName';
+    }
 
     return Container(
       width: double.infinity,
@@ -250,9 +278,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  isFolderUpload
-                      ? 'Uploading: $fileName ($_uploadingFileIndex/$_uploadingFileTotal)'
-                      : '${isUpload ? "Uploading" : "Downloading"}: $fileName',
+                  statusText,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
@@ -326,7 +352,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No files yet',
+              fileListState.isAtRoot ? 'No files yet' : 'Empty folder',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.outline,
                 fontSize: 16,
@@ -334,7 +360,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap the Upload button to add files',
+              fileListState.isAtRoot
+                  ? 'Tap the File or Folder button to upload'
+                  : 'This folder is empty',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.outline,
               ),
@@ -357,51 +385,105 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   }
 
   Widget _buildFileItem(RemoteFile file) {
-    return ListTile(
-      leading: Icon(_getFileIcon(file.name)),
-      title: Text(
-        file.name,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        _buildSubtitle(file),
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.outline,
-          fontSize: 12,
+    final isDirectory = file.isDirectory;
+
+    return GestureDetector(
+      onSecondaryTapDown: (details) => _showContextMenu(details.globalPosition, file),
+      child: ListTile(
+        leading: Icon(
+          isDirectory ? Icons.folder : _getFileIcon(file.name),
+          color: isDirectory ? Theme.of(context).colorScheme.primary : null,
         ),
-      ),
-      trailing: PopupMenuButton<String>(
-        onSelected: (value) => _handleFileAction(value, file),
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'download',
-            child: Row(
-              children: [
-                Icon(Icons.download),
-                SizedBox(width: 8),
-                Text('Download'),
-              ],
-            ),
+        title: Text(
+          file.name,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          _buildSubtitle(file),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.outline,
+            fontSize: 12,
           ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Delete', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        ],
+        ),
+        trailing: isDirectory
+            ? const Icon(Icons.chevron_right)
+            : PopupMenuButton<String>(
+                onSelected: (value) => _handleFileAction(value, file),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'download',
+                    child: Row(
+                      children: [
+                        Icon(Icons.download),
+                        SizedBox(width: 8),
+                        Text('Download'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Delete', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+        onTap: isDirectory
+            ? () => ref.read(fileListProvider.notifier).navigateToFolder(file.name)
+            : () => _downloadFile(file),
       ),
-      onTap: () => _downloadFile(file),
     );
+  }
+
+  void _showContextMenu(Offset position, RemoteFile file) {
+    final isDirectory = file.isDirectory;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'download',
+          child: Row(
+            children: [
+              const Icon(Icons.download),
+              const SizedBox(width: 8),
+              Text(isDirectory ? 'Download Folder' : 'Download'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Delete', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value != null) {
+        _handleFileAction(value, file);
+      }
+    });
   }
 
   String _buildSubtitle(RemoteFile file) {
     final parts = <String>[];
-    if (file.size != null) {
+    if (file.isDirectory) {
+      parts.add('Folder');
+    } else if (file.size != null) {
       parts.add(file.displaySize);
     }
     if (file.modifiedTime != null) {
@@ -487,7 +569,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   void _handleFileAction(String action, RemoteFile file) {
     switch (action) {
       case 'download':
-        _downloadFile(file);
+        if (file.isDirectory) {
+          _downloadFolder(file);
+        } else {
+          _downloadFile(file);
+        }
         break;
       case 'delete':
         _confirmDelete(file);
@@ -743,6 +829,109 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       setState(() {
         _isDownloading = false;
         _downloadingFileName = null;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadFolder(RemoteFile folder) async {
+    try {
+      // Use configured download location or system default
+      String? downloadBasePath;
+
+      if (_currentDownloadLocation != null) {
+        downloadBasePath = _currentDownloadLocation;
+      } else if (Platform.isAndroid) {
+        final dir = await getExternalStorageDirectory();
+        downloadBasePath = dir?.path;
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        downloadBasePath = dir.path;
+      }
+
+      if (downloadBasePath == null) return;
+
+      // Ensure download directory exists
+      final downloadDir = Directory(downloadBasePath);
+      if (!await downloadDir.exists()) {
+        await downloadDir.create(recursive: true);
+      }
+
+      final localFolderPath = p.join(downloadBasePath, folder.name);
+
+      // Get the current path to build the full remote path
+      final fileListState = ref.read(fileListProvider);
+      final remoteFolderName = fileListState.currentPath.isEmpty
+          ? folder.name
+          : '${fileListState.currentPath}/${folder.name}';
+
+      setState(() {
+        _isDownloading = true;
+        _downloadingFileName = folder.name;
+        _downloadProgress = 0;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
+      });
+
+      final webDavService = ref.read(webDavServiceProvider);
+      final downloadResult = await webDavService.downloadFolder(
+        remoteFolderName,
+        localFolderPath,
+        onProgress: (fileName, current, total, progress) {
+          setState(() {
+            _downloadingFileName = fileName;
+            _uploadingFileIndex = current;
+            _uploadingFileTotal = total;
+            _downloadProgress = progress;
+          });
+        },
+      );
+
+      setState(() {
+        _isDownloading = false;
+        _downloadingFileName = null;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
+      });
+
+      if (mounted) {
+        if (downloadResult.isSuccess) {
+          final count = downloadResult.data ?? 0;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Downloaded folder "${folder.name}" ($count files)'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Open folder',
+                textColor: Colors.white,
+                onPressed: _openDownloadLocation,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(downloadResult.error?.userMessage ?? 'Download failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isDownloading = false;
+        _downloadingFileName = null;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
       });
 
       if (mounted) {
