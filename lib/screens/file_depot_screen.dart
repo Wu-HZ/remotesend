@@ -20,6 +20,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   bool _isUploading = false;
   String? _uploadingFileName;
   double _uploadProgress = 0;
+  int _uploadingFileIndex = 0;
+  int _uploadingFileTotal = 0;
 
   bool _isDownloading = false;
   String? _downloadingFileName;
@@ -170,10 +172,23 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         ],
       ),
       floatingActionButton: canOperate && !_isUploading
-          ? FloatingActionButton.extended(
-              onPressed: _pickAndUploadFile,
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Upload'),
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'folder',
+                  onPressed: _pickAndUploadFolder,
+                  icon: const Icon(Icons.folder),
+                  label: const Text('Folder'),
+                ),
+                const SizedBox(width: 12),
+                FloatingActionButton.extended(
+                  heroTag: 'file',
+                  onPressed: _pickAndUploadFiles,
+                  icon: const Icon(Icons.insert_drive_file),
+                  label: const Text('File'),
+                ),
+              ],
             )
           : null,
     );
@@ -216,6 +231,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final isUpload = _isUploading;
     final fileName = isUpload ? _uploadingFileName : _downloadingFileName;
     final progress = isUpload ? _uploadProgress : _downloadProgress;
+    final isFolderUpload = isUpload && _uploadingFileTotal > 1;
 
     return Container(
       width: double.infinity,
@@ -234,7 +250,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${isUpload ? "Uploading" : "Downloading"}: $fileName',
+                  isFolderUpload
+                      ? 'Uploading: $fileName ($_uploadingFileIndex/$_uploadingFileTotal)'
+                      : '${isUpload ? "Uploading" : "Downloading"}: $fileName',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
@@ -477,17 +495,17 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  Future<void> _pickAndUploadFile() async {
+  Future<void> _pickAndUploadFiles() async {
     try {
-      final result = await FilePicker.platform.pickFiles();
+      final result = await FilePicker.platform.pickFiles(allowMultiple: true);
       if (result == null || result.files.isEmpty) return;
 
-      final file = result.files.first;
-      if (file.path == null) {
+      final files = result.files.where((f) => f.path != null).toList();
+      if (files.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Could not access file'),
+              content: Text('Could not access files'),
               backgroundColor: Colors.red,
             ),
           );
@@ -495,30 +513,130 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         return;
       }
 
+      final totalFiles = files.length;
+
       setState(() {
         _isUploading = true;
-        _uploadingFileName = file.name;
+        _uploadingFileName = files.first.name;
         _uploadProgress = 0;
+        _uploadingFileIndex = 1;
+        _uploadingFileTotal = totalFiles;
       });
 
       final webDavService = ref.read(webDavServiceProvider);
-      final uploadResult = await webDavService.uploadFile(
-        file.path!,
-        onProgress: (progress) {
-          setState(() => _uploadProgress = progress);
+      int successCount = 0;
+
+      for (int i = 0; i < files.length; i++) {
+        final file = files[i];
+
+        setState(() {
+          _uploadingFileName = file.name;
+          _uploadingFileIndex = i + 1;
+          _uploadProgress = 0;
+        });
+
+        final uploadResult = await webDavService.uploadFile(
+          file.path!,
+          onProgress: (progress) {
+            setState(() => _uploadProgress = progress);
+          },
+        );
+
+        if (uploadResult.isSuccess) {
+          successCount++;
+        }
+      }
+
+      setState(() {
+        _isUploading = false;
+        _uploadingFileName = null;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
+      });
+
+      if (mounted) {
+        if (successCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(totalFiles == 1
+                  ? 'Uploaded: ${files.first.name}'
+                  : 'Uploaded $successCount/$totalFiles files'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Refresh file list
+          ref.read(fileListProvider.notifier).refresh();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Upload failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+        _uploadingFileName = null;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickAndUploadFolder() async {
+    try {
+      final folderPath = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Select folder to upload',
+      );
+      if (folderPath == null) return;
+
+      final folderName = p.basename(folderPath);
+
+      setState(() {
+        _isUploading = true;
+        _uploadingFileName = folderName;
+        _uploadProgress = 0;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
+      });
+
+      final webDavService = ref.read(webDavServiceProvider);
+      final uploadResult = await webDavService.uploadFolder(
+        folderPath,
+        onProgress: (fileName, current, total, progress) {
+          setState(() {
+            _uploadingFileName = fileName;
+            _uploadingFileIndex = current;
+            _uploadingFileTotal = total;
+            _uploadProgress = progress;
+          });
         },
       );
 
       setState(() {
         _isUploading = false;
         _uploadingFileName = null;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
       });
 
       if (mounted) {
         if (uploadResult.isSuccess) {
+          final count = uploadResult.data ?? 0;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Uploaded: ${file.name}'),
+              content: Text('Uploaded folder "$folderName" ($count files)'),
               backgroundColor: Colors.green,
             ),
           );
@@ -537,6 +655,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       setState(() {
         _isUploading = false;
         _uploadingFileName = null;
+        _uploadingFileIndex = 0;
+        _uploadingFileTotal = 0;
       });
 
       if (mounted) {

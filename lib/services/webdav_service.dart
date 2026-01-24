@@ -283,6 +283,135 @@ class WebDavService {
     }
   }
 
+  /// Create a directory on the server.
+  Future<WebDavResult<bool>> createRemoteDirectory(String remotePath) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      await _client!.mkdir(remotePath);
+      return const WebDavResult.success(true);
+    } on DioException catch (e) {
+      // Directory might already exist (405 Method Not Allowed)
+      if (e.response?.statusCode == 405) {
+        return const WebDavResult.success(true);
+      }
+      return WebDavResult.failure(_mapException(e));
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Upload a file to a specific remote path (supports subdirectories).
+  Future<WebDavResult<bool>> uploadFileToPath(
+    String localPath,
+    String remotePath, {
+    void Function(double progress)? onProgress,
+  }) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final file = File(localPath);
+      if (!await file.exists()) {
+        return const WebDavResult.failure(
+          WebDavNotFoundException(message: 'Local file not found'),
+        );
+      }
+
+      await _client!.writeFromFile(
+        localPath,
+        remotePath,
+        onProgress: onProgress != null
+            ? (count, total) => onProgress(count / total)
+            : null,
+      );
+
+      return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Upload a folder and all its contents to the Files folder.
+  ///
+  /// [localFolderPath] - Path to the local folder.
+  /// [onProgress] - Callback with (currentFile, totalFiles, fileProgress).
+  /// Returns the number of files uploaded.
+  Future<WebDavResult<int>> uploadFolder(
+    String localFolderPath, {
+    void Function(String fileName, int current, int total, double fileProgress)? onProgress,
+  }) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final localFolder = Directory(localFolderPath);
+      if (!await localFolder.exists()) {
+        return const WebDavResult.failure(
+          WebDavNotFoundException(message: 'Local folder not found'),
+        );
+      }
+
+      final folderName = p.basename(localFolderPath);
+      final remoteFolderPath = '$_filesFolder/$folderName';
+
+      // Create root folder on server
+      await createRemoteDirectory(remoteFolderPath);
+
+      // Collect all files to upload
+      final files = <File>[];
+      final relativePaths = <String>[];
+
+      await for (final entity in localFolder.list(recursive: true)) {
+        if (entity is File) {
+          files.add(entity);
+          // Get path relative to the source folder
+          final relativePath = p.relative(entity.path, from: localFolderPath);
+          relativePaths.add(relativePath);
+        } else if (entity is Directory) {
+          // Create directory on server
+          final relativePath = p.relative(entity.path, from: localFolderPath);
+          final remoteDir = '$remoteFolderPath/$relativePath'.replaceAll('\\', '/');
+          await createRemoteDirectory(remoteDir);
+        }
+      }
+
+      // Upload each file
+      int uploadedCount = 0;
+      for (int i = 0; i < files.length; i++) {
+        final file = files[i];
+        final relativePath = relativePaths[i].replaceAll('\\', '/');
+        final remoteFilePath = '$remoteFolderPath/$relativePath';
+
+        final result = await uploadFileToPath(
+          file.path,
+          remoteFilePath,
+          onProgress: onProgress != null
+              ? (progress) => onProgress(p.basename(file.path), i + 1, files.length, progress)
+              : null,
+        );
+
+        if (result.isSuccess) {
+          uploadedCount++;
+        }
+      }
+
+      return WebDavResult.success(uploadedCount);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
   /// Download a file from the Files folder.
   ///
   /// [remoteName] - Name of the file on the server.
