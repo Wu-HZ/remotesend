@@ -423,11 +423,11 @@ class WebDavService {
   ///
   /// [remoteName] - Name of the file on the server.
   /// [localPath] - Path where to save the file locally.
-  /// [onProgress] - Optional callback for download progress (0.0 to 1.0).
+  /// [onProgress] - Optional callback for download progress with (downloaded, total) bytes.
   Future<WebDavResult<bool>> downloadFile(
     String remoteName,
     String localPath, {
-    void Function(double progress)? onProgress,
+    void Function(int downloaded, int total)? onProgress,
   }) async {
     if (_client == null) {
       return const WebDavResult.failure(
@@ -441,9 +441,7 @@ class WebDavService {
       await _client!.read2File(
         remotePath,
         localPath,
-        onProgress: onProgress != null
-            ? (count, total) => onProgress(count / total)
-            : null,
+        onProgress: onProgress,
       );
 
       return const WebDavResult.success(true);
@@ -473,7 +471,7 @@ class WebDavService {
   Future<WebDavResult<bool>> downloadFileFromPath(
     String remotePath,
     String localPath, {
-    void Function(double progress)? onProgress,
+    void Function(int downloaded, int total)? onProgress,
   }) async {
     if (_client == null) {
       return const WebDavResult.failure(
@@ -485,9 +483,7 @@ class WebDavService {
       await _client!.read2File(
         remotePath,
         localPath,
-        onProgress: onProgress != null
-            ? (count, total) => onProgress(count / total)
-            : null,
+        onProgress: onProgress,
       );
 
       return const WebDavResult.success(true);
@@ -500,12 +496,14 @@ class WebDavService {
   ///
   /// [remoteFolderName] - Name of the folder on the server (relative to Files folder).
   /// [localFolderPath] - Path where to save the folder locally.
-  /// [onProgress] - Callback with (currentFile, totalFiles, fileProgress).
+  /// [onFilesCollected] - Callback with list of files to download before starting.
+  /// [onProgress] - Callback with (fileName, currentFileIndex, totalFiles, downloadedBytes, totalBytes).
   /// Returns the number of files downloaded.
   Future<WebDavResult<int>> downloadFolder(
     String remoteFolderName,
     String localFolderPath, {
-    void Function(String fileName, int current, int total, double fileProgress)? onProgress,
+    void Function(List<RemoteFileInfo> files)? onFilesCollected,
+    void Function(String fileName, int current, int total, int downloadedBytes, int totalBytes)? onProgress,
   }) async {
     if (_client == null) {
       return const WebDavResult.failure(
@@ -517,8 +515,11 @@ class WebDavService {
       final remoteFolderPath = '$_filesFolder/$remoteFolderName';
 
       // Collect all files to download recursively
-      final filesToDownload = <_RemoteFileInfo>[];
+      final filesToDownload = <RemoteFileInfo>[];
       await _collectFilesRecursively(remoteFolderPath, '', filesToDownload);
+
+      // Notify about files collected
+      onFilesCollected?.call(filesToDownload);
 
       if (filesToDownload.isEmpty) {
         // Create empty folder locally
@@ -542,7 +543,7 @@ class WebDavService {
           fileInfo.remotePath,
           localFilePath,
           onProgress: onProgress != null
-              ? (progress) => onProgress(fileInfo.fileName, i + 1, filesToDownload.length, progress)
+              ? (downloaded, total) => onProgress(fileInfo.fileName, i + 1, filesToDownload.length, downloaded, total)
               : null,
         );
 
@@ -561,7 +562,7 @@ class WebDavService {
   Future<void> _collectFilesRecursively(
     String remotePath,
     String relativePath,
-    List<_RemoteFileInfo> files,
+    List<RemoteFileInfo> files,
   ) async {
     final items = await _client!.readDir(remotePath);
 
@@ -575,10 +576,11 @@ class WebDavService {
         await _collectFilesRecursively(itemPath, itemRelativePath, files);
       } else {
         // Add file to list
-        files.add(_RemoteFileInfo(
+        files.add(RemoteFileInfo(
           remotePath: itemPath,
           relativePath: itemRelativePath,
           fileName: itemName,
+          fileSize: item.size ?? 0,
         ));
       }
     }
@@ -679,14 +681,16 @@ class WebDavService {
 }
 
 /// Helper class to store file info for recursive folder operations.
-class _RemoteFileInfo {
+class RemoteFileInfo {
   final String remotePath;
   final String relativePath;
   final String fileName;
+  final int fileSize;
 
-  _RemoteFileInfo({
+  RemoteFileInfo({
     required this.remotePath,
     required this.relativePath,
     required this.fileName,
+    required this.fileSize,
   });
 }

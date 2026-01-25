@@ -7,8 +7,9 @@ import 'package:path/path.dart' as p;
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/upload_queue_provider.dart';
+import '../providers/download_state_provider.dart';
 import '../services/webdav_service.dart';
-import 'upload_queue_screen.dart';
+import 'transfer_queue_screen.dart';
 
 /// File Depot screen for uploading and downloading files via WebDAV.
 class FileDepotScreen extends ConsumerStatefulWidget {
@@ -19,13 +20,6 @@ class FileDepotScreen extends ConsumerStatefulWidget {
 }
 
 class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
-  // Download state (uploads are now handled by the queue provider)
-  bool _isDownloading = false;
-  String? _downloadingFileName;
-  double _downloadProgress = 0;
-  int _downloadingFileIndex = 0;
-  int _downloadingFileTotal = 0;
-
   String? _currentDownloadLocation;
 
   @override
@@ -248,24 +242,29 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
   Widget _buildStatusIndicator() {
     final queueState = ref.watch(uploadQueueProvider);
+    final downloadState = ref.watch(downloadStateProvider);
     final isUploading = queueState.isProcessing;
-    final isActive = isUploading || _isDownloading;
+    final isDownloading = downloadState.isDownloading;
+    final isActive = isUploading || isDownloading;
 
     // Determine status text and icon
     String statusText;
     IconData statusIcon;
     double progress;
+    String? speedText;
 
-    if (_isDownloading) {
+    if (isDownloading) {
       // Download takes priority in display
-      final isFolderDownload = _downloadingFileTotal > 1;
-      if (isFolderDownload) {
-        statusText = 'Downloading: $_downloadingFileName ($_downloadingFileIndex/$_downloadingFileTotal)';
+      if (downloadState.isFolderDownload) {
+        statusText = 'Downloading: ${downloadState.fileName} (${downloadState.currentFileIndex}/${downloadState.totalFiles})';
       } else {
-        statusText = 'Downloading: $_downloadingFileName';
+        statusText = 'Downloading: ${downloadState.fileName}';
       }
       statusIcon = Icons.download;
-      progress = _downloadProgress;
+      progress = downloadState.progress;
+      if (downloadState.currentSpeed > 0) {
+        speedText = downloadState.displaySpeed;
+      }
     } else if (isUploading) {
       final currentItem = queueState.currentItem;
       if (currentItem != null) {
@@ -276,6 +275,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         progress = queueState.overallProgress;
       }
       statusIcon = Icons.upload;
+      if (queueState.currentSpeed > 0) {
+        speedText = queueState.displaySpeed;
+      }
     } else if (queueState.items.isNotEmpty) {
       statusText = '${queueState.completedCount}/${queueState.items.length} files uploaded';
       statusIcon = Icons.check_circle;
@@ -290,7 +292,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const UploadQueueScreen()),
+          MaterialPageRoute(builder: (context) => const TransferQueueScreen()),
         );
       },
       child: Container(
@@ -325,11 +327,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                   ),
                 ),
                 if (isActive) ...[
-                  if (isUploading && queueState.currentSpeed > 0)
+                  if (speedText != null)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: Text(
-                        queueState.displaySpeed,
+                        speedText,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimaryContainer,
                           fontSize: 12,
@@ -744,28 +746,15 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
       if (downloadPath == null) return;
 
-      setState(() {
-        _isDownloading = true;
-        _downloadingFileName = file.name;
-        _downloadProgress = 0;
-      });
-
-      final webDavService = ref.read(webDavServiceProvider);
-      final downloadResult = await webDavService.downloadFile(
-        file.name,
-        downloadPath,
-        onProgress: (progress) {
-          setState(() => _downloadProgress = progress);
-        },
+      // Use the download provider
+      final success = await ref.read(downloadStateProvider.notifier).downloadFile(
+        remoteName: file.name,
+        localPath: downloadPath,
+        fileSize: file.size,
       );
 
-      setState(() {
-        _isDownloading = false;
-        _downloadingFileName = null;
-      });
-
       if (mounted) {
-        if (downloadResult.isSuccess) {
+        if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Downloaded: ${file.name}'),
@@ -779,20 +768,16 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             ),
           );
         } else {
+          final error = ref.read(downloadStateProvider).error;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(downloadResult.error?.userMessage ?? 'Download failed'),
+              content: Text(error ?? 'Download failed'),
               backgroundColor: Colors.red,
             ),
           );
         }
       }
     } catch (e) {
-      setState(() {
-        _isDownloading = false;
-        _downloadingFileName = null;
-      });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -835,34 +820,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           ? folder.name
           : '${fileListState.currentPath}/${folder.name}';
 
-      setState(() {
-        _isDownloading = true;
-        _downloadingFileName = folder.name;
-        _downloadProgress = 0;
-        _downloadingFileIndex = 0;
-        _downloadingFileTotal = 0;
-      });
-
-      final webDavService = ref.read(webDavServiceProvider);
-      final downloadResult = await webDavService.downloadFolder(
-        remoteFolderName,
-        localFolderPath,
-        onProgress: (fileName, current, total, progress) {
-          setState(() {
-            _downloadingFileName = fileName;
-            _downloadingFileIndex = current;
-            _downloadingFileTotal = total;
-            _downloadProgress = progress;
-          });
-        },
+      // Use the download provider
+      final downloadResult = await ref.read(downloadStateProvider.notifier).downloadFolder(
+        remoteFolderName: remoteFolderName,
+        localFolderPath: localFolderPath,
       );
-
-      setState(() {
-        _isDownloading = false;
-        _downloadingFileName = null;
-        _downloadingFileIndex = 0;
-        _downloadingFileTotal = 0;
-      });
 
       if (mounted) {
         if (downloadResult.isSuccess) {
@@ -889,13 +851,6 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         }
       }
     } catch (e) {
-      setState(() {
-        _isDownloading = false;
-        _downloadingFileName = null;
-        _downloadingFileIndex = 0;
-        _downloadingFileTotal = 0;
-      });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
