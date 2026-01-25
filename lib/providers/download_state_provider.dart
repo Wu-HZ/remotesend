@@ -401,8 +401,11 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
         ? now.difference(_lastSpeedUpdateTime!).inMilliseconds
         : 0;
 
+    // Use totalBytes from callback only if valid, otherwise keep existing state value
+    final effectiveTotalBytes = totalBytes > 0 ? totalBytes : state.totalBytes;
+
     // Calculate progress
-    final progress = totalBytes > 0 ? downloadedBytes / totalBytes : 0.0;
+    final progress = effectiveTotalBytes > 0 ? downloadedBytes / effectiveTotalBytes : 0.0;
 
     // Update item progress
     final updatedItems = state.items.map((i) {
@@ -421,14 +424,14 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
         state = state.copyWith(
           progress: progress,
           currentSpeed: speed,
-          totalBytes: totalBytes,
+          totalBytes: effectiveTotalBytes,
           downloadedBytes: downloadedBytes,
           items: updatedItems,
         );
       } else {
         state = state.copyWith(
           progress: progress,
-          totalBytes: totalBytes,
+          totalBytes: effectiveTotalBytes,
           downloadedBytes: downloadedBytes,
           items: updatedItems,
         );
@@ -439,7 +442,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
       // Just update progress without speed calculation
       state = state.copyWith(
         progress: progress,
-        totalBytes: totalBytes,
+        totalBytes: effectiveTotalBytes,
         downloadedBytes: downloadedBytes,
         items: updatedItems,
       );
