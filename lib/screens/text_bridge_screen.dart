@@ -20,6 +20,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   bool _initialized = false;
+  final Set<String> _pendingDeletions = {};
 
   // URL regex pattern
   static final _urlRegex = RegExp(
@@ -267,6 +268,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Future<void> _manualRefresh() async {
+    // Clear pending deletions on refresh (undo)
+    setState(() {
+      _pendingDeletions.clear();
+    });
     await ref.read(messageHistoryProvider.notifier).refresh();
   }
 
@@ -339,12 +344,17 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Widget _buildMessageList(List<TextMessage> messages, String localName) {
+    // Filter out pending deletions
+    final visibleMessages = messages
+        .where((m) => !_pendingDeletions.contains(m.id))
+        .toList();
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: messages.length,
+      itemCount: visibleMessages.length,
       itemBuilder: (context, index) {
-        return _buildMessageBubble(messages[index], localName);
+        return _buildMessageBubble(visibleMessages[index], localName);
       },
     );
   }
@@ -372,6 +382,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           Flexible(
             child: GestureDetector(
               onTap: () => _copyMessage(message.content),
+              onLongPress: () => _markForDeletion(message),
               child: Container(
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -491,6 +502,26 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
+  void _markForDeletion(TextMessage message) {
+    setState(() {
+      _pendingDeletions.add(message.id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Message marked for deletion'),
+        duration: const Duration(seconds: 2),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            setState(() {
+              _pendingDeletions.remove(message.id);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     try {
@@ -556,7 +587,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           const SizedBox(width: 8),
           // Send button
           FloatingActionButton.small(
-            onPressed: canSync && !isSending && _textController.text.trim().isNotEmpty
+            onPressed: canSync && !isSending && (_textController.text.trim().isNotEmpty || _pendingDeletions.isNotEmpty)
                 ? _sendMessage
                 : null,
             elevation: 0,
@@ -575,10 +606,27 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
-    if (text.isEmpty) return;
+    final hasPendingDeletions = _pendingDeletions.isNotEmpty;
+
+    if (text.isEmpty && !hasPendingDeletions) return;
 
     _textController.clear();
-    await ref.read(messageHistoryProvider.notifier).sendMessage(text);
+
+    // First, sync pending deletions
+    if (hasPendingDeletions) {
+      final deleteSuccess = await ref.read(messageHistoryProvider.notifier).deleteMessages(_pendingDeletions);
+      if (deleteSuccess) {
+        setState(() {
+          _pendingDeletions.clear();
+        });
+      }
+    }
+
+    // Then, send new message if any
+    if (text.isNotEmpty) {
+      await ref.read(messageHistoryProvider.notifier).sendMessage(text);
+    }
+
     _focusNode.requestFocus();
   }
 }

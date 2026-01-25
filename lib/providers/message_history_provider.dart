@@ -201,6 +201,61 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  /// Delete messages by IDs and sync to WebDAV.
+  Future<bool> deleteMessages(Set<String> messageIds) async {
+    if (messageIds.isEmpty) return true;
+
+    final today = _getTodayDate();
+    final selectedDate = _ref.read(selectedDateProvider);
+
+    // Only allow deleting from today's messages
+    if (selectedDate != today) return false;
+
+    state = state.copyWith(isSending: true, error: null);
+
+    try {
+      // Read current messages
+      final readResult = await _webDavService.readMessagesFile(today);
+      List<TextMessage> todayMessages = [];
+
+      if (readResult.isSuccess) {
+        final jsonContent = readResult.data ?? '[]';
+        final List<dynamic> jsonList = jsonDecode(jsonContent);
+        todayMessages = jsonList
+            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+
+      // Filter out deleted messages
+      todayMessages.removeWhere((m) => messageIds.contains(m.id));
+
+      // Write back to WebDAV
+      final jsonList = todayMessages.map((m) => m.toJson()).toList();
+      final jsonContent = const JsonEncoder.withIndent('  ').convert(jsonList);
+      final writeResult = await _webDavService.writeMessagesFile(today, jsonContent);
+
+      if (writeResult.isSuccess) {
+        state = state.copyWith(
+          messages: todayMessages,
+          isSending: false,
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          isSending: false,
+          error: 'Failed to sync deletions',
+        );
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isSending: false,
+        error: 'Failed to delete: $e',
+      );
+      return false;
+    }
+  }
 }
 
 /// Provider for message history state management.
