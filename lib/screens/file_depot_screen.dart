@@ -6,7 +6,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
+import '../providers/upload_queue_provider.dart';
 import '../services/webdav_service.dart';
+import 'upload_queue_screen.dart';
 
 /// File Depot screen for uploading and downloading files via WebDAV.
 class FileDepotScreen extends ConsumerStatefulWidget {
@@ -17,15 +19,12 @@ class FileDepotScreen extends ConsumerStatefulWidget {
 }
 
 class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
-  bool _isUploading = false;
-  String? _uploadingFileName;
-  double _uploadProgress = 0;
-  int _uploadingFileIndex = 0;
-  int _uploadingFileTotal = 0;
-
+  // Download state (uploads are now handled by the queue provider)
   bool _isDownloading = false;
   String? _downloadingFileName;
   double _downloadProgress = 0;
+  int _downloadingFileIndex = 0;
+  int _downloadingFileTotal = 0;
 
   String? _currentDownloadLocation;
 
@@ -179,8 +178,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           // Connection warning banner
           if (!canOperate) _buildWarningBanner(isConfigured, isConnected),
 
-          // Upload/Download progress indicator
-          if (_isUploading || _isDownloading) _buildProgressIndicator(),
+          // Status indicator (always visible)
+          _buildStatusIndicator(),
 
           // Error message
           if (fileListState.error != null) _buildErrorCard(fileListState.error!),
@@ -191,7 +190,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           ),
         ],
       ),
-      floatingActionButton: canOperate && !_isUploading
+      floatingActionButton: canOperate
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -247,56 +246,120 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildProgressIndicator() {
-    final isUpload = _isUploading;
-    final fileName = isUpload ? _uploadingFileName : _downloadingFileName;
-    final progress = isUpload ? _uploadProgress : _downloadProgress;
-    final isFolderOperation = _uploadingFileTotal > 1;
+  Widget _buildStatusIndicator() {
+    final queueState = ref.watch(uploadQueueProvider);
+    final isUploading = queueState.isProcessing;
+    final isActive = isUploading || _isDownloading;
 
+    // Determine status text and icon
     String statusText;
-    if (isFolderOperation) {
-      final action = isUpload ? 'Uploading' : 'Downloading';
-      statusText = '$action: $fileName ($_uploadingFileIndex/$_uploadingFileTotal)';
+    IconData statusIcon;
+    double progress;
+
+    if (_isDownloading) {
+      // Download takes priority in display
+      final isFolderDownload = _downloadingFileTotal > 1;
+      if (isFolderDownload) {
+        statusText = 'Downloading: $_downloadingFileName ($_downloadingFileIndex/$_downloadingFileTotal)';
+      } else {
+        statusText = 'Downloading: $_downloadingFileName';
+      }
+      statusIcon = Icons.download;
+      progress = _downloadProgress;
+    } else if (isUploading) {
+      final currentItem = queueState.currentItem;
+      if (currentItem != null) {
+        statusText = 'Uploading: ${currentItem.fileName} (${queueState.completedCount + 1}/${queueState.items.length})';
+        progress = queueState.overallProgress;
+      } else {
+        statusText = 'Uploading...';
+        progress = queueState.overallProgress;
+      }
+      statusIcon = Icons.upload;
+    } else if (queueState.items.isNotEmpty) {
+      statusText = '${queueState.completedCount}/${queueState.items.length} files uploaded';
+      statusIcon = Icons.check_circle;
+      progress = 1.0;
     } else {
-      statusText = '${isUpload ? "Uploading" : "Downloading"}: $fileName';
+      statusText = 'Idle';
+      statusIcon = Icons.hourglass_empty;
+      progress = 0;
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isUpload ? Icons.upload : Icons.download,
-                size: 20,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  statusText,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const UploadQueueScreen()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: isActive
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  statusIcon,
+                  size: 20,
+                  color: isActive
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      color: isActive
+                          ? Theme.of(context).colorScheme.onPrimaryContainer
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                '${(progress * 100).toStringAsFixed(0)}%',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
+                if (isActive) ...[
+                  if (isUploading && queueState.currentSpeed > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(
+                        queueState.displaySpeed,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    '${(progress * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: isActive
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-              ),
+              ],
+            ),
+            if (isActive) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: progress),
             ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(value: progress),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -599,76 +662,19 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         return;
       }
 
-      final totalFiles = files.length;
-
-      setState(() {
-        _isUploading = true;
-        _uploadingFileName = files.first.name;
-        _uploadProgress = 0;
-        _uploadingFileIndex = 1;
-        _uploadingFileTotal = totalFiles;
-      });
-
-      final webDavService = ref.read(webDavServiceProvider);
-      int successCount = 0;
-
-      for (int i = 0; i < files.length; i++) {
-        final file = files[i];
-
-        setState(() {
-          _uploadingFileName = file.name;
-          _uploadingFileIndex = i + 1;
-          _uploadProgress = 0;
-        });
-
-        final uploadResult = await webDavService.uploadFile(
-          file.path!,
-          onProgress: (progress) {
-            setState(() => _uploadProgress = progress);
-          },
-        );
-
-        if (uploadResult.isSuccess) {
-          successCount++;
-        }
-      }
-
-      setState(() {
-        _isUploading = false;
-        _uploadingFileName = null;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
-      });
+      // Add files to the upload queue
+      final filePaths = files.map((f) => f.path!).toList();
+      await ref.read(uploadQueueProvider.notifier).addFiles(filePaths);
 
       if (mounted) {
-        if (successCount > 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(totalFiles == 1
-                  ? 'Uploaded: ${files.first.name}'
-                  : 'Uploaded $successCount/$totalFiles files'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          // Refresh file list
-          ref.read(fileListProvider.notifier).refresh();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Upload failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${files.length} file(s) to upload queue'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      setState(() {
-        _isUploading = false;
-        _uploadingFileName = null;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
-      });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -689,62 +695,18 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
       final folderName = p.basename(folderPath);
 
-      setState(() {
-        _isUploading = true;
-        _uploadingFileName = folderName;
-        _uploadProgress = 0;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
-      });
-
-      final webDavService = ref.read(webDavServiceProvider);
-      final uploadResult = await webDavService.uploadFolder(
-        folderPath,
-        onProgress: (fileName, current, total, progress) {
-          setState(() {
-            _uploadingFileName = fileName;
-            _uploadingFileIndex = current;
-            _uploadingFileTotal = total;
-            _uploadProgress = progress;
-          });
-        },
-      );
-
-      setState(() {
-        _isUploading = false;
-        _uploadingFileName = null;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
-      });
+      // Add folder to the upload queue
+      await ref.read(uploadQueueProvider.notifier).addFolder(folderPath);
 
       if (mounted) {
-        if (uploadResult.isSuccess) {
-          final count = uploadResult.data ?? 0;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Uploaded folder "$folderName" ($count files)'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          // Refresh file list
-          ref.read(fileListProvider.notifier).refresh();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(uploadResult.error?.userMessage ?? 'Upload failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added folder "$folderName" to upload queue'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      setState(() {
-        _isUploading = false;
-        _uploadingFileName = null;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
-      });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -877,8 +839,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         _isDownloading = true;
         _downloadingFileName = folder.name;
         _downloadProgress = 0;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
+        _downloadingFileIndex = 0;
+        _downloadingFileTotal = 0;
       });
 
       final webDavService = ref.read(webDavServiceProvider);
@@ -888,8 +850,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         onProgress: (fileName, current, total, progress) {
           setState(() {
             _downloadingFileName = fileName;
-            _uploadingFileIndex = current;
-            _uploadingFileTotal = total;
+            _downloadingFileIndex = current;
+            _downloadingFileTotal = total;
             _downloadProgress = progress;
           });
         },
@@ -898,8 +860,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       setState(() {
         _isDownloading = false;
         _downloadingFileName = null;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
+        _downloadingFileIndex = 0;
+        _downloadingFileTotal = 0;
       });
 
       if (mounted) {
@@ -930,8 +892,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       setState(() {
         _isDownloading = false;
         _downloadingFileName = null;
-        _uploadingFileIndex = 0;
-        _uploadingFileTotal = 0;
+        _downloadingFileIndex = 0;
+        _downloadingFileTotal = 0;
       });
 
       if (mounted) {
