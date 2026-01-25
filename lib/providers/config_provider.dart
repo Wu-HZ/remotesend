@@ -53,8 +53,9 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
     final updatedServers = [...currentConfig.servers, server];
     final newConfig = currentConfig.copyWith(
       servers: updatedServers,
-      // If this is the first server, make it active
-      activeServerId: currentConfig.activeServerId ?? server.id,
+      // If this is the first server, make it active for both text and files
+      activeTextServerId: currentConfig.activeTextServerId ?? server.id,
+      activeFilesServerId: currentConfig.activeFilesServerId ?? server.id,
     );
 
     return updateConfig(newConfig);
@@ -82,24 +83,32 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
         .where((s) => s.id != serverId)
         .toList();
 
-    // If deleting the active server, select another one
-    String? newActiveServerId = currentConfig.activeServerId;
-    if (currentConfig.activeServerId == serverId) {
-      newActiveServerId = updatedServers.isNotEmpty ? updatedServers.first.id : null;
+    // If deleting the active text server, select another one
+    String? newTextServerId = currentConfig.activeTextServerId;
+    if (currentConfig.activeTextServerId == serverId) {
+      newTextServerId = updatedServers.isNotEmpty ? updatedServers.first.id : null;
     }
 
-    final newConfig = newActiveServerId != null
-        ? currentConfig.copyWith(
-            servers: updatedServers,
-            activeServerId: newActiveServerId,
-          )
-        : currentConfig.copyWithNullActiveServer(servers: updatedServers);
+    // If deleting the active files server, select another one
+    String? newFilesServerId = currentConfig.activeFilesServerId;
+    if (currentConfig.activeFilesServerId == serverId) {
+      newFilesServerId = updatedServers.isNotEmpty ? updatedServers.first.id : null;
+    }
+
+    final newConfig = currentConfig.copyWithNullActiveServers(
+      servers: updatedServers,
+      clearText: newTextServerId == null,
+      clearFiles: newFilesServerId == null,
+    ).copyWith(
+      activeTextServerId: newTextServerId,
+      activeFilesServerId: newFilesServerId,
+    );
 
     return updateConfig(newConfig);
   }
 
-  /// Switch to a different active server.
-  Future<bool> switchServer(String serverId) async {
+  /// Switch the active server for Text Bridge.
+  Future<bool> switchTextServer(String serverId) async {
     final currentConfig = state.valueOrNull;
     if (currentConfig == null) return false;
 
@@ -117,7 +126,49 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
 
     final newConfig = currentConfig.copyWith(
       servers: updatedServers,
-      activeServerId: serverId,
+      activeTextServerId: serverId,
+    );
+
+    return updateConfig(newConfig);
+  }
+
+  /// Switch the active server for File Depot.
+  Future<bool> switchFilesServer(String serverId) async {
+    final currentConfig = state.valueOrNull;
+    if (currentConfig == null) return false;
+
+    // Verify the server exists
+    final serverExists = currentConfig.servers.any((s) => s.id == serverId);
+    if (!serverExists) return false;
+
+    // Update lastUsed timestamp for the server
+    final updatedServers = currentConfig.servers.map((s) {
+      if (s.id == serverId) {
+        return s.copyWith(lastUsed: DateTime.now());
+      }
+      return s;
+    }).toList();
+
+    final newConfig = currentConfig.copyWith(
+      servers: updatedServers,
+      activeFilesServerId: serverId,
+    );
+
+    return updateConfig(newConfig);
+  }
+
+  /// Set server for a specific feature (text or files).
+  Future<bool> setServerForFeature(String serverId, {required bool forText, required bool forFiles}) async {
+    final currentConfig = state.valueOrNull;
+    if (currentConfig == null) return false;
+
+    // Verify the server exists
+    final serverExists = currentConfig.servers.any((s) => s.id == serverId);
+    if (!serverExists) return false;
+
+    final newConfig = currentConfig.copyWith(
+      activeTextServerId: forText ? serverId : currentConfig.activeTextServerId,
+      activeFilesServerId: forFiles ? serverId : currentConfig.activeFilesServerId,
     );
 
     return updateConfig(newConfig);
@@ -202,11 +253,43 @@ final serversListProvider = Provider<List<ServerConfig>>((ref) {
   );
 });
 
-/// Provider for the currently active server.
-final activeServerProvider = Provider<ServerConfig?>((ref) {
+/// Provider for the active server for Text Bridge.
+final activeTextServerProvider = Provider<ServerConfig?>((ref) {
   final configAsync = ref.watch(configProvider);
   return configAsync.maybeWhen(
-    data: (config) => config.activeServer,
+    data: (config) => config.activeTextServer,
     orElse: () => null,
+  );
+});
+
+/// Provider for the active server for File Depot.
+final activeFilesServerProvider = Provider<ServerConfig?>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.activeFilesServer,
+    orElse: () => null,
+  );
+});
+
+/// Provider for the currently active server (backward-compatible, defaults to text).
+final activeServerProvider = Provider<ServerConfig?>((ref) {
+  return ref.watch(activeTextServerProvider);
+});
+
+/// Provider to check if text is configured.
+final isTextConfiguredProvider = Provider<bool>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.isTextConfigured,
+    orElse: () => false,
+  );
+});
+
+/// Provider to check if files is configured.
+final isFilesConfiguredProvider = Provider<bool>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.isFilesConfigured,
+    orElse: () => false,
   );
 });

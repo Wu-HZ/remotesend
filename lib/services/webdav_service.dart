@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:path/path.dart' as p;
 import '../models/app_config.dart';
+import '../models/server_config.dart';
 import 'webdav_exceptions.dart';
 
 /// Model for remote file information.
@@ -75,6 +76,35 @@ class WebDavService {
       config.serverUrl,
       user: config.username,
       password: config.password,
+      debug: false,
+    );
+
+    // Set timeouts - generous for large file transfers
+    _client!.setHeaders({'accept-charset': 'utf-8'});
+    _client!.setConnectTimeout(30000); // 30 seconds for connection
+    _client!.setSendTimeout(600000); // 10 minutes for uploads
+    _client!.setReceiveTimeout(600000); // 10 minutes for downloads
+  }
+
+  /// Initialize the WebDAV client with a server configuration directly.
+  void initializeWithServer(ServerConfig server) {
+    if (!server.isConfigured) {
+      _client = null;
+      _config = null;
+      return;
+    }
+
+    // Create a minimal AppConfig for backward compatibility
+    _config = AppConfig(
+      servers: [server],
+      activeTextServerId: server.id,
+      activeFilesServerId: server.id,
+    );
+
+    _client = webdav.newClient(
+      server.serverUrl,
+      user: server.username,
+      password: server.password,
       debug: false,
     );
 

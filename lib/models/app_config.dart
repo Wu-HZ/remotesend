@@ -27,11 +27,12 @@ String _generateRandomName() {
 
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
-  static const int currentVersion = 2;
+  static const int currentVersion = 3;
 
   final int version;
   final List<ServerConfig> servers;
-  final String? activeServerId;
+  final String? activeTextServerId;  // Server for Text Bridge
+  final String? activeFilesServerId; // Server for File Depot
   final bool portableMode;
   final int refreshIntervalSeconds;
   final String downloadLocation;
@@ -40,22 +41,36 @@ class AppConfig {
   AppConfig({
     this.version = currentVersion,
     this.servers = const [],
-    this.activeServerId,
+    this.activeTextServerId,
+    this.activeFilesServerId,
     this.portableMode = false,
     this.refreshIntervalSeconds = 3,
     this.downloadLocation = '',
     String? localName,
   }) : localName = localName ?? _generateRandomName();
 
-  /// Get the currently active server configuration.
-  ServerConfig? get activeServer {
-    if (activeServerId == null || servers.isEmpty) return null;
+  /// Get the active server for Text Bridge.
+  ServerConfig? get activeTextServer {
+    if (activeTextServerId == null || servers.isEmpty) return null;
     try {
-      return servers.firstWhere((s) => s.id == activeServerId);
+      return servers.firstWhere((s) => s.id == activeTextServerId);
     } catch (e) {
       return servers.isNotEmpty ? servers.first : null;
     }
   }
+
+  /// Get the active server for File Depot.
+  ServerConfig? get activeFilesServer {
+    if (activeFilesServerId == null || servers.isEmpty) return null;
+    try {
+      return servers.firstWhere((s) => s.id == activeFilesServerId);
+    } catch (e) {
+      return servers.isNotEmpty ? servers.first : null;
+    }
+  }
+
+  /// Backward-compatible getter for active server (defaults to text server).
+  ServerConfig? get activeServer => activeTextServer;
 
   /// Backward-compatible getter for server URL.
   String get serverUrl => activeServer?.serverUrl ?? '';
@@ -66,14 +81,21 @@ class AppConfig {
   /// Backward-compatible getter for password.
   String get password => activeServer?.password ?? '';
 
-  /// Check if the configuration has valid credentials.
-  bool get isConfigured => activeServer?.isConfigured ?? false;
+  /// Check if the configuration has valid credentials for text.
+  bool get isTextConfigured => activeTextServer?.isConfigured ?? false;
+
+  /// Check if the configuration has valid credentials for files.
+  bool get isFilesConfigured => activeFilesServer?.isConfigured ?? false;
+
+  /// Check if either is configured (backward-compatible).
+  bool get isConfigured => isTextConfigured || isFilesConfigured;
 
   /// Create a copy with updated fields.
   AppConfig copyWith({
     int? version,
     List<ServerConfig>? servers,
-    String? activeServerId,
+    String? activeTextServerId,
+    String? activeFilesServerId,
     bool? portableMode,
     int? refreshIntervalSeconds,
     String? downloadLocation,
@@ -82,7 +104,8 @@ class AppConfig {
     return AppConfig(
       version: version ?? this.version,
       servers: servers ?? this.servers,
-      activeServerId: activeServerId ?? this.activeServerId,
+      activeTextServerId: activeTextServerId ?? this.activeTextServerId,
+      activeFilesServerId: activeFilesServerId ?? this.activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
       refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
@@ -90,19 +113,22 @@ class AppConfig {
     );
   }
 
-  /// Create a copy with cleared active server (useful when passing null explicitly).
-  AppConfig copyWithNullActiveServer({
+  /// Create a copy with cleared active servers.
+  AppConfig copyWithNullActiveServers({
     int? version,
     List<ServerConfig>? servers,
     bool? portableMode,
     int? refreshIntervalSeconds,
     String? downloadLocation,
     String? localName,
+    bool clearText = false,
+    bool clearFiles = false,
   }) {
     return AppConfig(
       version: version ?? this.version,
       servers: servers ?? this.servers,
-      activeServerId: null,
+      activeTextServerId: clearText ? null : activeTextServerId,
+      activeFilesServerId: clearFiles ? null : activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
       refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
@@ -115,7 +141,8 @@ class AppConfig {
     return {
       'version': version,
       'servers': servers.map((s) => s.toJson()).toList(),
-      'activeServerId': activeServerId,
+      'activeTextServerId': activeTextServerId,
+      'activeFilesServerId': activeFilesServerId,
       'portableMode': portableMode,
       'refreshIntervalSeconds': refreshIntervalSeconds,
       'downloadLocation': downloadLocation,
@@ -132,7 +159,12 @@ class AppConfig {
       return AppConfig._migrateFromV1(json);
     }
 
-    // Handle v2+ config (multi-server)
+    // Handle v2 config (multi-server with single activeServerId)
+    if (version == 2 || json.containsKey('activeServerId')) {
+      return AppConfig._migrateFromV2(json);
+    }
+
+    // Handle v3+ config (separate text/files server IDs)
     final serversList = (json['servers'] as List<dynamic>?)
         ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
         .toList() ?? [];
@@ -140,7 +172,8 @@ class AppConfig {
     return AppConfig(
       version: version,
       servers: serversList,
-      activeServerId: json['activeServerId'] as String?,
+      activeTextServerId: json['activeTextServerId'] as String?,
+      activeFilesServerId: json['activeFilesServerId'] as String?,
       portableMode: json['portableMode'] as bool? ?? false,
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
@@ -148,7 +181,7 @@ class AppConfig {
     );
   }
 
-  /// Migrate from v1 (single server) config to v2 (multi-server) config.
+  /// Migrate from v1 (single server) config.
   factory AppConfig._migrateFromV1(Map<String, dynamic> json) {
     final serverUrl = json['serverUrl'] as String? ?? '';
     final username = json['username'] as String? ?? '';
@@ -159,7 +192,6 @@ class AppConfig {
 
     // Only create a server if there are actual credentials
     if (serverUrl.isNotEmpty || username.isNotEmpty) {
-      // Generate a friendly name from the URL
       String name = 'My Server';
       if (serverUrl.isNotEmpty) {
         try {
@@ -183,7 +215,28 @@ class AppConfig {
     return AppConfig(
       version: AppConfig.currentVersion,
       servers: servers,
-      activeServerId: activeServerId,
+      activeTextServerId: activeServerId,
+      activeFilesServerId: activeServerId,
+      portableMode: json['portableMode'] as bool? ?? false,
+      refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
+      downloadLocation: json['downloadLocation'] as String? ?? '',
+      localName: json['localName'] as String?,
+    );
+  }
+
+  /// Migrate from v2 (single activeServerId) to v3 (separate text/files IDs).
+  factory AppConfig._migrateFromV2(Map<String, dynamic> json) {
+    final serversList = (json['servers'] as List<dynamic>?)
+        ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
+        .toList() ?? [];
+
+    final activeServerId = json['activeServerId'] as String?;
+
+    return AppConfig(
+      version: AppConfig.currentVersion,
+      servers: serversList,
+      activeTextServerId: activeServerId,
+      activeFilesServerId: activeServerId,
       portableMode: json['portableMode'] as bool? ?? false,
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
@@ -205,7 +258,8 @@ class AppConfig {
     if (identical(this, other)) return true;
     if (other is! AppConfig) return false;
     if (other.version != version ||
-        other.activeServerId != activeServerId ||
+        other.activeTextServerId != activeTextServerId ||
+        other.activeFilesServerId != activeFilesServerId ||
         other.portableMode != portableMode ||
         other.refreshIntervalSeconds != refreshIntervalSeconds ||
         other.downloadLocation != downloadLocation ||
@@ -224,7 +278,8 @@ class AppConfig {
     return Object.hash(
       version,
       Object.hashAll(servers),
-      activeServerId,
+      activeTextServerId,
+      activeFilesServerId,
       portableMode,
       refreshIntervalSeconds,
       downloadLocation,
@@ -234,6 +289,6 @@ class AppConfig {
 
   @override
   String toString() {
-    return 'AppConfig(version: $version, servers: ${servers.length}, activeServerId: $activeServerId, portableMode: $portableMode)';
+    return 'AppConfig(version: $version, servers: ${servers.length}, textServer: $activeTextServerId, filesServer: $activeFilesServerId)';
   }
 }

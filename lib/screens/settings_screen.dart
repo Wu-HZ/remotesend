@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
-import '../models/app_config.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
+import '../services/webdav_service.dart';
 
 /// Settings screen with Connection, General, Download, and Others sections.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -95,27 +95,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ==================== Connection Section ====================
   Widget _buildConnectionSection() {
-    final connectionStatus = ref.watch(connectionStatusProvider);
+    final textConnectionStatus = ref.watch(textConnectionStatusProvider);
+    final filesConnectionStatus = ref.watch(filesConnectionStatusProvider);
     final isPortableAvailable = ref.watch(portableModeAvailableProvider);
     final isPortableMode = ref.watch(isPortableModeProvider);
     final configService = ref.watch(configServiceProvider);
     final servers = ref.watch(serversListProvider);
-    final activeServer = ref.watch(activeServerProvider);
+    final textServer = ref.watch(activeTextServerProvider);
+    final filesServer = ref.watch(activeFilesServerProvider);
 
     return _SettingsSection(
       title: 'Connection',
       icon: Icons.cloud,
       children: [
         // Connection Status Card
-        _buildConnectionStatusCard(connectionStatus, activeServer),
+        _buildConnectionStatusCard(textConnectionStatus, filesConnectionStatus, textServer, filesServer),
         const SizedBox(height: 16),
 
         // Configured Servers Section
-        Text(
-          'Configured Servers',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+        Row(
+          children: [
+            Text(
+              'Configured Servers',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const Spacer(),
+            Text(
+              'Long press to edit/delete',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                    fontSize: 11,
+                  ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
 
@@ -137,7 +151,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           )
         else
-          ...servers.map((server) => _buildServerTile(server, activeServer)),
+          ...servers.map((server) => _buildServerTile(server, null)),
 
         const SizedBox(height: 12),
 
@@ -201,61 +215,114 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildServerTile(ServerConfig server, ServerConfig? activeServer) {
-    final isActive = activeServer?.id == server.id;
+    final config = ref.watch(configProvider).valueOrNull;
+    final isTextServer = config?.activeTextServerId == server.id;
+    final isFilesServer = config?.activeFilesServerId == server.id;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: RadioListTile<String>(
-        value: server.id,
-        groupValue: activeServer?.id,
-        onChanged: (value) {
-          if (value != null) {
-            _switchServer(value);
-          }
-        },
-        title: Text(
-          server.name,
-          style: TextStyle(
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+      child: InkWell(
+        onLongPress: () => _showServerActions(server),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Server info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      server.name,
+                      style: TextStyle(
+                        fontWeight: (isTextServer || isFilesServer) ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      server.serverUrl,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              // Text/Files toggle buttons
+              const SizedBox(width: 8),
+              _buildFeatureToggle(
+                label: 'Text',
+                isSelected: isTextServer,
+                onTap: () => _setServerForFeature(server.id, forText: true),
+              ),
+              const SizedBox(width: 4),
+              _buildFeatureToggle(
+                label: 'Files',
+                isSelected: isFilesServer,
+                onTap: () => _setServerForFeature(server.id, forFiles: true),
+              ),
+            ],
           ),
         ),
-        subtitle: Text(
-          server.serverUrl,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
+  }
+
+  Widget _buildFeatureToggle({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? colorScheme.primary : colorScheme.outline.withAlpha(50),
+          ),
         ),
-        secondary: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert),
-          onSelected: (action) {
-            switch (action) {
-              case 'edit':
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showServerActions(ServerConfig server) {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit'),
+              onTap: () {
+                Navigator.pop(sheetContext);
                 _showServerDialog(server: server);
-                break;
-              case 'delete':
-                _confirmDeleteServer(server);
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit, size: 20),
-                  SizedBox(width: 8),
-                  Text('Edit'),
-                ],
-              ),
+              },
             ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, size: 20, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Delete', style: TextStyle(color: Colors.red)),
-                ],
-              ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _confirmDeleteServer(server);
+              },
             ),
           ],
         ),
@@ -263,7 +330,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildConnectionStatusCard(ConnectionStatus status, ServerConfig? activeServer) {
+  Future<void> _setServerForFeature(String serverId, {bool forText = false, bool forFiles = false}) async {
+    setState(() => _isSaving = true);
+
+    try {
+      final success = await ref.read(configProvider.notifier).setServerForFeature(
+            serverId,
+            forText: forText,
+            forFiles: forFiles,
+          );
+
+      if (success && mounted) {
+        // Test connection for the updated service
+        if (forText) {
+          ref.read(textConnectionStatusProvider.notifier).testConnection();
+        }
+        if (forFiles) {
+          ref.read(filesConnectionStatusProvider.notifier).testConnection();
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Widget _buildConnectionStatusCard(ConnectionStatus textStatus, ConnectionStatus filesStatus, ServerConfig? textServer, ServerConfig? filesServer) {
+    return Column(
+      children: [
+        _buildSingleConnectionStatus('Text', textStatus, textServer),
+        const SizedBox(height: 8),
+        _buildSingleConnectionStatus('Files', filesStatus, filesServer),
+      ],
+    );
+  }
+
+  Widget _buildSingleConnectionStatus(String label, ConnectionStatus status, ServerConfig? server) {
     Color color;
     IconData icon;
     String text;
@@ -272,7 +373,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case WebDavConnectionState.connected:
         color = Colors.green;
         icon = Icons.check_circle;
-        text = activeServer != null ? '${activeServer.name} - Connected' : 'Connected';
+        text = server != null ? server.name : 'Connected';
       case WebDavConnectionState.connecting:
         color = Colors.blue;
         icon = Icons.sync;
@@ -288,7 +389,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withAlpha(20),
         borderRadius: BorderRadius.circular(8),
@@ -296,10 +397,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 12),
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withAlpha(30),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(text, style: TextStyle(color: color)),
+            child: Text(
+              text,
+              style: TextStyle(color: color, fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -535,34 +656,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ==================== Server Management Actions ====================
-  Future<void> _switchServer(String serverId) async {
-    setState(() => _isSaving = true);
-
-    try {
-      final success = await ref.read(configProvider.notifier).switchServer(serverId);
-
-      if (success && mounted) {
-        // Reinitialize WebDAV connection
-        final config = ref.read(configProvider).valueOrNull;
-        if (config != null) {
-          final webDavService = ref.read(webDavServiceProvider);
-          webDavService.initialize(config);
-          ref.read(connectionStatusProvider.notifier).testConnection();
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Server switched'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
   void _showServerDialog({ServerConfig? server}) {
     showDialog(
       context: context,
@@ -577,12 +670,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           }
 
           if (success && mounted) {
-            // If this is a new server or we're editing the active server, reinitialize
+            // Test connections for servers that use this config
             final config = ref.read(configProvider).valueOrNull;
-            if (config != null && config.activeServerId == newServer.id) {
-              final webDavService = ref.read(webDavServiceProvider);
-              webDavService.initialize(config);
-              ref.read(connectionStatusProvider.notifier).testConnection();
+            if (config != null) {
+              if (config.activeTextServerId == newServer.id) {
+                ref.read(textConnectionStatusProvider.notifier).testConnection();
+              }
+              if (config.activeFilesServerId == newServer.id) {
+                ref.read(filesConnectionStatusProvider.notifier).testConnection();
+              }
             }
           }
 
@@ -628,13 +724,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               );
 
-              // Reinitialize WebDAV with new active server (if any)
+              // Test connections with new active servers (if any)
               if (success) {
                 final config = ref.read(configProvider).valueOrNull;
-                if (config != null && config.activeServer != null) {
-                  final webDavService = ref.read(webDavServiceProvider);
-                  webDavService.initialize(config);
-                  ref.read(connectionStatusProvider.notifier).testConnection();
+                if (config != null) {
+                  if (config.activeTextServer != null) {
+                    ref.read(textConnectionStatusProvider.notifier).testConnection();
+                  }
+                  if (config.activeFilesServer != null) {
+                    ref.read(filesConnectionStatusProvider.notifier).testConnection();
+                  }
                 }
               }
             },
@@ -965,39 +1064,27 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
     });
 
     try {
-      final webDavService = ref.read(webDavServiceProvider);
-      final tempConfig = AppConfig(
-        servers: [
-          ServerConfig.create(
-            name: _nameController.text.trim(),
-            serverUrl: _urlController.text.trim(),
-            username: _usernameController.text.trim(),
-            password: _passwordController.text,
-          ),
-        ],
-        activeServerId: 'temp',
+      // Create a temporary service for testing
+      final testService = WebDavService();
+      final testServer = ServerConfig.create(
+        name: _nameController.text.trim(),
+        serverUrl: _urlController.text.trim(),
+        username: _usernameController.text.trim(),
+        password: _passwordController.text,
       );
 
-      // Create a temporary config just for testing
-      final testConfig = AppConfig(
-        servers: tempConfig.servers,
-        activeServerId: tempConfig.servers.first.id,
-      );
+      testService.initializeWithServer(testServer);
+      final result = await testService.testConnection();
 
-      webDavService.initialize(testConfig);
-      await webDavService.testConnection();
-
-      setState(() => _testResult = 'Success! Connection established.');
+      if (result.isSuccess) {
+        setState(() => _testResult = 'Success! Connection established.');
+      } else {
+        setState(() => _testResult = 'Failed: ${result.error?.userMessage ?? "Unknown error"}');
+      }
     } catch (e) {
       setState(() => _testResult = 'Failed: ${e.toString()}');
     } finally {
       setState(() => _isTesting = false);
-
-      // Restore original config
-      final config = ref.read(configProvider).valueOrNull;
-      if (config != null && config.isConfigured) {
-        ref.read(webDavServiceProvider).initialize(config);
-      }
     }
   }
 

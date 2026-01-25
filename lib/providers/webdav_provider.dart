@@ -1,31 +1,56 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/app_config.dart';
+import '../models/server_config.dart';
 import '../services/webdav_service.dart';
 import '../services/webdav_exceptions.dart';
 import 'config_provider.dart';
 
-/// Provider for the WebDavService singleton.
-final webDavServiceProvider = Provider<WebDavService>((ref) {
+/// Provider for the WebDavService for Text Bridge.
+final webDavTextServiceProvider = Provider<WebDavService>((ref) {
   final service = WebDavService();
 
-  // Watch config changes and reinitialize service
-  ref.listen<AsyncValue<AppConfig>>(configProvider, (previous, next) {
-    next.whenData((config) {
-      if (config.isConfigured) {
-        service.initialize(config);
-      } else {
-        service.disconnect();
-      }
-    });
+  // Watch config changes and reinitialize service when text server changes
+  ref.listen<ServerConfig?>(activeTextServerProvider, (previous, next) {
+    if (next != null && next.isConfigured) {
+      service.initializeWithServer(next);
+    } else {
+      service.disconnect();
+    }
   });
 
-  // Initialize with current config if available
-  final currentConfig = ref.read(configProvider).valueOrNull;
-  if (currentConfig != null && currentConfig.isConfigured) {
-    service.initialize(currentConfig);
+  // Initialize with current server if available
+  final currentServer = ref.read(activeTextServerProvider);
+  if (currentServer != null && currentServer.isConfigured) {
+    service.initializeWithServer(currentServer);
   }
 
   return service;
+});
+
+/// Provider for the WebDavService for File Depot.
+final webDavFilesServiceProvider = Provider<WebDavService>((ref) {
+  final service = WebDavService();
+
+  // Watch config changes and reinitialize service when files server changes
+  ref.listen<ServerConfig?>(activeFilesServerProvider, (previous, next) {
+    if (next != null && next.isConfigured) {
+      service.initializeWithServer(next);
+    } else {
+      service.disconnect();
+    }
+  });
+
+  // Initialize with current server if available
+  final currentServer = ref.read(activeFilesServerProvider);
+  if (currentServer != null && currentServer.isConfigured) {
+    service.initializeWithServer(currentServer);
+  }
+
+  return service;
+});
+
+/// Backward-compatible provider (uses text service).
+final webDavServiceProvider = Provider<WebDavService>((ref) {
+  return ref.watch(webDavTextServiceProvider);
 });
 
 /// Connection state for the WebDAV service.
@@ -108,18 +133,44 @@ class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
   }
 }
 
-/// Provider for connection status management.
-final connectionStatusProvider =
+/// Provider for connection status management for Text Bridge.
+final textConnectionStatusProvider =
     StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
-  final service = ref.watch(webDavServiceProvider);
+  final service = ref.watch(webDavTextServiceProvider);
   return ConnectionNotifier(service);
 });
 
-/// Provider for checking if service is ready to use.
-final isServiceReadyProvider = Provider<bool>((ref) {
-  final isConfigured = ref.watch(isConfiguredProvider);
-  final connectionStatus = ref.watch(connectionStatusProvider);
+/// Provider for connection status management for File Depot.
+final filesConnectionStatusProvider =
+    StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
+  final service = ref.watch(webDavFilesServiceProvider);
+  return ConnectionNotifier(service);
+});
+
+/// Backward-compatible provider (uses text connection status).
+final connectionStatusProvider =
+    StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
+  final service = ref.watch(webDavTextServiceProvider);
+  return ConnectionNotifier(service);
+});
+
+/// Provider for checking if text service is ready to use.
+final isTextServiceReadyProvider = Provider<bool>((ref) {
+  final isConfigured = ref.watch(isTextConfiguredProvider);
+  final connectionStatus = ref.watch(textConnectionStatusProvider);
   return isConfigured && connectionStatus.state == WebDavConnectionState.connected;
+});
+
+/// Provider for checking if files service is ready to use.
+final isFilesServiceReadyProvider = Provider<bool>((ref) {
+  final isConfigured = ref.watch(isFilesConfiguredProvider);
+  final connectionStatus = ref.watch(filesConnectionStatusProvider);
+  return isConfigured && connectionStatus.state == WebDavConnectionState.connected;
+});
+
+/// Backward-compatible provider (checks text service).
+final isServiceReadyProvider = Provider<bool>((ref) {
+  return ref.watch(isTextServiceReadyProvider);
 });
 
 /// State for the text buffer.
@@ -386,10 +437,10 @@ class FileListNotifier extends StateNotifier<FileListState> {
   }
 }
 
-/// Provider for file list state management.
+/// Provider for file list state management (uses Files service).
 final fileListProvider =
     StateNotifierProvider<FileListNotifier, FileListState>((ref) {
-  final service = ref.watch(webDavServiceProvider);
+  final service = ref.watch(webDavFilesServiceProvider);
   return FileListNotifier(service);
 });
 

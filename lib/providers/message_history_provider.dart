@@ -258,10 +258,10 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
   }
 }
 
-/// Provider for message history state management.
+/// Provider for message history state management (uses Text service).
 final messageHistoryProvider =
     StateNotifierProvider<MessageHistoryNotifier, MessageHistoryState>((ref) {
-  final webDavService = ref.watch(webDavServiceProvider);
+  final webDavService = ref.watch(webDavTextServiceProvider);
   return MessageHistoryNotifier(webDavService, ref);
 });
 

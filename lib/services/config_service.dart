@@ -193,7 +193,8 @@ class ConfigService {
     final config = AppConfig(
       version: AppConfig.currentVersion,
       servers: servers,
-      activeServerId: activeServerId,
+      activeTextServerId: activeServerId,
+      activeFilesServerId: activeServerId,
       portableMode: portableMode,
     );
 

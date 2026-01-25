@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/server_config.dart';
 import '../models/text_message.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -80,12 +81,14 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isConfigured = ref.watch(isConfiguredProvider);
-    final connectionStatus = ref.watch(connectionStatusProvider);
+    final isConfigured = ref.watch(isTextConfiguredProvider);
+    final connectionStatus = ref.watch(textConnectionStatusProvider);
     final historyState = ref.watch(messageHistoryProvider);
     final autoPullState = ref.watch(autoPullProvider);
     final localName = ref.watch(localNameProvider);
     final selectedDate = ref.watch(selectedDateProvider);
+    final activeServer = ref.watch(activeTextServerProvider);
+    final servers = ref.watch(serversListProvider);
 
     // Scroll to bottom when new messages arrive
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
@@ -113,6 +116,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ),
         ),
         actions: [
+          // Server selector
+          if (servers.isNotEmpty)
+            _buildServerSelector(activeServer, servers),
           // Sync status indicator
           if (historyState.isSending || historyState.isLoading || autoPullState.isPolling)
             const Padding(
@@ -273,6 +279,66 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       _pendingDeletions.clear();
     });
     await ref.read(messageHistoryProvider.notifier).refresh();
+  }
+
+  Widget _buildServerSelector(ServerConfig? activeServer, List<ServerConfig> servers) {
+    return PopupMenuButton<String>(
+      tooltip: 'Switch server',
+      icon: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud,
+            size: 18,
+            color: activeServer != null ? Theme.of(context).colorScheme.primary : Colors.grey,
+          ),
+          const SizedBox(width: 2),
+          const Icon(Icons.arrow_drop_down, size: 16),
+        ],
+      ),
+      onSelected: (serverId) {
+        ref.read(configProvider.notifier).switchTextServer(serverId);
+        ref.read(textConnectionStatusProvider.notifier).testConnection();
+        ref.read(messageHistoryProvider.notifier).refresh();
+      },
+      itemBuilder: (context) => servers.map((server) {
+        final isActive = server.id == activeServer?.id;
+        return PopupMenuItem<String>(
+          value: server.id,
+          child: Row(
+            children: [
+              Icon(
+                isActive ? Icons.check_circle : Icons.circle_outlined,
+                size: 18,
+                color: isActive ? Theme.of(context).colorScheme.primary : null,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      server.name,
+                      style: TextStyle(
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    Text(
+                      server.serverUrl,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
   }
 
   Widget _buildWarningBanner(bool isConfigured, bool isConnected) {

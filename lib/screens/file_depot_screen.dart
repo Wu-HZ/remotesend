@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import '../models/server_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/upload_queue_provider.dart';
@@ -30,7 +31,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   }
 
   Future<void> _initialLoad() async {
-    final connectionStatus = ref.read(connectionStatusProvider);
+    final connectionStatus = ref.read(filesConnectionStatusProvider);
     if (connectionStatus.state == WebDavConnectionState.connected) {
       ref.read(fileListProvider.notifier).refresh();
     }
@@ -103,10 +104,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isConfigured = ref.watch(isConfiguredProvider);
-    final connectionStatus = ref.watch(connectionStatusProvider);
+    final isConfigured = ref.watch(isFilesConfiguredProvider);
+    final connectionStatus = ref.watch(filesConnectionStatusProvider);
     final fileListState = ref.watch(fileListProvider);
     final config = ref.watch(configProvider).valueOrNull;
+    final activeServer = ref.watch(activeFilesServerProvider);
+    final servers = ref.watch(serversListProvider);
 
     // Update download location if config changed
     if (config != null) {
@@ -145,6 +148,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           ],
         ),
         actions: [
+          // Server selector
+          if (servers.isNotEmpty)
+            _buildServerSelector(activeServer, servers),
           // Open download folder button
           if (_currentDownloadLocation != null)
             IconButton(
@@ -204,6 +210,66 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               ],
             )
           : null,
+    );
+  }
+
+  Widget _buildServerSelector(ServerConfig? activeServer, List<ServerConfig> servers) {
+    return PopupMenuButton<String>(
+      tooltip: 'Switch server',
+      icon: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud,
+            size: 18,
+            color: activeServer != null ? Theme.of(context).colorScheme.primary : Colors.grey,
+          ),
+          const SizedBox(width: 2),
+          const Icon(Icons.arrow_drop_down, size: 16),
+        ],
+      ),
+      onSelected: (serverId) {
+        ref.read(configProvider.notifier).switchFilesServer(serverId);
+        ref.read(filesConnectionStatusProvider.notifier).testConnection();
+        ref.read(fileListProvider.notifier).refresh();
+      },
+      itemBuilder: (context) => servers.map((server) {
+        final isActive = server.id == activeServer?.id;
+        return PopupMenuItem<String>(
+          value: server.id,
+          child: Row(
+            children: [
+              Icon(
+                isActive ? Icons.check_circle : Icons.circle_outlined,
+                size: 18,
+                color: isActive ? Theme.of(context).colorScheme.primary : null,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      server.name,
+                      style: TextStyle(
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    Text(
+                      server.serverUrl,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
