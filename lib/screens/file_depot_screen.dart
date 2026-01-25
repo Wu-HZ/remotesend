@@ -812,9 +812,15 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
       if (downloadPath == null) return;
 
+      // Get the current path to build the full remote path
+      final fileListState = ref.read(fileListProvider);
+      final remoteName = fileListState.currentPath.isEmpty
+          ? file.name
+          : '${fileListState.currentPath}/${file.name}';
+
       // Use the download provider
       final success = await ref.read(downloadStateProvider.notifier).downloadFile(
-        remoteName: file.name,
+        remoteName: remoteName,
         localPath: downloadPath,
         fileSize: file.size,
       );
@@ -951,7 +957,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
 
     if (confirmed == true) {
-      final success = await ref.read(fileListProvider.notifier).deleteFile(file.name);
+      // Get the current path to build the full remote path
+      final fileListState = ref.read(fileListProvider);
+      final remotePath = fileListState.currentPath.isEmpty
+          ? file.name
+          : '${fileListState.currentPath}/${file.name}';
+      final success = await ref.read(fileListProvider.notifier).deleteFile(remotePath);
 
       if (mounted) {
         if (success) {

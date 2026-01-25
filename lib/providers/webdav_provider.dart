@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import '../models/server_config.dart';
 import '../services/webdav_service.dart';
 import '../services/webdav_exceptions.dart';
@@ -418,11 +419,12 @@ class FileListNotifier extends StateNotifier<FileListState> {
   }
 
   /// Delete a file from the server.
-  Future<bool> deleteFile(String fileName) async {
-    final result = await _service.deleteFile(fileName);
+  Future<bool> deleteFile(String filePath) async {
+    final result = await _service.deleteFile(filePath);
 
     if (result.isSuccess) {
-      // Remove from local list
+      // Remove from local list - extract file name from path for comparison
+      final fileName = p.basename(filePath);
       state = state.copyWith(
         files: state.files.where((f) => f.name != fileName).toList(),
       );
