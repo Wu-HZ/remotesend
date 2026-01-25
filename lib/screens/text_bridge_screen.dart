@@ -30,6 +30,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   @override
   void initState() {
     super.initState();
+    _textController.addListener(_onTextChanged);
     Future.microtask(_initialize);
   }
 
@@ -41,8 +42,14 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     _scrollToBottom();
   }
 
+  void _onTextChanged() {
+    // Trigger rebuild to update send button state
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
