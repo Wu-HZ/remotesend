@@ -495,9 +495,9 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
   }
 }
 
-/// Provider for download state management.
+/// Provider for download state management (uses Files service).
 final downloadStateProvider =
     StateNotifierProvider<DownloadStateNotifier, DownloadState>((ref) {
-  final service = ref.watch(webDavServiceProvider);
+  final service = ref.watch(webDavFilesServiceProvider);
   return DownloadStateNotifier(service);
 });

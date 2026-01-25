@@ -251,9 +251,9 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   }
 }
 
-/// Provider for upload queue state management.
+/// Provider for upload queue state management (uses Files service).
 final uploadQueueProvider =
     StateNotifierProvider<UploadQueueNotifier, UploadQueueState>((ref) {
-  final service = ref.watch(webDavServiceProvider);
+  final service = ref.watch(webDavFilesServiceProvider);
   return UploadQueueNotifier(service, ref);
 });
