@@ -55,6 +55,9 @@ dependencies:
   desktop_drop: ^0.5.0
   cross_file: ^0.3.5+1
 
+  # Window Management (Desktop)
+  window_manager: ^0.4.3
+
   # Android Permissions
   permission_handler: ^11.3.1
 
