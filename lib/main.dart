@@ -97,7 +97,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
   }
 
   Widget _buildAppWithDropTarget() {
-    final connectionStatus = ref.watch(connectionStatusProvider);
+    final connectionStatus = ref.watch(filesConnectionStatusProvider);
     final isConnected = connectionStatus.state == WebDavConnectionState.connected;
 
     return DropTarget(
@@ -249,20 +249,25 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
   }
 
   Future<void> _autoConnect() async {
-    // Initialize WebDAV service with config
     final config = ref.read(configProvider).valueOrNull;
-    if (config == null || !config.isConfigured) return;
+    if (config == null) return;
 
-    final webDavService = ref.read(webDavServiceProvider);
-    webDavService.initialize(config);
+    // Connect text service if configured
+    if (config.isTextConfigured) {
+      final textConnectionNotifier = ref.read(textConnectionStatusProvider.notifier);
+      final textSuccess = await textConnectionNotifier.testConnection();
+      if (textSuccess) {
+        await textConnectionNotifier.initializeFolderStructure();
+      }
+    }
 
-    // Test connection silently
-    final connectionNotifier = ref.read(connectionStatusProvider.notifier);
-    final success = await connectionNotifier.testConnection();
-
-    // If connected, ensure folder structure exists
-    if (success) {
-      await connectionNotifier.initializeFolderStructure();
+    // Connect files service if configured
+    if (config.isFilesConfigured) {
+      final filesConnectionNotifier = ref.read(filesConnectionStatusProvider.notifier);
+      final filesSuccess = await filesConnectionNotifier.testConnection();
+      if (filesSuccess) {
+        await filesConnectionNotifier.initializeFolderStructure();
+      }
     }
   }
 }
