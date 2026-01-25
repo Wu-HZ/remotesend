@@ -42,6 +42,7 @@ class WebDavService {
   static const String _remoteSendFolder = '/RemoteSend';
   static const String _bufferFile = '/RemoteSend/buffer.txt';
   static const String _filesFolder = '/RemoteSend/Files';
+  static const String _messagesFolder = '/RemoteSend/Messages';
 
   webdav.Client? _client;
   AppConfig? _config;
@@ -57,6 +58,9 @@ class WebDavService {
 
   /// The path for the files folder.
   String get filesFolderPath => _filesFolder;
+
+  /// The path for the messages folder.
+  String get messagesFolderPath => _messagesFolder;
 
   /// Initialize the WebDAV client with configuration.
   void initialize(AppConfig config) {
@@ -106,7 +110,7 @@ class WebDavService {
 
   /// Ensure the RemoteSend folder structure exists.
   ///
-  /// Creates /RemoteSend, /RemoteSend/Files, and /RemoteSend/buffer.txt
+  /// Creates /RemoteSend, /RemoteSend/Files, /RemoteSend/Messages, and /RemoteSend/buffer.txt
   /// if they don't exist.
   Future<WebDavResult<bool>> ensureFolderStructure() async {
     if (_client == null) {
@@ -121,6 +125,9 @@ class WebDavService {
 
       // Create /RemoteSend/Files folder
       await _createDirectoryIfNotExists(_filesFolder);
+
+      // Create /RemoteSend/Messages folder
+      await _createDirectoryIfNotExists(_messagesFolder);
 
       // Create buffer.txt if it doesn't exist
       await _createBufferFileIfNotExists();
@@ -462,6 +469,84 @@ class WebDavService {
       final remotePath = '$_filesFolder/$remoteName';
       await _client!.remove(remotePath);
       return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  // ==================== Messages Folder Operations ====================
+
+  /// Read messages file for a specific date.
+  ///
+  /// [date] - Date string in format 'yyyy-MM-dd'.
+  /// Returns the JSON content of the messages file.
+  Future<WebDavResult<String>> readMessagesFile(String date) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final remotePath = '$_messagesFolder/$date.json';
+      final bytes = await _client!.read(remotePath);
+      final content = utf8.decode(bytes);
+      return WebDavResult.success(content);
+    } on DioException catch (e) {
+      if (_isNotFound(e)) {
+        // File doesn't exist yet, return empty array
+        return const WebDavResult.success('[]');
+      }
+      return WebDavResult.failure(_mapException(e));
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Write messages file for a specific date.
+  ///
+  /// [date] - Date string in format 'yyyy-MM-dd'.
+  /// [content] - JSON content to write.
+  Future<WebDavResult<bool>> writeMessagesFile(String date, String content) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final remotePath = '$_messagesFolder/$date.json';
+      final bytes = Uint8List.fromList(utf8.encode(content));
+      await _client!.write(remotePath, bytes);
+      return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// List available message dates.
+  ///
+  /// Returns a list of date strings (yyyy-MM-dd) for which message files exist.
+  Future<WebDavResult<List<String>>> listMessageDates() async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final files = await _client!.readDir(_messagesFolder);
+      final dates = files
+          .where((f) => f.name?.endsWith('.json') == true && f.isDir != true)
+          .map((f) => f.name!.replaceAll('.json', ''))
+          .toList();
+      dates.sort((a, b) => b.compareTo(a)); // Most recent first
+      return WebDavResult.success(dates);
+    } on DioException catch (e) {
+      if (_isNotFound(e)) {
+        return const WebDavResult.success([]);
+      }
+      return WebDavResult.failure(_mapException(e));
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
     }

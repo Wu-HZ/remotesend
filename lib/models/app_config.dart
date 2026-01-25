@@ -1,6 +1,29 @@
 import 'dart:convert';
+import 'dart:math';
 import 'server_config.dart';
-import '../services/message_history_service.dart';
+
+/// Generate a random local name.
+String _generateRandomName() {
+  final adjectives = [
+    'Swift', 'Bright', 'Calm', 'Eager', 'Fancy',
+    'Gentle', 'Happy', 'Jolly', 'Kind', 'Lively',
+    'Merry', 'Noble', 'Proud', 'Quick', 'Sharp',
+    'Brave', 'Clever', 'Daring', 'Witty', 'Zesty',
+  ];
+  final nouns = [
+    'Fox', 'Bear', 'Eagle', 'Wolf', 'Hawk',
+    'Lion', 'Tiger', 'Panda', 'Koala', 'Otter',
+    'Falcon', 'Raven', 'Phoenix', 'Dragon', 'Lynx',
+    'Dolphin', 'Penguin', 'Owl', 'Deer', 'Rabbit',
+  ];
+
+  final random = Random();
+  final adjective = adjectives[random.nextInt(adjectives.length)];
+  final noun = nouns[random.nextInt(nouns.length)];
+  final number = random.nextInt(100);
+
+  return '$adjective$noun$number';
+}
 
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
@@ -22,7 +45,7 @@ class AppConfig {
     this.refreshIntervalSeconds = 3,
     this.downloadLocation = '',
     String? localName,
-  }) : localName = localName ?? MessageHistoryService.generateRandomName();
+  }) : localName = localName ?? _generateRandomName();
 
   /// Get the currently active server configuration.
   ServerConfig? get activeServer {

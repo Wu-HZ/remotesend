@@ -58,6 +58,9 @@ dependencies:
   # Window Management (Desktop)
   window_manager: ^0.4.3
 
+  # URL Launcher
+  url_launcher: ^6.3.1
+
   # Android Permissions
   permission_handler: ^11.3.1
 

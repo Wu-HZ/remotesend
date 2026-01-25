@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/text_message.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -19,6 +20,12 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   bool _initialized = false;
+
+  // URL regex pattern
+  static final _urlRegex = RegExp(
+    r'https?://[^\s<>"{}|\\^`\[\]]+',
+    caseSensitive: false,
+  );
 
   @override
   void initState() {
@@ -54,6 +61,15 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     });
   }
 
+  bool _isUrl(String text) {
+    return _urlRegex.hasMatch(text.trim());
+  }
+
+  String? _extractUrl(String text) {
+    final match = _urlRegex.firstMatch(text.trim());
+    return match?.group(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isConfigured = ref.watch(isConfiguredProvider);
@@ -61,13 +77,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final historyState = ref.watch(messageHistoryProvider);
     final autoPullState = ref.watch(autoPullProvider);
     final localName = ref.watch(localNameProvider);
-
-    // Listen for auto-pull updates to check for remote messages
-    ref.listen<AutoPullState>(autoPullProvider, (previous, next) {
-      if (previous?.lastCheckTime != next.lastCheckTime && !next.isPolling) {
-        ref.read(messageHistoryProvider.notifier).checkForRemoteMessages();
-      }
-    });
+    final selectedDate = ref.watch(selectedDateProvider);
 
     // Scroll to bottom when new messages arrive
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
@@ -81,10 +91,22 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Text Bridge'),
+        title: GestureDetector(
+          onTap: canSync ? () => _showDatePicker(historyState.availableDates) : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_formatDateForTitle(selectedDate)),
+              if (canSync) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.arrow_drop_down, size: 20),
+              ],
+            ],
+          ),
+        ),
         actions: [
           // Sync status indicator
-          if (historyState.isSending || autoPullState.isPolling)
+          if (historyState.isSending || historyState.isLoading || autoPullState.isPolling)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: SizedBox(
@@ -121,10 +143,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
           // Chat messages
           Expanded(
-            child: historyState.isLoading
+            child: historyState.isLoading && historyState.messages.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : historyState.messages.isEmpty
-                    ? _buildEmptyState()
+                    ? _buildEmptyState(selectedDate)
                     : _buildMessageList(historyState.messages, localName),
           ),
 
@@ -154,11 +176,81 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               ),
             ),
 
-          // Input area
-          _buildInputArea(canSync, historyState.isSending),
+          // Input area (only show for today)
+          if (_isToday(selectedDate))
+            _buildInputArea(canSync, historyState.isSending),
         ],
       ),
     );
+  }
+
+  String _formatDateForTitle(String date) {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayStr = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+
+    if (date == todayStr) {
+      return 'Today';
+    } else if (date == yesterdayStr) {
+      return 'Yesterday';
+    } else {
+      return date;
+    }
+  }
+
+  bool _isToday(String date) {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return date == todayStr;
+  }
+
+  void _showDatePicker(List<String> availableDates) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Select Date',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: availableDates.length,
+                itemBuilder: (context, index) {
+                  final date = availableDates[index];
+                  final selectedDate = ref.read(selectedDateProvider);
+                  final isSelected = date == selectedDate;
+
+                  return ListTile(
+                    title: Text(_formatDateForTitle(date)),
+                    subtitle: Text(date),
+                    trailing: isSelected ? const Icon(Icons.check) : null,
+                    selected: isSelected,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _selectDate(date);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _selectDate(String date) {
+    ref.read(selectedDateProvider.notifier).state = date;
+    ref.read(messageHistoryProvider.notifier).loadMessagesForDate(date);
   }
 
   void _toggleAutoSync() {
@@ -168,7 +260,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Future<void> _manualRefresh() async {
-    await ref.read(messageHistoryProvider.notifier).checkForRemoteMessages();
+    await ref.read(messageHistoryProvider.notifier).refresh();
   }
 
   Widget _buildWarningBanner(bool isConfigured, bool isConnected) {
@@ -204,7 +296,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(String selectedDate) {
+    final isToday = _isToday(selectedDate);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -216,95 +310,43 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No messages yet',
+            isToday ? 'No messages yet' : 'No messages on this day',
             style: TextStyle(
               fontSize: 16,
               color: Theme.of(context).colorScheme.outline,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Send a message to get started',
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).colorScheme.outline.withAlpha(150),
+          if (isToday) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Send a message to get started',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.outline.withAlpha(150),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildMessageList(List<TextMessage> messages, String localName) {
-    // Group messages by date
-    final groupedMessages = <String, List<TextMessage>>{};
-    for (final message in messages) {
-      final date = message.formattedDate;
-      groupedMessages.putIfAbsent(date, () => []);
-      groupedMessages[date]!.add(message);
-    }
-
-    final dates = groupedMessages.keys.toList()..sort();
-
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: dates.length,
-      itemBuilder: (context, dateIndex) {
-        final date = dates[dateIndex];
-        final dayMessages = groupedMessages[date]!;
-
-        return Column(
-          children: [
-            // Date separator
-            _buildDateSeparator(date),
-            // Messages for this date
-            ...dayMessages.map((message) => _buildMessageBubble(message, localName)),
-          ],
-        );
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        return _buildMessageBubble(messages[index], localName);
       },
-    );
-  }
-
-  Widget _buildDateSeparator(String date) {
-    final now = DateTime.now();
-    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final yesterday = now.subtract(const Duration(days: 1));
-    final yesterdayStr = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
-
-    String displayDate;
-    if (date == todayStr) {
-      displayDate = 'Today';
-    } else if (date == yesterdayStr) {
-      displayDate = 'Yesterday';
-    } else {
-      displayDate = date;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          Expanded(child: Divider(color: Theme.of(context).colorScheme.outline.withAlpha(50))),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              displayDate,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-            ),
-          ),
-          Expanded(child: Divider(color: Theme.of(context).colorScheme.outline.withAlpha(50))),
-        ],
-      ),
     );
   }
 
   Widget _buildMessageBubble(TextMessage message, String localName) {
     final isLocal = message.isLocal;
     final colorScheme = Theme.of(context).colorScheme;
+    final isUrl = _isUrl(message.content);
+    final url = isUrl ? _extractUrl(message.content) : null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -322,7 +364,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ],
           Flexible(
             child: GestureDetector(
-              onLongPress: () => _showMessageOptions(message),
+              onTap: () => _copyMessage(message.content),
               child: Container(
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -358,13 +400,48 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                         ),
                       ),
                     // Message content
-                    SelectableText(
+                    Text(
                       message.content,
                       style: TextStyle(
                         fontSize: 14,
                         color: isLocal ? Colors.white : colorScheme.onSurface,
                       ),
                     ),
+                    // URL Open button
+                    if (isUrl && url != null) ...[
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _openUrl(url),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isLocal
+                                ? Colors.white.withAlpha(30)
+                                : colorScheme.primary.withAlpha(20),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.open_in_new,
+                                size: 14,
+                                color: isLocal ? Colors.white : colorScheme.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Open',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isLocal ? Colors.white : colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     // Timestamp
                     const SizedBox(height: 4),
                     Text(
@@ -397,44 +474,41 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  void _showMessageOptions(TextMessage message) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('Copy'),
-              onTap: () {
-                Navigator.pop(context);
-                Clipboard.setData(ClipboardData(text: message.content));
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Copied to clipboard'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('Share'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Share - coming soon'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+  void _copyMessage(String content) {
+    Clipboard.setData(ClipboardData(text: content));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Copied to clipboard'),
+        duration: Duration(seconds: 1),
       ),
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open link'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening link: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildInputArea(bool canSync, bool isSending) {

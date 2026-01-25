@@ -1,79 +1,89 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/text_message.dart';
-import '../services/message_history_service.dart';
 import '../services/webdav_service.dart';
 import 'config_provider.dart';
 import 'webdav_provider.dart';
 
-/// Provider for the MessageHistoryService singleton.
-final messageHistoryServiceProvider = Provider<MessageHistoryService>((ref) {
-  return MessageHistoryService();
+/// Provider for the selected date in message history.
+final selectedDateProvider = StateProvider<String>((ref) {
+  final now = DateTime.now();
+  return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 });
 
 /// State for the message history.
 class MessageHistoryState {
   final List<TextMessage> messages;
+  final List<String> availableDates;
   final bool isLoading;
   final bool isSending;
   final String? error;
-  final String? lastRemoteContent;
 
   const MessageHistoryState({
     this.messages = const [],
+    this.availableDates = const [],
     this.isLoading = false,
     this.isSending = false,
     this.error,
-    this.lastRemoteContent,
   });
 
   MessageHistoryState copyWith({
     List<TextMessage>? messages,
+    List<String>? availableDates,
     bool? isLoading,
     bool? isSending,
     String? error,
-    String? lastRemoteContent,
   }) {
     return MessageHistoryState(
       messages: messages ?? this.messages,
+      availableDates: availableDates ?? this.availableDates,
       isLoading: isLoading ?? this.isLoading,
       isSending: isSending ?? this.isSending,
       error: error,
-      lastRemoteContent: lastRemoteContent ?? this.lastRemoteContent,
     );
   }
 }
 
-/// Notifier for managing message history.
+/// Notifier for managing message history with WebDAV sync.
 class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
-  final MessageHistoryService _historyService;
   final WebDavService _webDavService;
   final Ref _ref;
 
-  MessageHistoryNotifier(this._historyService, this._webDavService, this._ref)
+  MessageHistoryNotifier(this._webDavService, this._ref)
       : super(const MessageHistoryState());
 
-  /// Initialize and load recent messages.
-  Future<void> initialize() async {
+  String _getTodayDate() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Load messages for a specific date from WebDAV.
+  Future<void> loadMessagesForDate(String date) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      await _historyService.initialize();
-      final messages = await _historyService.loadRecentMessages(days: 7);
+      final result = await _webDavService.readMessagesFile(date);
 
-      // Get last remote content for change detection
-      String? lastRemote;
-      if (messages.isNotEmpty) {
-        final lastRemoteMsg = messages.lastWhere(
-          (m) => !m.isLocal,
-          orElse: () => messages.last,
+      if (result.isSuccess) {
+        final jsonContent = result.data ?? '[]';
+        final List<dynamic> jsonList = jsonDecode(jsonContent);
+        final messages = jsonList
+            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>))
+            .toList();
+
+        // Sort by timestamp
+        messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+        state = state.copyWith(
+          messages: messages,
+          isLoading: false,
         );
-        lastRemote = lastRemoteMsg.content;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: result.error?.userMessage ?? 'Failed to load messages',
+        );
       }
-
-      state = MessageHistoryState(
-        messages: messages,
-        lastRemoteContent: lastRemote,
-      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -82,12 +92,50 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
     }
   }
 
-  /// Send a new message (local).
+  /// Load available dates from WebDAV.
+  Future<void> loadAvailableDates() async {
+    try {
+      final result = await _webDavService.listMessageDates();
+
+      if (result.isSuccess) {
+        final dates = result.data ?? [];
+        // Ensure today is always in the list
+        final today = _getTodayDate();
+        if (!dates.contains(today)) {
+          dates.insert(0, today);
+        }
+        state = state.copyWith(availableDates: dates);
+      }
+    } catch (e) {
+      // Silently fail, keep existing dates
+    }
+  }
+
+  /// Initialize: load today's messages and available dates.
+  Future<void> initialize() async {
+    final today = _getTodayDate();
+    _ref.read(selectedDateProvider.notifier).state = today;
+
+    await Future.wait([
+      loadMessagesForDate(today),
+      loadAvailableDates(),
+    ]);
+  }
+
+  /// Refresh messages for current date.
+  Future<void> refresh() async {
+    final date = _ref.read(selectedDateProvider);
+    await loadMessagesForDate(date);
+    await loadAvailableDates();
+  }
+
+  /// Send a new message.
   Future<bool> sendMessage(String content) async {
     if (content.trim().isEmpty) return false;
 
     final config = _ref.read(configProvider).valueOrNull;
     final localName = config?.localName ?? 'Me';
+    final today = _getTodayDate();
 
     state = state.copyWith(isSending: true, error: null);
 
@@ -98,84 +146,54 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
         senderName: localName,
       );
 
-      // Save to local history
-      await _historyService.saveMessage(message);
+      // Read current messages for today
+      final readResult = await _webDavService.readMessagesFile(today);
+      List<TextMessage> todayMessages = [];
 
-      // Add to current state
-      final updatedMessages = [...state.messages, message];
-      state = state.copyWith(
-        messages: updatedMessages,
-        isSending: false,
-        lastRemoteContent: content.trim(),
-      );
-
-      // Push to WebDAV server
-      final result = await _webDavService.writeBuffer(content.trim());
-      if (!result.isSuccess) {
-        state = state.copyWith(error: 'Sent locally, but failed to sync to server');
+      if (readResult.isSuccess) {
+        final jsonContent = readResult.data ?? '[]';
+        final List<dynamic> jsonList = jsonDecode(jsonContent);
+        todayMessages = jsonList
+            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
 
-      return true;
+      // Add new message
+      todayMessages.add(message);
+
+      // Sort by timestamp
+      todayMessages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+      // Write back to WebDAV
+      final jsonList = todayMessages.map((m) => m.toJson()).toList();
+      final jsonContent = const JsonEncoder.withIndent('  ').convert(jsonList);
+      final writeResult = await _webDavService.writeMessagesFile(today, jsonContent);
+
+      if (writeResult.isSuccess) {
+        // Update state if viewing today
+        final selectedDate = _ref.read(selectedDateProvider);
+        if (selectedDate == today) {
+          state = state.copyWith(
+            messages: todayMessages,
+            isSending: false,
+          );
+        } else {
+          state = state.copyWith(isSending: false);
+        }
+        return true;
+      } else {
+        state = state.copyWith(
+          isSending: false,
+          error: 'Failed to sync message',
+        );
+        return false;
+      }
     } catch (e) {
       state = state.copyWith(
         isSending: false,
         error: 'Failed to send: $e',
       );
       return false;
-    }
-  }
-
-  /// Check for new remote messages.
-  Future<void> checkForRemoteMessages() async {
-    try {
-      final result = await _webDavService.readBuffer();
-      if (!result.isSuccess || result.data == null) return;
-
-      final remoteContent = result.data!.trim();
-      if (remoteContent.isEmpty) return;
-
-      // Check if this is new content
-      if (remoteContent != state.lastRemoteContent) {
-        // Check if this content already exists in recent messages
-        final exists = state.messages.any((m) => m.content == remoteContent);
-        if (!exists) {
-          // Create remote message
-          final message = TextMessage.remote(content: remoteContent);
-
-          // Save to local history
-          await _historyService.saveMessage(message);
-
-          // Add to current state
-          final updatedMessages = [...state.messages, message];
-          state = state.copyWith(
-            messages: updatedMessages,
-            lastRemoteContent: remoteContent,
-          );
-        } else {
-          // Update last remote content even if message exists
-          state = state.copyWith(lastRemoteContent: remoteContent);
-        }
-      }
-    } catch (e) {
-      // Silently fail for background checks
-    }
-  }
-
-  /// Refresh messages from local storage.
-  Future<void> refresh() async {
-    state = state.copyWith(isLoading: true, error: null);
-
-    try {
-      final messages = await _historyService.loadRecentMessages(days: 7);
-      state = state.copyWith(
-        messages: messages,
-        isLoading: false,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to refresh: $e',
-      );
     }
   }
 
@@ -188,9 +206,8 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
 /// Provider for message history state management.
 final messageHistoryProvider =
     StateNotifierProvider<MessageHistoryNotifier, MessageHistoryState>((ref) {
-  final historyService = ref.watch(messageHistoryServiceProvider);
   final webDavService = ref.watch(webDavServiceProvider);
-  return MessageHistoryNotifier(historyService, webDavService, ref);
+  return MessageHistoryNotifier(webDavService, ref);
 });
 
 /// Provider for local name.
