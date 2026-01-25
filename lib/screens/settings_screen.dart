@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import '../models/app_config.dart';
+import '../models/server_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 
@@ -16,13 +17,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // Connection settings controllers
-  final _urlController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
   bool _isSaving = false;
-  bool _isTesting = false;
 
   // Settings
   late double _refreshInterval;
@@ -40,9 +35,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _loadConfig() async {
     final config = ref.read(configProvider).valueOrNull;
     if (config != null) {
-      _urlController.text = config.serverUrl;
-      _usernameController.text = config.username;
-      _passwordController.text = config.password;
       setState(() {
         _refreshInterval = config.refreshIntervalSeconds.toDouble();
         _downloadLocation = config.downloadLocation;
@@ -70,14 +62,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     }
     return null;
-  }
-
-  @override
-  void dispose() {
-    _urlController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override
@@ -115,86 +99,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isPortableAvailable = ref.watch(portableModeAvailableProvider);
     final isPortableMode = ref.watch(isPortableModeProvider);
     final configService = ref.watch(configServiceProvider);
+    final servers = ref.watch(serversListProvider);
+    final activeServer = ref.watch(activeServerProvider);
 
     return _SettingsSection(
       title: 'Connection',
       icon: Icons.cloud,
       children: [
         // Connection Status Card
-        _buildConnectionStatusCard(connectionStatus),
+        _buildConnectionStatusCard(connectionStatus, activeServer),
         const SizedBox(height: 16),
 
-        // Server URL
-        TextField(
-          controller: _urlController,
-          decoration: const InputDecoration(
-            labelText: 'WebDAV Server URL',
-            hintText: 'https://example.com/webdav',
-            prefixIcon: Icon(Icons.link),
-            border: OutlineInputBorder(),
-          ),
-          keyboardType: TextInputType.url,
+        // Configured Servers Section
+        Text(
+          'Configured Servers',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
-        // Username
-        TextField(
-          controller: _usernameController,
-          decoration: const InputDecoration(
-            labelText: 'Username',
-            prefixIcon: Icon(Icons.person),
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Password
-        TextField(
-          controller: _passwordController,
-          decoration: InputDecoration(
-            labelText: 'Password',
-            prefixIcon: const Icon(Icons.lock),
-            border: const OutlineInputBorder(),
-            suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            ),
-          ),
-          obscureText: _obscurePassword,
-        ),
-        const SizedBox(height: 16),
-
-        // Action Buttons
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _isTesting || _isSaving ? null : _testConnection,
-                icon: _isTesting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.wifi_find),
-                label: const Text('Test'),
+        if (servers.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(100),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withAlpha(50),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: _isSaving || _isTesting ? null : _saveConfig,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save),
-                label: const Text('Save'),
+            child: const Center(
+              child: Text(
+                'No servers configured',
+                style: TextStyle(color: Colors.grey),
               ),
             ),
-          ],
+          )
+        else
+          ...servers.map((server) => _buildServerTile(server, activeServer)),
+
+        const SizedBox(height: 12),
+
+        // Add Server Button
+        OutlinedButton.icon(
+          onPressed: () => _showServerDialog(),
+          icon: const Icon(Icons.add),
+          label: const Text('Add Server'),
         ),
 
         // Portable Mode (desktop only)
@@ -245,7 +196,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildConnectionStatusCard(ConnectionStatus status) {
+  Widget _buildServerTile(ServerConfig server, ServerConfig? activeServer) {
+    final isActive = activeServer?.id == server.id;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: RadioListTile<String>(
+        value: server.id,
+        groupValue: activeServer?.id,
+        onChanged: (value) {
+          if (value != null) {
+            _switchServer(value);
+          }
+        },
+        title: Text(
+          server.name,
+          style: TextStyle(
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        subtitle: Text(
+          server.serverUrl,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        secondary: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (action) {
+            switch (action) {
+              case 'edit':
+                _showServerDialog(server: server);
+                break;
+              case 'delete':
+                _confirmDeleteServer(server);
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit, size: 20),
+                  SizedBox(width: 8),
+                  Text('Edit'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 20, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Delete', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionStatusCard(ConnectionStatus status, ServerConfig? activeServer) {
     Color color;
     IconData icon;
     String text;
@@ -254,7 +268,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case WebDavConnectionState.connected:
         color = Colors.green;
         icon = Icons.check_circle;
-        text = 'Connected';
+        text = activeServer != null ? '${activeServer.name} - Connected' : 'Connected';
       case WebDavConnectionState.connecting:
         color = Colors.blue;
         icon = Icons.sync;
@@ -438,76 +452,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  // ==================== Actions ====================
-  Future<void> _testConnection() async {
-    if (_urlController.text.isEmpty ||
-        _usernameController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all connection fields'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isTesting = true);
-
-    try {
-      await _saveConfigInternal();
-
-      final webDavService = ref.read(webDavServiceProvider);
-      final config = AppConfig(
-        serverUrl: _urlController.text.trim(),
-        username: _usernameController.text.trim(),
-        password: _passwordController.text,
-      );
-      webDavService.initialize(config);
-
-      final connectionNotifier = ref.read(connectionStatusProvider.notifier);
-      final success = await connectionNotifier.testConnection();
-
-      if (success) {
-        final structureResult = await connectionNotifier.initializeFolderStructure();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                structureResult.isSuccess
-                    ? 'Connected successfully!'
-                    : 'Connected, but folder setup failed',
-              ),
-              backgroundColor: structureResult.isSuccess ? Colors.green : Colors.orange,
-            ),
-          );
-        }
-      } else if (mounted) {
-        final status = ref.read(connectionStatusProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(status.errorMessage ?? 'Connection failed'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isTesting = false);
-    }
-  }
-
-  Future<void> _saveConfig() async {
+  // ==================== Server Management Actions ====================
+  Future<void> _switchServer(String serverId) async {
     setState(() => _isSaving = true);
 
     try {
-      final success = await _saveConfigInternal();
+      final success = await ref.read(configProvider.notifier).switchServer(serverId);
 
-      if (mounted) {
+      if (success && mounted) {
+        // Reinitialize WebDAV connection
+        final config = ref.read(configProvider).valueOrNull;
+        if (config != null) {
+          final webDavService = ref.read(webDavServiceProvider);
+          webDavService.initialize(config);
+          ref.read(connectionStatusProvider.notifier).testConnection();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Settings saved' : 'Failed to save'),
-            backgroundColor: success ? Colors.green : Colors.red,
+          const SnackBar(
+            content: Text('Server switched'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -516,18 +481,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<bool> _saveConfigInternal() async {
-    final currentConfig = ref.read(configProvider).valueOrNull;
-    final newConfig = AppConfig(
-      serverUrl: _urlController.text.trim(),
-      username: _usernameController.text.trim(),
-      password: _passwordController.text,
-      portableMode: currentConfig?.portableMode ?? false,
-      refreshIntervalSeconds: _refreshInterval.toInt(),
+  void _showServerDialog({ServerConfig? server}) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => _ServerEditDialog(
+        server: server,
+        onSave: (newServer) async {
+          bool success;
+          if (server == null) {
+            success = await ref.read(configProvider.notifier).addServer(newServer);
+          } else {
+            success = await ref.read(configProvider.notifier).updateServer(newServer);
+          }
+
+          if (success && mounted) {
+            // If this is a new server or we're editing the active server, reinitialize
+            final config = ref.read(configProvider).valueOrNull;
+            if (config != null && config.activeServerId == newServer.id) {
+              final webDavService = ref.read(webDavServiceProvider);
+              webDavService.initialize(config);
+              ref.read(connectionStatusProvider.notifier).testConnection();
+            }
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(success
+                    ? (server == null ? 'Server added' : 'Server updated')
+                    : 'Failed to save server'),
+                backgroundColor: success ? Colors.green : Colors.red,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        },
+      ),
     );
-    return ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
+  void _confirmDeleteServer(ServerConfig server) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Server'),
+        content: Text('Are you sure you want to delete "${server.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              final success = await ref.read(configProvider.notifier).deleteServer(server.id);
+
+              if (!mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(success ? 'Server deleted' : 'Failed to delete'),
+                  backgroundColor: success ? Colors.green : Colors.red,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+
+              // Reinitialize WebDAV with new active server (if any)
+              if (success) {
+                final config = ref.read(configProvider).valueOrNull;
+                if (config != null && config.activeServer != null) {
+                  final webDavService = ref.read(webDavServiceProvider);
+                  webDavService.initialize(config);
+                  ref.read(connectionStatusProvider.notifier).testConnection();
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==================== Other Actions ====================
   Future<void> _saveRefreshInterval(int seconds) async {
     final currentConfig = ref.read(configProvider).valueOrNull;
     if (currentConfig == null) return;
@@ -545,8 +582,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await _saveConfigInternal();
-
       final notifier = ref.read(configProvider.notifier);
       final success = enable
           ? await notifier.enablePortableMode()
@@ -629,6 +664,289 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+}
+
+/// Dialog for adding/editing a server configuration.
+class _ServerEditDialog extends ConsumerStatefulWidget {
+  final ServerConfig? server;
+  final Future<void> Function(ServerConfig server) onSave;
+
+  const _ServerEditDialog({
+    this.server,
+    required this.onSave,
+  });
+
+  @override
+  ConsumerState<_ServerEditDialog> createState() => _ServerEditDialogState();
+}
+
+class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _urlController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _isTesting = false;
+  bool _isSaving = false;
+  String? _testResult;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.server != null) {
+      _nameController.text = widget.server!.name;
+      _urlController.text = widget.server!.serverUrl;
+      _usernameController.text = widget.server!.username;
+      _passwordController.text = widget.server!.password;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _urlController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEditing = widget.server != null;
+
+    return AlertDialog(
+      title: Text(isEditing ? 'Edit Server' : 'Add Server'),
+      content: SizedBox(
+        width: 400,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    hintText: 'e.g., Home NAS',
+                    prefixIcon: Icon(Icons.label),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _urlController,
+                  decoration: const InputDecoration(
+                    labelText: 'WebDAV Server URL',
+                    hintText: 'https://example.com/webdav',
+                    prefixIcon: Icon(Icons.link),
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.url,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a server URL';
+                    }
+                    final uri = Uri.tryParse(value.trim());
+                    if (uri == null || !uri.hasScheme) {
+                      return 'Please enter a valid URL';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a username';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  obscureText: _obscurePassword,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Test Connection Button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isTesting || _isSaving ? null : _testConnection,
+                    icon: _isTesting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.wifi_find),
+                    label: const Text('Test Connection'),
+                  ),
+                ),
+                if (_testResult != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _testResult!.startsWith('Success')
+                          ? Colors.green.withAlpha(20)
+                          : Colors.red.withAlpha(20),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _testResult!.startsWith('Success')
+                              ? Icons.check_circle
+                              : Icons.error,
+                          size: 16,
+                          color: _testResult!.startsWith('Success')
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _testResult!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _testResult!.startsWith('Success')
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _isSaving || _isTesting ? null : _saveServer,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(isEditing ? 'Save' : 'Add'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _testConnection() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isTesting = true;
+      _testResult = null;
+    });
+
+    try {
+      final webDavService = ref.read(webDavServiceProvider);
+      final tempConfig = AppConfig(
+        servers: [
+          ServerConfig.create(
+            name: _nameController.text.trim(),
+            serverUrl: _urlController.text.trim(),
+            username: _usernameController.text.trim(),
+            password: _passwordController.text,
+          ),
+        ],
+        activeServerId: 'temp',
+      );
+
+      // Create a temporary config just for testing
+      final testConfig = AppConfig(
+        servers: tempConfig.servers,
+        activeServerId: tempConfig.servers.first.id,
+      );
+
+      webDavService.initialize(testConfig);
+      await webDavService.testConnection();
+
+      setState(() => _testResult = 'Success! Connection established.');
+    } catch (e) {
+      setState(() => _testResult = 'Failed: ${e.toString()}');
+    } finally {
+      setState(() => _isTesting = false);
+
+      // Restore original config
+      final config = ref.read(configProvider).valueOrNull;
+      if (config != null && config.isConfigured) {
+        ref.read(webDavServiceProvider).initialize(config);
+      }
+    }
+  }
+
+  Future<void> _saveServer() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final ServerConfig newServer;
+      if (widget.server != null) {
+        newServer = widget.server!.copyWith(
+          name: _nameController.text.trim(),
+          serverUrl: _urlController.text.trim(),
+          username: _usernameController.text.trim(),
+          password: _passwordController.text,
+        );
+      } else {
+        newServer = ServerConfig.create(
+          name: _nameController.text.trim(),
+          serverUrl: _urlController.text.trim(),
+          username: _usernameController.text.trim(),
+          password: _passwordController.text,
+        );
+      }
+
+      await widget.onSave(newServer);
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 }
 

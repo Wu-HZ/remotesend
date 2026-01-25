@@ -45,8 +45,15 @@ dependencies:
   # Preferences (fallback for non-portable mode)
   shared_preferences: ^2.3.5
 
+  # UUID Generation
+  uuid: ^4.5.1
+
   # File Picker
   file_picker: ^8.1.7
+
+  # Drag and Drop (Desktop)
+  desktop_drop: ^0.5.0
+  cross_file: ^0.3.5+1
 
   # Android Permissions
   permission_handler: ^11.3.1
