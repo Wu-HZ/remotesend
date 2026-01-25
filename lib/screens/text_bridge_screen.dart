@@ -32,13 +32,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     await ref.read(messageHistoryProvider.notifier).initialize();
     _scrollToBottom();
-
-    // Start auto-pull if connected
-    final config = ref.read(configProvider).valueOrNull;
-    if (config != null && config.isConfigured) {
-      final refreshInterval = config.refreshIntervalSeconds;
-      ref.read(autoPullProvider.notifier).enable(refreshInterval);
-    }
   }
 
   @override
@@ -112,6 +105,13 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               ),
               tooltip: autoPullState.isEnabled ? 'Auto-sync ON' : 'Auto-sync OFF',
             ),
+          // Manual refresh button
+          if (canSync)
+            IconButton(
+              onPressed: historyState.isLoading ? null : _manualRefresh,
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Refresh',
+            ),
         ],
       ),
       body: Column(
@@ -165,6 +165,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final config = ref.read(configProvider).valueOrNull;
     final refreshInterval = config?.refreshIntervalSeconds ?? 3;
     ref.read(autoPullProvider.notifier).toggle(refreshInterval);
+  }
+
+  Future<void> _manualRefresh() async {
+    await ref.read(messageHistoryProvider.notifier).checkForRemoteMessages();
   }
 
   Widget _buildWarningBanner(bool isConfigured, bool isConnected) {
