@@ -158,7 +158,7 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
   /// Clear all configuration.
   Future<void> clearConfig() async {
     await _configService.clearConfig();
-    state = const AsyncValue.data(AppConfig());
+    state = AsyncValue.data(AppConfig());
   }
 }
 

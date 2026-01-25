@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'server_config.dart';
+import '../services/message_history_service.dart';
 
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
@@ -11,15 +12,17 @@ class AppConfig {
   final bool portableMode;
   final int refreshIntervalSeconds;
   final String downloadLocation;
+  final String localName; // Local device name for chat display
 
-  const AppConfig({
+  AppConfig({
     this.version = currentVersion,
     this.servers = const [],
     this.activeServerId,
     this.portableMode = false,
     this.refreshIntervalSeconds = 3,
     this.downloadLocation = '',
-  });
+    String? localName,
+  }) : localName = localName ?? MessageHistoryService.generateRandomName();
 
   /// Get the currently active server configuration.
   ServerConfig? get activeServer {
@@ -51,6 +54,7 @@ class AppConfig {
     bool? portableMode,
     int? refreshIntervalSeconds,
     String? downloadLocation,
+    String? localName,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -59,6 +63,7 @@ class AppConfig {
       portableMode: portableMode ?? this.portableMode,
       refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
+      localName: localName ?? this.localName,
     );
   }
 
@@ -69,6 +74,7 @@ class AppConfig {
     bool? portableMode,
     int? refreshIntervalSeconds,
     String? downloadLocation,
+    String? localName,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -77,6 +83,7 @@ class AppConfig {
       portableMode: portableMode ?? this.portableMode,
       refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
+      localName: localName ?? this.localName,
     );
   }
 
@@ -89,6 +96,7 @@ class AppConfig {
       'portableMode': portableMode,
       'refreshIntervalSeconds': refreshIntervalSeconds,
       'downloadLocation': downloadLocation,
+      'localName': localName,
     };
   }
 
@@ -113,6 +121,7 @@ class AppConfig {
       portableMode: json['portableMode'] as bool? ?? false,
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
+      localName: json['localName'] as String?,
     );
   }
 
@@ -155,6 +164,7 @@ class AppConfig {
       portableMode: json['portableMode'] as bool? ?? false,
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
+      localName: json['localName'] as String?,
     );
   }
 
@@ -176,6 +186,7 @@ class AppConfig {
         other.portableMode != portableMode ||
         other.refreshIntervalSeconds != refreshIntervalSeconds ||
         other.downloadLocation != downloadLocation ||
+        other.localName != localName ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -194,6 +205,7 @@ class AppConfig {
       portableMode,
       refreshIntervalSeconds,
       downloadLocation,
+      localName,
     );
   }
 

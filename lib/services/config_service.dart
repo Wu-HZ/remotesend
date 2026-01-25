@@ -138,7 +138,7 @@ class ConfigService {
 
   AppConfig _loadFromPrefs() {
     final prefs = _prefs;
-    if (prefs == null) return const AppConfig();
+    if (prefs == null) return AppConfig();
 
     // Try to load v2 config first
     final configJson = prefs.getString(_prefsKeyConfig);
@@ -157,7 +157,7 @@ class ConfigService {
       return _migrateFromPrefsV1(prefs);
     }
 
-    return const AppConfig();
+    return AppConfig();
   }
 
   AppConfig _migrateFromPrefsV1(SharedPreferences prefs) {

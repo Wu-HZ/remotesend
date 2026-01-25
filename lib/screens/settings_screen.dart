@@ -148,6 +148,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           label: const Text('Add Server'),
         ),
 
+        // Local Name Setting
+        const Divider(height: 32),
+        _buildLocalNameTile(),
+
         // Portable Mode (desktop only)
         if (isPortableAvailable) ...[
           const Divider(height: 32),
@@ -296,6 +300,84 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(text, style: TextStyle(color: color)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocalNameTile() {
+    final config = ref.watch(configProvider).valueOrNull;
+    final localName = config?.localName ?? 'Unknown';
+
+    return ListTile(
+      leading: const Icon(Icons.person),
+      title: const Text('Local Name'),
+      subtitle: Text(localName),
+      trailing: const Icon(Icons.edit),
+      contentPadding: EdgeInsets.zero,
+      onTap: () => _showLocalNameDialog(localName),
+    );
+  }
+
+  void _showLocalNameDialog(String currentName) {
+    final controller = TextEditingController(text: currentName);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Local Name'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This name will be shown in Text Bridge messages sent from this device.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                hintText: 'e.g., My Phone',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isEmpty) return;
+
+              Navigator.pop(dialogContext);
+
+              final config = ref.read(configProvider).valueOrNull;
+              if (config != null) {
+                final newConfig = config.copyWith(localName: newName);
+                final success = await ref.read(configProvider.notifier).updateConfig(newConfig);
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success ? 'Name updated' : 'Failed to save'),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
