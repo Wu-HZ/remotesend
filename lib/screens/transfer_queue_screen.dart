@@ -99,13 +99,12 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
       }
 
       if (Platform.isWindows) {
-        await Process.run('explorer', ['/select,', filePath]);
+        // Open the file directly with default application
+        await Process.run('cmd', ['/c', 'start', '', filePath]);
       } else if (Platform.isMacOS) {
-        await Process.run('open', ['-R', filePath]);
+        await Process.run('open', [filePath]);
       } else if (Platform.isLinux) {
-        // On Linux, open the containing folder
-        final folder = p.dirname(filePath);
-        await Process.run('xdg-open', [folder]);
+        await Process.run('xdg-open', [filePath]);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -752,8 +751,8 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     } else if (item.status == DownloadStatus.completed) {
       return IconButton(
         onPressed: () => _openFile(item.localPath),
-        icon: const Icon(Icons.folder_open),
-        tooltip: 'Show in folder',
+        icon: const Icon(Icons.open_in_new),
+        tooltip: 'Open file',
         visualDensity: VisualDensity.compact,
       );
     }
