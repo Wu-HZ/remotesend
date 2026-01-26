@@ -1,16 +1,129 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../models/upload_queue.dart';
 import '../models/download_queue.dart';
+import '../providers/config_provider.dart';
 import '../providers/upload_queue_provider.dart';
 import '../providers/download_state_provider.dart';
 
 /// Screen for viewing and managing the transfer queue (uploads and downloads).
-class TransferQueueScreen extends ConsumerWidget {
+class TransferQueueScreen extends ConsumerStatefulWidget {
   const TransferQueueScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TransferQueueScreen> createState() => _TransferQueueScreenState();
+}
+
+class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
+  String? _downloadLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDownloadLocation();
+  }
+
+  Future<void> _initDownloadLocation() async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config != null && config.downloadLocation.isNotEmpty) {
+      _downloadLocation = config.downloadLocation;
+    } else {
+      _downloadLocation = await _getSystemDownloadDirectory();
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<String?> _getSystemDownloadDirectory() async {
+    if (Platform.isWindows) {
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null) {
+        return p.join(userProfile, 'Downloads');
+      }
+    } else if (Platform.isLinux) {
+      final home = Platform.environment['HOME'];
+      if (home != null) {
+        return p.join(home, 'Downloads');
+      }
+    } else if (Platform.isMacOS) {
+      final home = Platform.environment['HOME'];
+      if (home != null) {
+        return p.join(home, 'Downloads');
+      }
+    } else if (Platform.isAndroid) {
+      final dir = await getExternalStorageDirectory();
+      return dir?.path;
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    return dir.path;
+  }
+
+  Future<void> _openDownloadFolder() async {
+    if (_downloadLocation == null) return;
+
+    try {
+      if (Platform.isWindows) {
+        await Process.run('explorer', [_downloadLocation!]);
+      } else if (Platform.isMacOS) {
+        await Process.run('open', [_downloadLocation!]);
+      } else if (Platform.isLinux) {
+        await Process.run('xdg-open', [_downloadLocation!]);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Open folder not supported on this platform')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open folder: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _openFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('File not found'), backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
+
+      if (Platform.isWindows) {
+        await Process.run('explorer', ['/select,', filePath]);
+      } else if (Platform.isMacOS) {
+        await Process.run('open', ['-R', filePath]);
+      } else if (Platform.isLinux) {
+        // On Linux, open the containing folder
+        final folder = p.dirname(filePath);
+        await Process.run('xdg-open', [folder]);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Open file not supported on this platform')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open file: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final uploadState = ref.watch(uploadQueueProvider);
     final downloadState = ref.watch(downloadStateProvider);
 
@@ -18,6 +131,12 @@ class TransferQueueScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Transfer Queue'),
         actions: [
+          // Open download folder button
+          IconButton(
+            onPressed: _openDownloadFolder,
+            icon: const Icon(Icons.folder_open),
+            tooltip: 'Open download folder',
+          ),
           if (uploadState.failedCount > 0)
             IconButton(
               onPressed: () => ref.read(uploadQueueProvider.notifier).retryFailed(),
@@ -32,7 +151,7 @@ class TransferQueueScreen extends ConsumerWidget {
             ),
           if (uploadState.items.isNotEmpty)
             IconButton(
-              onPressed: () => _confirmClearAll(context, ref),
+              onPressed: () => _confirmClearAll(context),
               icon: const Icon(Icons.delete_sweep),
               tooltip: 'Clear all',
             ),
@@ -617,16 +736,28 @@ class TransferQueueScreen extends ConsumerWidget {
             ),
         ],
       ),
-      trailing: item.status == DownloadStatus.downloading
-          ? Text(
-              '${(item.progress * 100).toStringAsFixed(0)}%',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-            )
-          : null,
+      trailing: _buildDownloadItemTrailing(context, item),
     );
+  }
+
+  Widget? _buildDownloadItemTrailing(BuildContext context, DownloadItem item) {
+    if (item.status == DownloadStatus.downloading) {
+      return Text(
+        '${(item.progress * 100).toStringAsFixed(0)}%',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.secondary,
+        ),
+      );
+    } else if (item.status == DownloadStatus.completed) {
+      return IconButton(
+        onPressed: () => _openFile(item.localPath),
+        icon: const Icon(Icons.folder_open),
+        tooltip: 'Show in folder',
+        visualDensity: VisualDensity.compact,
+      );
+    }
+    return null;
   }
 
   Widget _buildDownloadItemStatusIcon(BuildContext context, DownloadItem item) {
@@ -672,7 +803,7 @@ class TransferQueueScreen extends ConsumerWidget {
     }
   }
 
-  void _confirmClearAll(BuildContext context, WidgetRef ref) {
+  void _confirmClearAll(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
