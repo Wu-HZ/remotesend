@@ -27,7 +27,10 @@ String _generateRandomName() {
 
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
-  static const int currentVersion = 3;
+  static const int currentVersion = 4;
+
+  // Default primary color (Material Blue 500)
+  static const int defaultPrimaryColor = 0xFF2196F3;
 
   final int version;
   final List<ServerConfig> servers;
@@ -37,6 +40,8 @@ class AppConfig {
   final int refreshIntervalSeconds;
   final String downloadLocation;
   final String localName; // Local device name for chat display
+  final String themeMode; // 'system', 'light', 'dark'
+  final int primaryColor; // Color value as int (e.g., 0xFF2196F3)
 
   AppConfig({
     this.version = currentVersion,
@@ -47,6 +52,8 @@ class AppConfig {
     this.refreshIntervalSeconds = 3,
     this.downloadLocation = '',
     String? localName,
+    this.themeMode = 'system',
+    this.primaryColor = defaultPrimaryColor,
   }) : localName = localName ?? _generateRandomName();
 
   /// Get the active server for Text Bridge.
@@ -100,6 +107,8 @@ class AppConfig {
     int? refreshIntervalSeconds,
     String? downloadLocation,
     String? localName,
+    String? themeMode,
+    int? primaryColor,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -110,6 +119,8 @@ class AppConfig {
       refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
       localName: localName ?? this.localName,
+      themeMode: themeMode ?? this.themeMode,
+      primaryColor: primaryColor ?? this.primaryColor,
     );
   }
 
@@ -121,6 +132,8 @@ class AppConfig {
     int? refreshIntervalSeconds,
     String? downloadLocation,
     String? localName,
+    String? themeMode,
+    int? primaryColor,
     bool clearText = false,
     bool clearFiles = false,
   }) {
@@ -133,6 +146,8 @@ class AppConfig {
       refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
       localName: localName ?? this.localName,
+      themeMode: themeMode ?? this.themeMode,
+      primaryColor: primaryColor ?? this.primaryColor,
     );
   }
 
@@ -147,6 +162,8 @@ class AppConfig {
       'refreshIntervalSeconds': refreshIntervalSeconds,
       'downloadLocation': downloadLocation,
       'localName': localName,
+      'themeMode': themeMode,
+      'primaryColor': primaryColor,
     };
   }
 
@@ -178,6 +195,8 @@ class AppConfig {
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
       localName: json['localName'] as String?,
+      themeMode: json['themeMode'] as String? ?? 'system',
+      primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
     );
   }
 
@@ -221,6 +240,8 @@ class AppConfig {
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
       localName: json['localName'] as String?,
+      themeMode: json['themeMode'] as String? ?? 'system',
+      primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
     );
   }
 
@@ -241,6 +262,8 @@ class AppConfig {
       refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
       localName: json['localName'] as String?,
+      themeMode: json['themeMode'] as String? ?? 'system',
+      primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
     );
   }
 
@@ -264,6 +287,8 @@ class AppConfig {
         other.refreshIntervalSeconds != refreshIntervalSeconds ||
         other.downloadLocation != downloadLocation ||
         other.localName != localName ||
+        other.themeMode != themeMode ||
+        other.primaryColor != primaryColor ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -284,6 +309,8 @@ class AppConfig {
       refreshIntervalSeconds,
       downloadLocation,
       localName,
+      themeMode,
+      primaryColor,
     );
   }
 

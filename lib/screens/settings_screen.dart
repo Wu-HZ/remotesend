@@ -507,6 +507,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ==================== General Section ====================
   Widget _buildGeneralSection() {
+    final config = ref.watch(configProvider).valueOrNull;
+    final themeMode = config?.themeMode ?? 'system';
+    final primaryColor = config?.primaryColor ?? 0xFF2196F3;
+
+    String themeModeText;
+    switch (themeMode) {
+      case 'light':
+        themeModeText = 'Light';
+      case 'dark':
+        themeModeText = 'Dark';
+      default:
+        themeModeText = 'System default';
+    }
+
     return _SettingsSection(
       title: 'General',
       icon: Icons.tune,
@@ -514,23 +528,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ListTile(
           leading: const Icon(Icons.brightness_6),
           title: const Text('Theme'),
-          subtitle: const Text('System default'),
+          subtitle: Text(themeModeText),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showThemeDialog(),
         ),
         ListTile(
           leading: const Icon(Icons.palette),
           title: const Text('Color'),
-          subtitle: const Text('Blue'),
+          subtitle: Text(_getColorName(primaryColor)),
           trailing: Container(
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
+              color: Color(primaryColor),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withAlpha(100),
+              ),
             ),
           ),
-          onTap: () => _showComingSoon('Color settings'),
+          onTap: () => _showColorPicker(),
         ),
         ListTile(
           leading: const Icon(Icons.language),
@@ -541,6 +558,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  String _getColorName(int colorValue) {
+    final colorNames = {
+      0xFF2196F3: 'Blue',
+      0xFFF44336: 'Red',
+      0xFF4CAF50: 'Green',
+      0xFFFF9800: 'Orange',
+      0xFF9C27B0: 'Purple',
+      0xFF00BCD4: 'Cyan',
+      0xFFE91E63: 'Pink',
+      0xFF009688: 'Teal',
+      0xFF3F51B5: 'Indigo',
+      0xFFFFEB3B: 'Yellow',
+      0xFF795548: 'Brown',
+      0xFF607D8B: 'Blue Grey',
+    };
+    return colorNames[colorValue] ?? 'Custom';
   }
 
   // ==================== Download Section ====================
@@ -786,9 +821,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showThemeDialog() {
+    final config = ref.read(configProvider).valueOrNull;
+    final currentTheme = config?.themeMode ?? 'system';
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Theme'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -796,31 +834,133 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             RadioListTile<String>(
               title: const Text('System default'),
               value: 'system',
-              groupValue: 'system',
-              onChanged: (_) => Navigator.pop(context),
+              groupValue: currentTheme,
+              onChanged: (value) {
+                Navigator.pop(dialogContext);
+                _saveThemeMode(value!);
+              },
             ),
             RadioListTile<String>(
               title: const Text('Light'),
               value: 'light',
-              groupValue: 'system',
-              onChanged: (_) {
-                Navigator.pop(context);
-                _showComingSoon('Theme setting');
+              groupValue: currentTheme,
+              onChanged: (value) {
+                Navigator.pop(dialogContext);
+                _saveThemeMode(value!);
               },
             ),
             RadioListTile<String>(
               title: const Text('Dark'),
               value: 'dark',
-              groupValue: 'system',
-              onChanged: (_) {
-                Navigator.pop(context);
-                _showComingSoon('Theme setting');
+              groupValue: currentTheme,
+              onChanged: (value) {
+                Navigator.pop(dialogContext);
+                _saveThemeMode(value!);
               },
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _saveThemeMode(String themeMode) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+
+    final newConfig = currentConfig.copyWith(themeMode: themeMode);
+    await ref.read(configProvider.notifier).updateConfig(newConfig);
+  }
+
+  void _showColorPicker() {
+    final config = ref.read(configProvider).valueOrNull;
+    final currentColor = config?.primaryColor ?? 0xFF2196F3;
+
+    // Predefined Material colors
+    final colors = [
+      0xFF2196F3, // Blue
+      0xFFF44336, // Red
+      0xFF4CAF50, // Green
+      0xFFFF9800, // Orange
+      0xFF9C27B0, // Purple
+      0xFF00BCD4, // Cyan
+      0xFFE91E63, // Pink
+      0xFF009688, // Teal
+      0xFF3F51B5, // Indigo
+      0xFFFFEB3B, // Yellow
+      0xFF795548, // Brown
+      0xFF607D8B, // Blue Grey
+    ];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Choose Color'),
+        content: SizedBox(
+          width: 280,
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: colors.map((colorValue) {
+              final isSelected = colorValue == currentColor;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.pop(dialogContext);
+                  _savePrimaryColor(colorValue);
+                },
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Color(colorValue),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Colors.transparent,
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(colorValue).withAlpha(100),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: isSelected
+                      ? Icon(
+                          Icons.check,
+                          color: _getContrastColor(Color(colorValue)),
+                        )
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getContrastColor(Color color) {
+    // Calculate luminance and return black or white for best contrast
+    final luminance = color.computeLuminance();
+    return luminance > 0.5 ? Colors.black : Colors.white;
+  }
+
+  Future<void> _savePrimaryColor(int colorValue) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+
+    final newConfig = currentConfig.copyWith(primaryColor: colorValue);
+    await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
   void _showAboutDialog() {

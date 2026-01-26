@@ -74,24 +74,40 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
       });
     });
 
+    // Watch theme settings
+    final themeMode = ref.watch(themeModeProvider);
+    final primaryColor = ref.watch(primaryColorProvider);
+    final seedColor = Color(primaryColor);
+
+    // Convert string theme mode to ThemeMode enum
+    ThemeMode flutterThemeMode;
+    switch (themeMode) {
+      case 'light':
+        flutterThemeMode = ThemeMode.light;
+      case 'dark':
+        flutterThemeMode = ThemeMode.dark;
+      default:
+        flutterThemeMode = ThemeMode.system;
+    }
+
     return MaterialApp(
       title: 'RemoteSend',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: seedColor,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: seedColor,
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
       ),
-      themeMode: ThemeMode.system,
+      themeMode: flutterThemeMode,
       home: _buildAppWithDropTarget(),
     );
   }

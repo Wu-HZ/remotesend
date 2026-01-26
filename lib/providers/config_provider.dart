@@ -293,3 +293,21 @@ final isFilesConfiguredProvider = Provider<bool>((ref) {
     orElse: () => false,
   );
 });
+
+/// Provider for the current theme mode ('system', 'light', 'dark').
+final themeModeProvider = Provider<String>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.themeMode,
+    orElse: () => 'system',
+  );
+});
+
+/// Provider for the primary color as int.
+final primaryColorProvider = Provider<int>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.primaryColor,
+    orElse: () => 0xFF2196F3, // Default blue
+  );
+});
