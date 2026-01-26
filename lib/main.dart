@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'providers/config_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
@@ -77,7 +78,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
     // Watch theme settings
     final themeMode = ref.watch(themeModeProvider);
     final primaryColor = ref.watch(primaryColorProvider);
-    final seedColor = Color(primaryColor);
+    final useDynamicColor = ref.watch(useDynamicColorProvider);
 
     // Convert string theme mode to ThemeMode enum
     ThemeMode flutterThemeMode;
@@ -90,25 +91,43 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
         flutterThemeMode = ThemeMode.system;
     }
 
-    return MaterialApp(
-      title: 'RemoteSend',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seedColor,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seedColor,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      themeMode: flutterThemeMode,
-      home: _buildAppWithDropTarget(),
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        ColorScheme lightColorScheme;
+        ColorScheme darkColorScheme;
+
+        // Use dynamic color if available and enabled
+        if (useDynamicColor && lightDynamic != null && darkDynamic != null) {
+          lightColorScheme = lightDynamic.harmonized();
+          darkColorScheme = darkDynamic.harmonized();
+        } else {
+          // Fall back to seed color
+          final seedColor = Color(primaryColor);
+          lightColorScheme = ColorScheme.fromSeed(
+            seedColor: seedColor,
+            brightness: Brightness.light,
+          );
+          darkColorScheme = ColorScheme.fromSeed(
+            seedColor: seedColor,
+            brightness: Brightness.dark,
+          );
+        }
+
+        return MaterialApp(
+          title: 'RemoteSend',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: lightColorScheme,
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: darkColorScheme,
+            useMaterial3: true,
+          ),
+          themeMode: flutterThemeMode,
+          home: _buildAppWithDropTarget(),
+        );
+      },
     );
   }
 

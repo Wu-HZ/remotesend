@@ -510,6 +510,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final config = ref.watch(configProvider).valueOrNull;
     final themeMode = config?.themeMode ?? 'system';
     final primaryColor = config?.primaryColor ?? 0xFF2196F3;
+    final useDynamicColor = config?.useDynamicColor ?? true;
 
     String themeModeText;
     switch (themeMode) {
@@ -532,10 +533,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showThemeDialog(),
         ),
+        SwitchListTile(
+          secondary: const Icon(Icons.auto_awesome),
+          title: const Text('Dynamic Color'),
+          subtitle: const Text('Use system accent color (Material You)'),
+          value: useDynamicColor,
+          onChanged: (value) => _saveDynamicColor(value),
+        ),
         ListTile(
           leading: const Icon(Icons.palette),
           title: const Text('Color'),
-          subtitle: Text(_getColorName(primaryColor)),
+          subtitle: Text(useDynamicColor ? 'Using system color' : _getColorName(primaryColor)),
           trailing: Container(
             width: 24,
             height: 24,
@@ -547,7 +555,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
-          onTap: () => _showColorPicker(),
+          enabled: !useDynamicColor,
+          onTap: useDynamicColor ? null : () => _showColorPicker(),
         ),
         ListTile(
           leading: const Icon(Icons.language),
@@ -960,6 +969,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (currentConfig == null) return;
 
     final newConfig = currentConfig.copyWith(primaryColor: colorValue);
+    await ref.read(configProvider.notifier).updateConfig(newConfig);
+  }
+
+  Future<void> _saveDynamicColor(bool useDynamicColor) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+
+    final newConfig = currentConfig.copyWith(useDynamicColor: useDynamicColor);
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 

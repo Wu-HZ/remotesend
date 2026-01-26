@@ -42,6 +42,7 @@ class AppConfig {
   final String localName; // Local device name for chat display
   final String themeMode; // 'system', 'light', 'dark'
   final int primaryColor; // Color value as int (e.g., 0xFF2196F3)
+  final bool useDynamicColor; // Use system dynamic color (Material You)
 
   AppConfig({
     this.version = currentVersion,
@@ -54,6 +55,7 @@ class AppConfig {
     String? localName,
     this.themeMode = 'system',
     this.primaryColor = defaultPrimaryColor,
+    this.useDynamicColor = true, // Default to true when available
   }) : localName = localName ?? _generateRandomName();
 
   /// Get the active server for Text Bridge.
@@ -109,6 +111,7 @@ class AppConfig {
     String? localName,
     String? themeMode,
     int? primaryColor,
+    bool? useDynamicColor,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -121,6 +124,7 @@ class AppConfig {
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
       primaryColor: primaryColor ?? this.primaryColor,
+      useDynamicColor: useDynamicColor ?? this.useDynamicColor,
     );
   }
 
@@ -134,6 +138,7 @@ class AppConfig {
     String? localName,
     String? themeMode,
     int? primaryColor,
+    bool? useDynamicColor,
     bool clearText = false,
     bool clearFiles = false,
   }) {
@@ -148,6 +153,7 @@ class AppConfig {
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
       primaryColor: primaryColor ?? this.primaryColor,
+      useDynamicColor: useDynamicColor ?? this.useDynamicColor,
     );
   }
 
@@ -164,6 +170,7 @@ class AppConfig {
       'localName': localName,
       'themeMode': themeMode,
       'primaryColor': primaryColor,
+      'useDynamicColor': useDynamicColor,
     };
   }
 
@@ -197,6 +204,7 @@ class AppConfig {
       localName: json['localName'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
       primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
+      useDynamicColor: json['useDynamicColor'] as bool? ?? true,
     );
   }
 
@@ -242,6 +250,7 @@ class AppConfig {
       localName: json['localName'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
       primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
+      useDynamicColor: json['useDynamicColor'] as bool? ?? true,
     );
   }
 
@@ -264,6 +273,7 @@ class AppConfig {
       localName: json['localName'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
       primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
+      useDynamicColor: json['useDynamicColor'] as bool? ?? true,
     );
   }
 
@@ -289,6 +299,7 @@ class AppConfig {
         other.localName != localName ||
         other.themeMode != themeMode ||
         other.primaryColor != primaryColor ||
+        other.useDynamicColor != useDynamicColor ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -311,6 +322,7 @@ class AppConfig {
       localName,
       themeMode,
       primaryColor,
+      useDynamicColor,
     );
   }
 

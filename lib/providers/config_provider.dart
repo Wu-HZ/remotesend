@@ -311,3 +311,12 @@ final primaryColorProvider = Provider<int>((ref) {
     orElse: () => 0xFF2196F3, // Default blue
   );
 });
+
+/// Provider for whether to use dynamic color.
+final useDynamicColorProvider = Provider<bool>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.useDynamicColor,
+    orElse: () => true,
+  );
+});
