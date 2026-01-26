@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/config_provider.dart';
 import 'file_depot_screen.dart';
 import 'settings_screen.dart';
@@ -21,6 +22,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final configAsync = ref.watch(configProvider);
     final isConfigured = ref.watch(isConfiguredProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return configAsync.when(
       loading: () => const Scaffold(
@@ -35,13 +37,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Failed to load configuration:\n$error'),
+              Text('${l10n.failedToLoadConfig}\n$error'),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
                   ref.read(configProvider.notifier).initialize();
                 },
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ],
           ),
@@ -55,12 +57,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           });
         }
 
-        return _buildScaffold();
+        return _buildScaffold(l10n);
       },
     );
   }
 
-  Widget _buildScaffold() {
+  Widget _buildScaffold(AppLocalizations l10n) {
     // Use NavigationRail for desktop, NavigationBar for mobile
     final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final width = MediaQuery.of(context).size.width;
@@ -77,21 +79,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 setState(() => _selectedIndex = index);
               },
               labelType: NavigationRailLabelType.all,
-              destinations: const [
+              destinations: [
                 NavigationRailDestination(
-                  icon: Icon(Icons.text_fields_outlined),
-                  selectedIcon: Icon(Icons.text_fields),
-                  label: Text('Text'),
+                  icon: const Icon(Icons.text_fields_outlined),
+                  selectedIcon: const Icon(Icons.text_fields),
+                  label: Text(l10n.navText),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.folder_outlined),
-                  selectedIcon: Icon(Icons.folder),
-                  label: Text('Files'),
+                  icon: const Icon(Icons.folder_outlined),
+                  selectedIcon: const Icon(Icons.folder),
+                  label: Text(l10n.navFiles),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings),
-                  label: Text('Settings'),
+                  icon: const Icon(Icons.settings_outlined),
+                  selectedIcon: const Icon(Icons.settings),
+                  label: Text(l10n.navSettings),
                 ),
               ],
             ),
@@ -110,21 +112,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onDestinationSelected: (index) {
           setState(() => _selectedIndex = index);
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.text_fields_outlined),
-            selectedIcon: Icon(Icons.text_fields),
-            label: 'Text',
+            icon: const Icon(Icons.text_fields_outlined),
+            selectedIcon: const Icon(Icons.text_fields),
+            label: l10n.navText,
           ),
           NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Files',
+            icon: const Icon(Icons.folder_outlined),
+            selectedIcon: const Icon(Icons.folder),
+            label: l10n.navFiles,
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: l10n.navSettings,
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../models/text_message.dart';
 import '../providers/config_provider.dart';
@@ -89,6 +90,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final selectedDate = ref.watch(selectedDateProvider);
     final activeServer = ref.watch(activeTextServerProvider);
     final servers = ref.watch(serversListProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     // Scroll to bottom when new messages arrive
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
@@ -103,11 +105,11 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
-          onTap: canSync ? () => _showDatePicker(historyState.availableDates) : null,
+          onTap: canSync ? () => _showDatePicker(historyState.availableDates, l10n) : null,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_formatDateForTitle(selectedDate)),
+              Text(_formatDateForTitle(selectedDate, l10n)),
               if (canSync) ...[
                 const SizedBox(width: 4),
                 const Icon(Icons.arrow_drop_down, size: 20),
@@ -118,7 +120,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         actions: [
           // Server selector
           if (servers.isNotEmpty)
-            _buildServerSelector(activeServer, servers),
+            _buildServerSelector(activeServer, servers, l10n),
           // Sync status indicator
           if (historyState.isSending || historyState.isLoading || autoPullState.isPolling)
             const Padding(
@@ -139,29 +141,29 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     ? Theme.of(context).colorScheme.primary
                     : null,
               ),
-              tooltip: autoPullState.isEnabled ? 'Auto-sync ON' : 'Auto-sync OFF',
+              tooltip: autoPullState.isEnabled ? l10n.autoSyncOn : l10n.autoSyncOff,
             ),
           // Manual refresh button
           if (canSync)
             IconButton(
               onPressed: historyState.isLoading ? null : _manualRefresh,
               icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh',
+              tooltip: l10n.refresh,
             ),
         ],
       ),
       body: Column(
         children: [
           // Connection warning banner
-          if (!canSync) _buildWarningBanner(isConfigured, isConnected),
+          if (!canSync) _buildWarningBanner(isConfigured, isConnected, l10n),
 
           // Chat messages
           Expanded(
             child: historyState.isLoading && historyState.messages.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : historyState.messages.isEmpty
-                    ? _buildEmptyState(selectedDate)
-                    : _buildMessageList(historyState.messages, localName),
+                    ? _buildEmptyState(selectedDate, l10n)
+                    : _buildMessageList(historyState.messages, localName, l10n),
           ),
 
           // Error message
@@ -192,22 +194,22 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
           // Input area (only show for today)
           if (_isToday(selectedDate))
-            _buildInputArea(canSync, historyState.isSending),
+            _buildInputArea(canSync, historyState.isSending, l10n),
         ],
       ),
     );
   }
 
-  String _formatDateForTitle(String date) {
+  String _formatDateForTitle(String date, AppLocalizations l10n) {
     final now = DateTime.now();
     final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final yesterday = now.subtract(const Duration(days: 1));
     final yesterdayStr = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
 
     if (date == todayStr) {
-      return 'Today';
+      return l10n.today;
     } else if (date == yesterdayStr) {
-      return 'Yesterday';
+      return l10n.yesterday;
     } else {
       return date;
     }
@@ -219,7 +221,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     return date == todayStr;
   }
 
-  void _showDatePicker(List<String> availableDates) {
+  void _showDatePicker(List<String> availableDates, AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -229,7 +231,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Select Date',
+                l10n.selectDate,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -244,7 +246,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                   final isSelected = date == selectedDate;
 
                   return ListTile(
-                    title: Text(_formatDateForTitle(date)),
+                    title: Text(_formatDateForTitle(date, l10n)),
                     subtitle: Text(date),
                     trailing: isSelected ? const Icon(Icons.check) : null,
                     selected: isSelected,
@@ -281,9 +283,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     await ref.read(messageHistoryProvider.notifier).refresh();
   }
 
-  Widget _buildServerSelector(ServerConfig? activeServer, List<ServerConfig> servers) {
+  Widget _buildServerSelector(ServerConfig? activeServer, List<ServerConfig> servers, AppLocalizations l10n) {
     return PopupMenuButton<String>(
-      tooltip: 'Switch server',
+      tooltip: l10n.switchServer,
       icon: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -341,15 +343,15 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildWarningBanner(bool isConfigured, bool isConnected) {
+  Widget _buildWarningBanner(bool isConfigured, bool isConnected, AppLocalizations l10n) {
     String message;
     IconData icon;
 
     if (!isConfigured) {
-      message = 'Configure WebDAV connection in Settings to sync';
+      message = l10n.configureWebDavToSync;
       icon = Icons.settings;
     } else if (!isConnected) {
-      message = 'Not connected. Test connection in Settings';
+      message = l10n.notConnectedTestInSettings;
       icon = Icons.cloud_off;
     } else {
       return const SizedBox.shrink();
@@ -374,7 +376,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildEmptyState(String selectedDate) {
+  Widget _buildEmptyState(String selectedDate, AppLocalizations l10n) {
     final isToday = _isToday(selectedDate);
 
     return Center(
@@ -388,7 +390,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            isToday ? 'No messages yet' : 'No messages on this day',
+            isToday ? l10n.noMessagesYet : l10n.noMessagesOnThisDay,
             style: TextStyle(
               fontSize: 16,
               color: Theme.of(context).colorScheme.outline,
@@ -397,7 +399,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           if (isToday) ...[
             const SizedBox(height: 8),
             Text(
-              'Send a message to get started',
+              l10n.sendMessageToGetStarted,
               style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).colorScheme.outline.withAlpha(150),
@@ -409,7 +411,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildMessageList(List<TextMessage> messages, String localName) {
+  Widget _buildMessageList(List<TextMessage> messages, String localName, AppLocalizations l10n) {
     // Filter out pending deletions
     final visibleMessages = messages
         .where((m) => !_pendingDeletions.contains(m.id))
@@ -420,12 +422,12 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: visibleMessages.length,
       itemBuilder: (context, index) {
-        return _buildMessageBubble(visibleMessages[index], localName);
+        return _buildMessageBubble(visibleMessages[index], localName, l10n);
       },
     );
   }
 
-  Widget _buildMessageBubble(TextMessage message, String localName) {
+  Widget _buildMessageBubble(TextMessage message, String localName, AppLocalizations l10n) {
     final isLocal = message.isLocal;
     final colorScheme = Theme.of(context).colorScheme;
     final isUrl = _isUrl(message.content);
@@ -447,8 +449,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ],
           Flexible(
             child: GestureDetector(
-              onTap: () => _copyMessage(message.content),
-              onLongPress: () => _markForDeletion(message),
+              onTap: () => _copyMessage(message.content, l10n),
+              onLongPress: () => _markForDeletion(message, l10n),
               child: Container(
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -495,7 +497,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     if (isUrl && url != null) ...[
                       const SizedBox(height: 8),
                       GestureDetector(
-                        onTap: () => _openUrl(url),
+                        onTap: () => _openUrl(url, l10n),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -514,7 +516,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Open',
+                                l10n.open,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -558,26 +560,26 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  void _copyMessage(String content) {
+  void _copyMessage(String content, AppLocalizations l10n) {
     Clipboard.setData(ClipboardData(text: content));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Copied to clipboard'),
-        duration: Duration(seconds: 1),
+      SnackBar(
+        content: Text(l10n.copiedToClipboard),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
 
-  void _markForDeletion(TextMessage message) {
+  void _markForDeletion(TextMessage message, AppLocalizations l10n) {
     setState(() {
       _pendingDeletions.add(message.id);
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Message marked for deletion'),
+        content: Text(l10n.messageMarkedForDeletion),
         duration: const Duration(seconds: 2),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.undo,
           onPressed: () {
             setState(() {
               _pendingDeletions.remove(message.id);
@@ -588,7 +590,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Future<void> _openUrl(String url) async {
+  Future<void> _openUrl(String url, AppLocalizations l10n) async {
     final uri = Uri.parse(url);
     try {
       if (await canLaunchUrl(uri)) {
@@ -596,8 +598,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not open link'),
+            SnackBar(
+              content: Text(l10n.couldNotOpenLink),
               backgroundColor: Colors.red,
             ),
           );
@@ -607,7 +609,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error opening link: $e'),
+            content: Text(l10n.errorOpeningLink(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -615,7 +617,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     }
   }
 
-  Widget _buildInputArea(bool canSync, bool isSending) {
+  Widget _buildInputArea(bool canSync, bool isSending, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -638,7 +640,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               minLines: 1,
               textInputAction: TextInputAction.newline,
               decoration: InputDecoration(
-                hintText: 'Type a message...',
+                hintText: l10n.typeAMessage,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,

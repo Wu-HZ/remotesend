@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -66,27 +67,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settings),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Connection Section
-          _buildConnectionSection(),
+          _buildConnectionSection(l10n),
           const SizedBox(height: 24),
 
           // General Section
-          _buildGeneralSection(),
+          _buildGeneralSection(l10n),
           const SizedBox(height: 24),
 
           // Download Section
-          _buildDownloadSection(),
+          _buildDownloadSection(l10n),
           const SizedBox(height: 24),
 
           // Others Section
-          _buildOthersSection(),
+          _buildOthersSection(l10n),
           const SizedBox(height: 32),
         ],
       ),
@@ -94,7 +96,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ==================== Connection Section ====================
-  Widget _buildConnectionSection() {
+  Widget _buildConnectionSection(AppLocalizations l10n) {
     final textConnectionStatus = ref.watch(textConnectionStatusProvider);
     final filesConnectionStatus = ref.watch(filesConnectionStatusProvider);
     final isPortableAvailable = ref.watch(portableModeAvailableProvider);
@@ -105,25 +107,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final filesServer = ref.watch(activeFilesServerProvider);
 
     return _SettingsSection(
-      title: 'Connection',
+      title: l10n.sectionConnection,
       icon: Icons.cloud,
       children: [
         // Connection Status Card
-        _buildConnectionStatusCard(textConnectionStatus, filesConnectionStatus, textServer, filesServer),
+        _buildConnectionStatusCard(l10n, textConnectionStatus, filesConnectionStatus, textServer, filesServer),
         const SizedBox(height: 16),
 
         // Configured Servers Section
         Row(
           children: [
             Text(
-              'Configured Servers',
+              l10n.configuredServers,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
             ),
             const Spacer(),
             Text(
-              'Long press to edit/delete',
+              l10n.longPressToEditDelete,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                     fontSize: 11,
@@ -143,43 +145,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 color: Theme.of(context).colorScheme.outline.withAlpha(50),
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'No servers configured',
-                style: TextStyle(color: Colors.grey),
+                l10n.noServersConfigured,
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           )
         else
-          ...servers.map((server) => _buildServerTile(server, null)),
+          ...servers.map((server) => _buildServerTile(l10n, server, null)),
 
         const SizedBox(height: 12),
 
         // Add Server Button
         OutlinedButton.icon(
-          onPressed: () => _showServerDialog(),
+          onPressed: () => _showServerDialog(l10n),
           icon: const Icon(Icons.add),
-          label: const Text('Add Server'),
+          label: Text(l10n.addServer),
         ),
 
         // Local Name Setting
         const Divider(height: 32),
-        _buildLocalNameTile(),
+        _buildLocalNameTile(l10n),
 
         // Portable Mode (desktop only)
         if (isPortableAvailable) ...[
           const Divider(height: 32),
           SwitchListTile(
-            title: const Text('Portable Mode'),
+            title: Text(l10n.portableMode),
             subtitle: Text(
               isPortableMode
-                  ? 'Config: ${configService.portableConfigPath}'
-                  : 'Save config next to executable (for USB drives)',
+                  ? l10n.portableModeConfig(configService.portableConfigPath)
+                  : l10n.portableModeDescription,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             secondary: const Icon(Icons.usb),
             value: isPortableMode,
-            onChanged: _isSaving ? null : _togglePortableMode,
+            onChanged: _isSaving ? null : (value) => _togglePortableMode(l10n, value),
           ),
         ],
 
@@ -187,8 +189,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const Divider(height: 32),
         ListTile(
           leading: const Icon(Icons.timer),
-          title: const Text('Refresh interval'),
-          subtitle: Text('${_refreshInterval.toInt()} seconds'),
+          title: Text(l10n.refreshInterval),
+          subtitle: Text(l10n.refreshIntervalSeconds(_refreshInterval.toInt())),
           contentPadding: EdgeInsets.zero,
         ),
         Slider(
@@ -205,7 +207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         Text(
-          'Time to wait after each server request',
+          l10n.refreshIntervalDescription,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.outline,
               ),
@@ -214,7 +216,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildServerTile(ServerConfig server, ServerConfig? activeServer) {
+  Widget _buildServerTile(AppLocalizations l10n, ServerConfig server, ServerConfig? activeServer) {
     final config = ref.watch(configProvider).valueOrNull;
     final isTextServer = config?.activeTextServerId == server.id;
     final isFilesServer = config?.activeFilesServerId == server.id;
@@ -222,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onLongPress: () => _showServerActions(server),
+        onLongPress: () => _showServerActions(l10n, server),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -254,13 +256,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // Text/Files toggle buttons
               const SizedBox(width: 8),
               _buildFeatureToggle(
-                label: 'Text',
+                label: l10n.textLabel,
                 isSelected: isTextServer,
                 onTap: () => _setServerForFeature(server.id, forText: true),
               ),
               const SizedBox(width: 4),
               _buildFeatureToggle(
-                label: 'Files',
+                label: l10n.filesLabel,
                 isSelected: isFilesServer,
                 onTap: () => _setServerForFeature(server.id, forFiles: true),
               ),
@@ -301,7 +303,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showServerActions(ServerConfig server) {
+  void _showServerActions(AppLocalizations l10n, ServerConfig server) {
     showModalBottomSheet(
       context: context,
       builder: (sheetContext) => SafeArea(
@@ -310,18 +312,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('Edit'),
+              title: Text(l10n.edit),
               onTap: () {
                 Navigator.pop(sheetContext);
-                _showServerDialog(server: server);
+                _showServerDialog(l10n, server: server);
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Delete', style: TextStyle(color: Colors.red)),
+              title: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(sheetContext);
-                _confirmDeleteServer(server);
+                _confirmDeleteServer(l10n, server);
               },
             ),
           ],
@@ -354,17 +356,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Widget _buildConnectionStatusCard(ConnectionStatus textStatus, ConnectionStatus filesStatus, ServerConfig? textServer, ServerConfig? filesServer) {
+  Widget _buildConnectionStatusCard(AppLocalizations l10n, ConnectionStatus textStatus, ConnectionStatus filesStatus, ServerConfig? textServer, ServerConfig? filesServer) {
     return Column(
       children: [
-        _buildSingleConnectionStatus('Text', textStatus, textServer),
+        _buildSingleConnectionStatus(l10n, l10n.textLabel, textStatus, textServer),
         const SizedBox(height: 8),
-        _buildSingleConnectionStatus('Files', filesStatus, filesServer),
+        _buildSingleConnectionStatus(l10n, l10n.filesLabel, filesStatus, filesServer),
       ],
     );
   }
 
-  Widget _buildSingleConnectionStatus(String label, ConnectionStatus status, ServerConfig? server) {
+  Widget _buildSingleConnectionStatus(AppLocalizations l10n, String label, ConnectionStatus status, ServerConfig? server) {
     Color color;
     IconData icon;
     String text;
@@ -373,19 +375,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case WebDavConnectionState.connected:
         color = Colors.green;
         icon = Icons.check_circle;
-        text = server != null ? server.name : 'Connected';
+        text = server != null ? server.name : l10n.connectionStatusConnected;
       case WebDavConnectionState.connecting:
         color = Colors.blue;
         icon = Icons.sync;
-        text = 'Connecting...';
+        text = l10n.connectionStatusConnecting;
       case WebDavConnectionState.error:
         color = Colors.red;
         icon = Icons.error;
-        text = status.errorMessage ?? 'Connection error';
+        text = status.errorMessage ?? l10n.connectionStatusError;
       case WebDavConnectionState.disconnected:
         color = Colors.grey;
         icon = Icons.cloud_off;
-        text = 'Not connected';
+        text = l10n.connectionStatusDisconnected;
     }
 
     return Container(
@@ -427,33 +429,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildLocalNameTile() {
+  Widget _buildLocalNameTile(AppLocalizations l10n) {
     final config = ref.watch(configProvider).valueOrNull;
     final localName = config?.localName ?? 'Unknown';
 
     return ListTile(
       leading: const Icon(Icons.person),
-      title: const Text('Local Name'),
+      title: Text(l10n.localName),
       subtitle: Text(localName),
       trailing: const Icon(Icons.edit),
       contentPadding: EdgeInsets.zero,
-      onTap: () => _showLocalNameDialog(localName),
+      onTap: () => _showLocalNameDialog(l10n, localName),
     );
   }
 
-  void _showLocalNameDialog(String currentName) {
+  void _showLocalNameDialog(AppLocalizations l10n, String currentName) {
     final controller = TextEditingController(text: currentName);
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Local Name'),
+        title: Text(l10n.localName),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This name will be shown in Text Bridge messages sent from this device.',
+              l10n.localNameDescription,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                   ),
@@ -461,10 +463,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g., My Phone',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.localName,
+                hintText: l10n.localNameHint,
+                border: const OutlineInputBorder(),
               ),
               autofocus: true,
             ),
@@ -473,7 +475,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -490,7 +492,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(success ? 'Name updated' : 'Failed to save'),
+                      content: Text(success ? l10n.nameUpdated : l10n.failedToSave),
                       backgroundColor: success ? Colors.green : Colors.red,
                       duration: const Duration(seconds: 2),
                     ),
@@ -498,7 +500,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 }
               }
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -506,7 +508,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ==================== General Section ====================
-  Widget _buildGeneralSection() {
+  Widget _buildGeneralSection(AppLocalizations l10n) {
     final config = ref.watch(configProvider).valueOrNull;
     final themeMode = config?.themeMode ?? 'system';
     final primaryColor = config?.primaryColor ?? 0xFF2196F3;
@@ -515,35 +517,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     String themeModeText;
     switch (themeMode) {
       case 'light':
-        themeModeText = 'Light';
+        themeModeText = l10n.themeLight;
       case 'dark':
-        themeModeText = 'Dark';
+        themeModeText = l10n.themeDark;
       default:
-        themeModeText = 'System default';
+        themeModeText = l10n.themeSystem;
     }
 
     return _SettingsSection(
-      title: 'General',
+      title: l10n.sectionGeneral,
       icon: Icons.tune,
       children: [
         ListTile(
           leading: const Icon(Icons.brightness_6),
-          title: const Text('Theme'),
+          title: Text(l10n.theme),
           subtitle: Text(themeModeText),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showThemeDialog(),
+          onTap: () => _showThemeDialog(l10n),
         ),
         SwitchListTile(
           secondary: const Icon(Icons.auto_awesome),
-          title: const Text('Dynamic Color'),
-          subtitle: const Text('Use system accent color (Material You)'),
+          title: Text(l10n.dynamicColor),
+          subtitle: Text(l10n.dynamicColorDescription),
           value: useDynamicColor,
           onChanged: (value) => _saveDynamicColor(value),
         ),
         ListTile(
           leading: const Icon(Icons.palette),
-          title: const Text('Color'),
-          subtitle: Text(useDynamicColor ? 'Using system color' : _getColorName(primaryColor)),
+          title: Text(l10n.color),
+          subtitle: Text(useDynamicColor ? l10n.usingSystemColor : _getColorName(l10n, primaryColor)),
           trailing: Container(
             width: 24,
             height: 24,
@@ -556,106 +558,106 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           enabled: !useDynamicColor,
-          onTap: useDynamicColor ? null : () => _showColorPicker(),
+          onTap: useDynamicColor ? null : () => _showColorPicker(l10n),
         ),
         ListTile(
           leading: const Icon(Icons.language),
-          title: const Text('Language'),
-          subtitle: Text(_getLanguageName(config?.locale ?? 'system')),
+          title: Text(l10n.language),
+          subtitle: Text(_getLanguageName(l10n, config?.locale ?? 'system')),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showLanguageDialog(),
+          onTap: () => _showLanguageDialog(l10n),
         ),
       ],
     );
   }
 
-  String _getLanguageName(String locale) {
+  String _getLanguageName(AppLocalizations l10n, String locale) {
     switch (locale) {
       case 'en':
-        return 'English';
+        return l10n.languageEnglish;
       case 'zh':
-        return '简体中文';
+        return l10n.languageChinese;
       default:
-        return 'System default';
+        return l10n.themeSystem;
     }
   }
 
-  String _getColorName(int colorValue) {
+  String _getColorName(AppLocalizations l10n, int colorValue) {
     final colorNames = {
-      0xFF2196F3: 'Blue',
-      0xFFF44336: 'Red',
-      0xFF4CAF50: 'Green',
-      0xFFFF9800: 'Orange',
-      0xFF9C27B0: 'Purple',
-      0xFF00BCD4: 'Cyan',
-      0xFFE91E63: 'Pink',
-      0xFF009688: 'Teal',
-      0xFF3F51B5: 'Indigo',
-      0xFFFFEB3B: 'Yellow',
-      0xFF795548: 'Brown',
-      0xFF607D8B: 'Blue Grey',
+      0xFF2196F3: l10n.colorBlue,
+      0xFFF44336: l10n.colorRed,
+      0xFF4CAF50: l10n.colorGreen,
+      0xFFFF9800: l10n.colorOrange,
+      0xFF9C27B0: l10n.colorPurple,
+      0xFF00BCD4: l10n.colorCyan,
+      0xFFE91E63: l10n.colorPink,
+      0xFF009688: l10n.colorTeal,
+      0xFF3F51B5: l10n.colorIndigo,
+      0xFFFFEB3B: l10n.colorYellow,
+      0xFF795548: l10n.colorBrown,
+      0xFF607D8B: l10n.colorBlueGrey,
     };
-    return colorNames[colorValue] ?? 'Custom';
+    return colorNames[colorValue] ?? l10n.colorCustom;
   }
 
   // ==================== Download Section ====================
-  Widget _buildDownloadSection() {
+  Widget _buildDownloadSection(AppLocalizations l10n) {
     final displayPath = _downloadLocation.isNotEmpty
         ? _downloadLocation
-        : 'System default';
+        : l10n.systemDefault;
 
     return _SettingsSection(
-      title: 'Download',
+      title: l10n.sectionDownload,
       icon: Icons.download,
       children: [
         SwitchListTile(
           secondary: const Icon(Icons.sync),
-          title: const Text('Auto-download'),
-          subtitle: const Text('Automatically download new files when detected'),
+          title: Text(l10n.autoDownload),
+          subtitle: Text(l10n.autoDownloadDescription),
           value: _autoDownload,
           onChanged: (value) {
             setState(() => _autoDownload = value);
-            _showComingSoon('Auto-download');
+            _showComingSoon(l10n, l10n.autoDownload);
           },
         ),
         ListTile(
           leading: const Icon(Icons.folder),
-          title: const Text('Download location'),
+          title: Text(l10n.downloadLocation),
           subtitle: Text(
             displayPath,
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
           trailing: const Icon(Icons.chevron_right),
-          onTap: _pickDownloadLocation,
+          onTap: () => _pickDownloadLocation(l10n),
         ),
         SwitchListTile(
           secondary: const Icon(Icons.notifications),
-          title: const Text('Show notification'),
-          subtitle: const Text('Notify when download completes'),
+          title: Text(l10n.showNotification),
+          subtitle: Text(l10n.showNotificationDescription),
           value: _showNotification,
           onChanged: (value) {
             setState(() => _showNotification = value);
-            _showComingSoon('Notification setting');
+            _showComingSoon(l10n, l10n.showNotification);
           },
         ),
       ],
     );
   }
 
-  Future<void> _pickDownloadLocation() async {
+  Future<void> _pickDownloadLocation(AppLocalizations l10n) async {
     final result = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Select download location',
+      dialogTitle: l10n.selectDownloadLocation,
       initialDirectory: _downloadLocation.isNotEmpty ? _downloadLocation : null,
     );
 
     if (result != null) {
       setState(() => _downloadLocation = result);
-      await _saveDownloadLocation(result);
+      await _saveDownloadLocation(l10n, result);
     }
   }
 
-  Future<void> _saveDownloadLocation(String path) async {
+  Future<void> _saveDownloadLocation(AppLocalizations l10n, String path) async {
     final currentConfig = ref.read(configProvider).valueOrNull;
     if (currentConfig == null) return;
 
@@ -665,7 +667,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'Download location updated' : 'Failed to save'),
+          content: Text(success ? l10n.downloadLocationUpdated : l10n.failedToSave),
           backgroundColor: success ? Colors.green : Colors.red,
           duration: const Duration(seconds: 2),
         ),
@@ -674,47 +676,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ==================== Others Section ====================
-  Widget _buildOthersSection() {
+  Widget _buildOthersSection(AppLocalizations l10n) {
     return _SettingsSection(
-      title: 'Others',
+      title: l10n.sectionOthers,
       icon: Icons.more_horiz,
       children: [
         ListTile(
           leading: const Icon(Icons.info),
-          title: const Text('About'),
-          subtitle: const Text('RemoteSend v1.0.0'),
+          title: Text(l10n.about),
+          subtitle: Text(l10n.aboutDescription),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showAboutDialog(),
+          onTap: () => _showAboutDialog(l10n),
         ),
         ListTile(
           leading: const Icon(Icons.code),
-          title: const Text('Source code'),
-          subtitle: const Text('github.com/Wu-HZ/remotesend'),
+          title: Text(l10n.sourceCode),
+          subtitle: Text(l10n.sourceCodeUrl),
           trailing: const Icon(Icons.open_in_new),
-          onTap: () => _showComingSoon('Open GitHub'),
+          onTap: () => _showComingSoon(l10n, l10n.openGitHub),
         ),
         ListTile(
           leading: const Icon(Icons.favorite),
-          title: const Text('Donation'),
-          subtitle: const Text('Support the development'),
+          title: Text(l10n.donation),
+          subtitle: Text(l10n.donationDescription),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showComingSoon('Donation'),
+          onTap: () => _showComingSoon(l10n, l10n.donation),
         ),
         ListTile(
           leading: const Icon(Icons.privacy_tip),
-          title: const Text('Privacy Policy'),
+          title: Text(l10n.privacyPolicy),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showComingSoon('Privacy Policy'),
+          onTap: () => _showComingSoon(l10n, l10n.privacyPolicy),
         ),
       ],
     );
   }
 
   // ==================== Server Management Actions ====================
-  void _showServerDialog({ServerConfig? server}) {
+  void _showServerDialog(AppLocalizations l10n, {ServerConfig? server}) {
     showDialog(
       context: context,
       builder: (dialogContext) => _ServerEditDialog(
+        l10n: l10n,
         server: server,
         onSave: (newServer) async {
           bool success;
@@ -741,8 +744,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(success
-                    ? (server == null ? 'Server added' : 'Server updated')
-                    : 'Failed to save server'),
+                    ? (server == null ? l10n.serverAdded : l10n.serverUpdated)
+                    : l10n.failedToSaveServer),
                 backgroundColor: success ? Colors.green : Colors.red,
                 duration: const Duration(seconds: 2),
               ),
@@ -753,16 +756,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _confirmDeleteServer(ServerConfig server) {
+  void _confirmDeleteServer(AppLocalizations l10n, ServerConfig server) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Server'),
-        content: Text('Are you sure you want to delete "${server.name}"?'),
+        title: Text(l10n.deleteServer),
+        content: Text(l10n.deleteServerConfirm(server.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -773,7 +776,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(success ? 'Server deleted' : 'Failed to delete'),
+                  content: Text(success ? l10n.serverDeleted : l10n.failedToDelete),
                   backgroundColor: success ? Colors.green : Colors.red,
                   duration: const Duration(seconds: 2),
                 ),
@@ -793,7 +796,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -814,7 +817,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _togglePortableMode(bool enable) async {
+  Future<void> _togglePortableMode(AppLocalizations l10n, bool enable) async {
     setState(() => _isSaving = true);
 
     try {
@@ -828,8 +831,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SnackBar(
             content: Text(
               success
-                  ? 'Portable mode ${enable ? 'enabled' : 'disabled'}'
-                  : 'Failed to change portable mode',
+                  ? (enable ? l10n.portableModeEnabled : l10n.portableModeDisabled)
+                  : l10n.failedToChangePortableMode,
             ),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
@@ -840,19 +843,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  void _showThemeDialog() {
+  void _showThemeDialog(AppLocalizations l10n) {
     final config = ref.read(configProvider).valueOrNull;
     final currentTheme = config?.themeMode ?? 'system';
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Theme'),
+        title: Text(l10n.theme),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<String>(
-              title: const Text('System default'),
+              title: Text(l10n.themeSystem),
               value: 'system',
               groupValue: currentTheme,
               onChanged: (value) {
@@ -861,7 +864,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             ),
             RadioListTile<String>(
-              title: const Text('Light'),
+              title: Text(l10n.themeLight),
               value: 'light',
               groupValue: currentTheme,
               onChanged: (value) {
@@ -870,7 +873,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             ),
             RadioListTile<String>(
-              title: const Text('Dark'),
+              title: Text(l10n.themeDark),
               value: 'dark',
               groupValue: currentTheme,
               onChanged: (value) {
@@ -892,7 +895,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
-  void _showColorPicker() {
+  void _showColorPicker(AppLocalizations l10n) {
     final config = ref.read(configProvider).valueOrNull;
     final currentColor = config?.primaryColor ?? 0xFF2196F3;
 
@@ -915,7 +918,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Choose Color'),
+        title: Text(l10n.chooseColor),
         content: SizedBox(
           width: 280,
           child: Wrap(
@@ -962,7 +965,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),
@@ -991,19 +994,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
-  void _showLanguageDialog() {
+  void _showLanguageDialog(AppLocalizations l10n) {
     final config = ref.read(configProvider).valueOrNull;
     final currentLocale = config?.locale ?? 'system';
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Language'),
+        title: Text(l10n.language),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<String>(
-              title: const Text('System default'),
+              title: Text(l10n.themeSystem),
               value: 'system',
               groupValue: currentLocale,
               onChanged: (value) {
@@ -1012,7 +1015,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             ),
             RadioListTile<String>(
-              title: const Text('English'),
+              title: Text(l10n.languageEnglish),
               value: 'en',
               groupValue: currentLocale,
               onChanged: (value) {
@@ -1021,7 +1024,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             ),
             RadioListTile<String>(
-              title: const Text('简体中文'),
+              title: Text(l10n.languageChinese),
               value: 'zh',
               groupValue: currentLocale,
               onChanged: (value) {
@@ -1043,25 +1046,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
-  void _showAboutDialog() {
+  void _showAboutDialog(AppLocalizations l10n) {
     showAboutDialog(
       context: context,
       applicationName: 'RemoteSend',
       applicationVersion: '1.0.0',
-      applicationLegalese: '© 2025 Wu-HZ',
+      applicationLegalese: l10n.aboutLegalese,
       children: [
         const SizedBox(height: 16),
-        const Text(
-          'A lightweight, portable app to transfer text and files between devices using WebDAV.',
-        ),
+        Text(l10n.aboutAppDescription),
       ],
     );
   }
 
-  void _showComingSoon(String feature) {
+  void _showComingSoon(AppLocalizations l10n, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$feature - coming soon'),
+        content: Text(l10n.comingSoon(feature)),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -1070,10 +1071,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 /// Dialog for adding/editing a server configuration.
 class _ServerEditDialog extends ConsumerStatefulWidget {
+  final AppLocalizations l10n;
   final ServerConfig? server;
   final Future<void> Function(ServerConfig server) onSave;
 
   const _ServerEditDialog({
+    required this.l10n,
     this.server,
     required this.onSave,
   });
@@ -1115,10 +1118,11 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = widget.l10n;
     final isEditing = widget.server != null;
 
     return AlertDialog(
-      title: Text(isEditing ? 'Edit Server' : 'Add Server'),
+      title: Text(isEditing ? l10n.editServer : l10n.addServer),
       content: SizedBox(
         width: 400,
         child: Form(
@@ -1129,15 +1133,15 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    hintText: 'e.g., Home NAS',
-                    prefixIcon: Icon(Icons.label),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.serverName,
+                    hintText: l10n.serverNameHint,
+                    prefixIcon: const Icon(Icons.label),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a name';
+                      return l10n.serverNameRequired;
                     }
                     return null;
                   },
@@ -1145,20 +1149,20 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _urlController,
-                  decoration: const InputDecoration(
-                    labelText: 'WebDAV Server URL',
-                    hintText: 'https://example.com/webdav',
-                    prefixIcon: Icon(Icons.link),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.serverUrl,
+                    hintText: l10n.serverUrlHint,
+                    prefixIcon: const Icon(Icons.link),
+                    border: const OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.url,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a server URL';
+                      return l10n.serverUrlRequired;
                     }
                     final uri = Uri.tryParse(value.trim());
                     if (uri == null || !uri.hasScheme) {
-                      return 'Please enter a valid URL';
+                      return l10n.serverUrlInvalid;
                     }
                     return null;
                   },
@@ -1166,14 +1170,14 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.username,
+                    prefixIcon: const Icon(Icons.person),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a username';
+                      return l10n.usernameRequired;
                     }
                     return null;
                   },
@@ -1182,7 +1186,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                 TextFormField(
                   controller: _passwordController,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: l10n.password,
                     prefixIcon: const Icon(Icons.lock),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
@@ -1193,7 +1197,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                   obscureText: _obscurePassword,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return l10n.passwordRequired;
                     }
                     return null;
                   },
@@ -1211,7 +1215,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.wifi_find),
-                    label: const Text('Test Connection'),
+                    label: Text(l10n.testConnection),
                   ),
                 ),
                 if (_testResult != null) ...[
@@ -1259,7 +1263,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _isSaving || _isTesting ? null : _saveServer,
@@ -1269,7 +1273,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(isEditing ? 'Save' : 'Add'),
+              : Text(isEditing ? l10n.save : l10n.add),
         ),
       ],
     );
@@ -1278,6 +1282,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
   Future<void> _testConnection() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = widget.l10n;
     setState(() {
       _isTesting = true;
       _testResult = null;
@@ -1297,12 +1302,12 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
       final result = await testService.testConnection();
 
       if (result.isSuccess) {
-        setState(() => _testResult = 'Success! Connection established.');
+        setState(() => _testResult = l10n.testConnectionSuccess);
       } else {
-        setState(() => _testResult = 'Failed: ${result.error?.userMessage ?? "Unknown error"}');
+        setState(() => _testResult = l10n.testConnectionFailed(result.error?.userMessage ?? 'Unknown error'));
       }
     } catch (e) {
-      setState(() => _testResult = 'Failed: ${e.toString()}');
+      setState(() => _testResult = l10n.testConnectionFailed(e.toString()));
     } finally {
       setState(() => _isTesting = false);
     }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -79,6 +80,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   Future<void> _openDownloadLocation() async {
     if (_currentDownloadLocation == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
     try {
       if (Platform.isWindows) {
         await Process.run('explorer', [_currentDownloadLocation!]);
@@ -89,14 +91,14 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Open folder not supported on this platform')),
+            SnackBar(content: Text(l10n.openFileFolderNotSupported)),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to open folder: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.failedToOpenFolder(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -104,6 +106,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isConfigured = ref.watch(isFilesConfiguredProvider);
     final connectionStatus = ref.watch(filesConnectionStatusProvider);
     final fileListState = ref.watch(fileListProvider);
@@ -131,12 +134,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             : IconButton(
                 onPressed: () => ref.read(fileListProvider.notifier).navigateUp(),
                 icon: const Icon(Icons.arrow_back),
-                tooltip: 'Go back',
+                tooltip: l10n.goBack,
               ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('File Depot'),
+            Text(l10n.fileDepot),
             if (!fileListState.isAtRoot)
               Text(
                 fileListState.currentPathDisplay,
@@ -150,13 +153,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         actions: [
           // Server selector
           if (servers.isNotEmpty)
-            _buildServerSelector(activeServer, servers),
+            _buildServerSelector(l10n, activeServer, servers),
           // Open download folder button
           if (_currentDownloadLocation != null)
             IconButton(
               onPressed: _openDownloadLocation,
               icon: const Icon(Icons.folder_open),
-              tooltip: 'Open download folder',
+              tooltip: l10n.openDownloadFolder,
             ),
           IconButton(
             onPressed: canOperate && !fileListState.isLoading
@@ -169,24 +172,24 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
       ),
       body: Column(
         children: [
           // Connection warning banner
-          if (!canOperate) _buildWarningBanner(isConfigured, isConnected),
+          if (!canOperate) _buildWarningBanner(l10n, isConfigured, isConnected),
 
           // Status indicator (always visible)
-          _buildStatusIndicator(),
+          _buildStatusIndicator(l10n),
 
           // Error message
           if (fileListState.error != null) _buildErrorCard(fileListState.error!),
 
           // File list
           Expanded(
-            child: _buildFileList(fileListState, canOperate),
+            child: _buildFileList(l10n, fileListState, canOperate),
           ),
         ],
       ),
@@ -198,14 +201,14 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                   heroTag: 'folder',
                   onPressed: _pickAndUploadFolder,
                   icon: const Icon(Icons.folder),
-                  label: const Text('Folder'),
+                  label: Text(l10n.folder),
                 ),
                 const SizedBox(width: 12),
                 FloatingActionButton.extended(
                   heroTag: 'file',
                   onPressed: _pickAndUploadFiles,
                   icon: const Icon(Icons.insert_drive_file),
-                  label: const Text('File'),
+                  label: Text(l10n.file),
                 ),
               ],
             )
@@ -213,9 +216,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildServerSelector(ServerConfig? activeServer, List<ServerConfig> servers) {
+  Widget _buildServerSelector(AppLocalizations l10n, ServerConfig? activeServer, List<ServerConfig> servers) {
     return PopupMenuButton<String>(
-      tooltip: 'Switch server',
+      tooltip: l10n.switchServer,
       icon: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -273,15 +276,15 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildWarningBanner(bool isConfigured, bool isConnected) {
+  Widget _buildWarningBanner(AppLocalizations l10n, bool isConfigured, bool isConnected) {
     String message;
     IconData icon;
 
     if (!isConfigured) {
-      message = 'Configure WebDAV connection in Settings to use File Depot';
+      message = l10n.configureWebDavToUseFileDepot;
       icon = Icons.settings;
     } else if (!isConnected) {
-      message = 'Not connected. Test connection in Settings';
+      message = l10n.notConnectedTestInSettings;
       icon = Icons.cloud_off;
     } else {
       return const SizedBox.shrink();
@@ -306,7 +309,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildStatusIndicator() {
+  Widget _buildStatusIndicator(AppLocalizations l10n) {
     final queueState = ref.watch(uploadQueueProvider);
     final downloadState = ref.watch(downloadStateProvider);
     final isUploading = queueState.isProcessing;
@@ -322,9 +325,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     if (isDownloading) {
       // Download takes priority in display
       if (downloadState.isFolderDownload) {
-        statusText = 'Downloading: ${downloadState.fileName} (${downloadState.currentFileIndex}/${downloadState.totalFiles})';
+        statusText = l10n.downloadingFileWithProgress(downloadState.fileName ?? '', downloadState.currentFileIndex, downloadState.totalFiles);
       } else {
-        statusText = 'Downloading: ${downloadState.fileName}';
+        statusText = l10n.downloadingFile(downloadState.fileName ?? '');
       }
       statusIcon = Icons.download;
       progress = downloadState.progress;
@@ -334,10 +337,10 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     } else if (isUploading) {
       final currentItem = queueState.currentItem;
       if (currentItem != null) {
-        statusText = 'Uploading: ${currentItem.fileName} (${queueState.completedCount + 1}/${queueState.items.length})';
+        statusText = l10n.uploadingFile(currentItem.fileName, queueState.completedCount + 1, queueState.items.length);
         progress = queueState.overallProgress;
       } else {
-        statusText = 'Uploading...';
+        statusText = l10n.uploadingEllipsis;
         progress = queueState.overallProgress;
       }
       statusIcon = Icons.upload;
@@ -345,11 +348,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         speedText = queueState.displaySpeed;
       }
     } else if (queueState.items.isNotEmpty) {
-      statusText = '${queueState.completedCount}/${queueState.items.length} files uploaded';
+      statusText = l10n.filesUploaded(queueState.completedCount, queueState.items.length);
       statusIcon = Icons.check_circle;
       progress = 1.0;
     } else {
-      statusText = 'Idle';
+      statusText = l10n.idle;
       statusIcon = Icons.hourglass_empty;
       progress = 0;
     }
@@ -453,15 +456,15 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildFileList(FileListState fileListState, bool canOperate) {
+  Widget _buildFileList(AppLocalizations l10n, FileListState fileListState, bool canOperate) {
     if (!canOperate) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_off, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Connect to WebDAV to view files'),
+            const Icon(Icons.cloud_off, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(l10n.connectToWebDavToViewFiles),
           ],
         ),
       );
@@ -483,7 +486,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              fileListState.isAtRoot ? 'No files yet' : 'Empty folder',
+              fileListState.isAtRoot ? l10n.noFilesYet : l10n.emptyFolder,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.outline,
                 fontSize: 16,
@@ -492,8 +495,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             const SizedBox(height: 8),
             Text(
               fileListState.isAtRoot
-                  ? 'Tap the File or Folder button to upload'
-                  : 'This folder is empty',
+                  ? l10n.tapFileOrFolderToUpload
+                  : l10n.thisFolderIsEmpty,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.outline,
               ),
@@ -509,17 +512,17 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         itemCount: fileListState.files.length,
         itemBuilder: (context, index) {
           final file = fileListState.files[index];
-          return _buildFileItem(file);
+          return _buildFileItem(l10n, file);
         },
       ),
     );
   }
 
-  Widget _buildFileItem(RemoteFile file) {
+  Widget _buildFileItem(AppLocalizations l10n, RemoteFile file) {
     final isDirectory = file.isDirectory;
 
     return GestureDetector(
-      onSecondaryTapDown: (details) => _showContextMenu(details.globalPosition, file),
+      onSecondaryTapDown: (details) => _showContextMenu(l10n, details.globalPosition, file),
       child: ListTile(
         leading: Icon(
           isDirectory ? Icons.folder : _getFileIcon(file.name),
@@ -530,7 +533,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          _buildSubtitle(file),
+          _buildSubtitle(l10n, file),
           style: TextStyle(
             color: Theme.of(context).colorScheme.outline,
             fontSize: 12,
@@ -539,25 +542,25 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         trailing: isDirectory
             ? const Icon(Icons.chevron_right)
             : PopupMenuButton<String>(
-                onSelected: (value) => _handleFileAction(value, file),
+                onSelected: (value) => _handleFileAction(l10n, value, file),
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'download',
                     child: Row(
                       children: [
-                        Icon(Icons.download),
-                        SizedBox(width: 8),
-                        Text('Download'),
+                        const Icon(Icons.download),
+                        const SizedBox(width: 8),
+                        Text(l10n.download),
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red)),
+                        const Icon(Icons.delete, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(l10n.delete, style: const TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
@@ -565,12 +568,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               ),
         onTap: isDirectory
             ? () => ref.read(fileListProvider.notifier).navigateToFolder(file.name)
-            : () => _downloadFile(file),
+            : () => _downloadFile(l10n, file),
       ),
     );
   }
 
-  void _showContextMenu(Offset position, RemoteFile file) {
+  void _showContextMenu(AppLocalizations l10n, Offset position, RemoteFile file) {
     final isDirectory = file.isDirectory;
 
     showMenu<String>(
@@ -588,51 +591,51 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             children: [
               const Icon(Icons.download),
               const SizedBox(width: 8),
-              Text(isDirectory ? 'Download Folder' : 'Download'),
+              Text(isDirectory ? l10n.downloadFolder : l10n.download),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Delete', style: TextStyle(color: Colors.red)),
+              const Icon(Icons.delete, color: Colors.red),
+              const SizedBox(width: 8),
+              Text(l10n.delete, style: const TextStyle(color: Colors.red)),
             ],
           ),
         ),
       ],
     ).then((value) {
       if (value != null) {
-        _handleFileAction(value, file);
+        _handleFileAction(l10n, value, file);
       }
     });
   }
 
-  String _buildSubtitle(RemoteFile file) {
+  String _buildSubtitle(AppLocalizations l10n, RemoteFile file) {
     final parts = <String>[];
     if (file.isDirectory) {
-      parts.add('Folder');
+      parts.add(l10n.folder);
     } else if (file.size != null) {
       parts.add(file.displaySize);
     }
     if (file.modifiedTime != null) {
-      parts.add(_formatDateTime(file.modifiedTime!));
+      parts.add(_formatDateTime(l10n, file.modifiedTime!));
     }
     return parts.join(' • ');
   }
 
-  String _formatDateTime(DateTime dt) {
+  String _formatDateTime(AppLocalizations l10n, DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
 
     if (diff.inDays == 0) {
-      return 'Today ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      return l10n.todayTime('${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}');
     } else if (diff.inDays == 1) {
-      return 'Yesterday';
+      return l10n.yesterday;
     } else if (diff.inDays < 7) {
-      return '${diff.inDays} days ago';
+      return l10n.daysAgo(diff.inDays);
     } else {
       return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
     }
@@ -697,22 +700,23 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  void _handleFileAction(String action, RemoteFile file) {
+  void _handleFileAction(AppLocalizations l10n, String action, RemoteFile file) {
     switch (action) {
       case 'download':
         if (file.isDirectory) {
-          _downloadFolder(file);
+          _downloadFolder(l10n, file);
         } else {
-          _downloadFile(file);
+          _downloadFile(l10n, file);
         }
         break;
       case 'delete':
-        _confirmDelete(file);
+        _confirmDelete(l10n, file);
         break;
     }
   }
 
   Future<void> _pickAndUploadFiles() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final result = await FilePicker.platform.pickFiles(allowMultiple: true);
       if (result == null || result.files.isEmpty) return;
@@ -721,8 +725,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (files.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not access files'),
+            SnackBar(
+              content: Text(l10n.couldNotAccessFiles),
               backgroundColor: Colors.red,
             ),
           );
@@ -737,7 +741,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added ${files.length} file(s) to upload queue'),
+            content: Text(l10n.addedFilesToQueue(files.length)),
             backgroundColor: Colors.green,
           ),
         );
@@ -746,7 +750,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(l10n.error(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -755,9 +759,10 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   }
 
   Future<void> _pickAndUploadFolder() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final folderPath = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Select folder to upload',
+        dialogTitle: l10n.selectFolderToUpload,
       );
       if (folderPath == null) return;
 
@@ -769,7 +774,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added folder "$folderName" to upload queue'),
+            content: Text(l10n.addedFolderToQueue(folderName)),
             backgroundColor: Colors.green,
           ),
         );
@@ -778,7 +783,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(l10n.error(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -786,7 +791,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  Future<void> _downloadFile(RemoteFile file) async {
+  Future<void> _downloadFile(AppLocalizations l10n, RemoteFile file) async {
     try {
       // Use configured download location or system default
       String? downloadPath;
@@ -829,11 +834,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Downloaded: ${file.name}'),
+              content: Text(l10n.downloaded(file.name)),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
               action: SnackBarAction(
-                label: 'Open folder',
+                label: l10n.openFolder,
                 textColor: Colors.white,
                 onPressed: _openDownloadLocation,
               ),
@@ -843,7 +848,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           final error = ref.read(downloadStateProvider).error;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(error ?? 'Download failed'),
+              content: Text(error ?? l10n.downloadFailed),
               backgroundColor: Colors.red,
             ),
           );
@@ -853,7 +858,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(l10n.error(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -861,7 +866,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  Future<void> _downloadFolder(RemoteFile folder) async {
+  Future<void> _downloadFolder(AppLocalizations l10n, RemoteFile folder) async {
     try {
       // Use configured download location or system default
       String? downloadBasePath;
@@ -903,11 +908,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           final count = downloadResult.data ?? 0;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Downloaded folder "${folder.name}" ($count files)'),
+              content: Text(l10n.downloadedFolderWithCount(folder.name, count)),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
               action: SnackBarAction(
-                label: 'Open folder',
+                label: l10n.openFolder,
                 textColor: Colors.white,
                 onPressed: _openDownloadLocation,
               ),
@@ -916,7 +921,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(downloadResult.error?.userMessage ?? 'Download failed'),
+              content: Text(downloadResult.error?.userMessage ?? l10n.downloadFailed),
               backgroundColor: Colors.red,
             ),
           );
@@ -926,7 +931,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(l10n.error(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -934,23 +939,23 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  Future<void> _confirmDelete(RemoteFile file) async {
+  Future<void> _confirmDelete(AppLocalizations l10n, RemoteFile file) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete File'),
-        content: Text('Are you sure you want to delete "${file.name}"?\n\nThis cannot be undone.'),
+        title: Text(l10n.deleteFile),
+        content: Text(l10n.deleteFileConfirm(file.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -968,14 +973,14 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Deleted: ${file.name}'),
+              content: Text(l10n.deleted(file.name)),
               backgroundColor: Colors.green,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to delete file'),
+            SnackBar(
+              content: Text(l10n.failedToDeleteFile),
               backgroundColor: Colors.red,
             ),
           );

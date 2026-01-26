@@ -176,48 +176,53 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
           // Global drag overlay
           if (_isDragging)
             Positioned.fill(
-              child: Material(
-                color: Colors.black.withAlpha(150),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: isConnected ? Colors.blue : Colors.orange,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isConnected ? Icons.cloud_upload : Icons.cloud_off,
-                          size: 64,
-                          color: Colors.white,
+              child: Builder(
+                builder: (context) {
+                  final l10n = AppLocalizations.of(context);
+                  return Material(
+                    color: Colors.black.withAlpha(150),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: isConnected ? Colors.blue : Colors.orange,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          isConnected
-                              ? 'Drop files here to upload'
-                              : 'Connect to WebDAV first',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        if (!isConnected) ...[
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Go to Settings to configure connection',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white70,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isConnected ? Icons.cloud_upload : Icons.cloud_off,
+                              size: 64,
+                              color: Colors.white,
                             ),
-                          ),
-                        ],
-                      ],
+                            const SizedBox(height: 16),
+                            Text(
+                              isConnected
+                                  ? (l10n?.dropFilesToUpload ?? 'Drop files here to upload')
+                                  : (l10n?.connectToWebDavFirst ?? 'Connect to WebDAV first'),
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            if (!isConnected) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n?.goToSettingsToConfigureConnection ?? 'Go to Settings to configure connection',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
         ],
@@ -231,9 +236,10 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final context = this.context;
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connect to WebDAV first to upload files'),
+          SnackBar(
+            content: Text(l10n?.connectToWebDavFirstToUploadFiles ?? 'Connect to WebDAV first to upload files'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -272,14 +278,18 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
       }
 
       if (addedCount > 0) {
-        final message = folderPaths.isEmpty
-            ? 'Added $addedCount file(s) to upload queue'
-            : filePaths.isEmpty
-                ? 'Added ${folderPaths.length} folder(s) to upload queue'
-                : 'Added ${filePaths.length} file(s) and ${folderPaths.length} folder(s) to upload queue';
-
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) {
+            final l10n = AppLocalizations.of(context);
+            String message;
+            if (folderPaths.isEmpty) {
+              message = l10n?.addedFilesToQueue(filePaths.length) ?? 'Added ${filePaths.length} file(s) to upload queue';
+            } else if (filePaths.isEmpty) {
+              message = l10n?.addedFolders(folderPaths.length) ?? 'Added ${folderPaths.length} folder(s) to upload queue';
+            } else {
+              message = l10n?.addedFilesAndFolders(filePaths.length, folderPaths.length) ?? 'Added ${filePaths.length} file(s) and ${folderPaths.length} folder(s) to upload queue';
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(message),
@@ -292,9 +302,10 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
     } catch (e) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: $e'),
+              content: Text(l10n?.error(e.toString()) ?? 'Error: $e'),
               backgroundColor: Colors.red,
             ),
           );
