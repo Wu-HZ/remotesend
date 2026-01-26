@@ -320,3 +320,12 @@ final useDynamicColorProvider = Provider<bool>((ref) {
     orElse: () => true,
   );
 });
+
+/// Provider for the current locale ('system', 'en', 'zh').
+final localeProvider = Provider<String>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.locale,
+    orElse: () => 'system',
+  );
+});

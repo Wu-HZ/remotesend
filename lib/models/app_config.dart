@@ -43,6 +43,7 @@ class AppConfig {
   final String themeMode; // 'system', 'light', 'dark'
   final int primaryColor; // Color value as int (e.g., 0xFF2196F3)
   final bool useDynamicColor; // Use system dynamic color (Material You)
+  final String locale; // 'system', 'en', 'zh'
 
   AppConfig({
     this.version = currentVersion,
@@ -56,6 +57,7 @@ class AppConfig {
     this.themeMode = 'system',
     this.primaryColor = defaultPrimaryColor,
     this.useDynamicColor = true, // Default to true when available
+    this.locale = 'system',
   }) : localName = localName ?? _generateRandomName();
 
   /// Get the active server for Text Bridge.
@@ -112,6 +114,7 @@ class AppConfig {
     String? themeMode,
     int? primaryColor,
     bool? useDynamicColor,
+    String? locale,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -125,6 +128,7 @@ class AppConfig {
       themeMode: themeMode ?? this.themeMode,
       primaryColor: primaryColor ?? this.primaryColor,
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
+      locale: locale ?? this.locale,
     );
   }
 
@@ -139,6 +143,7 @@ class AppConfig {
     String? themeMode,
     int? primaryColor,
     bool? useDynamicColor,
+    String? locale,
     bool clearText = false,
     bool clearFiles = false,
   }) {
@@ -154,6 +159,7 @@ class AppConfig {
       themeMode: themeMode ?? this.themeMode,
       primaryColor: primaryColor ?? this.primaryColor,
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
+      locale: locale ?? this.locale,
     );
   }
 
@@ -171,6 +177,7 @@ class AppConfig {
       'themeMode': themeMode,
       'primaryColor': primaryColor,
       'useDynamicColor': useDynamicColor,
+      'locale': locale,
     };
   }
 
@@ -205,6 +212,7 @@ class AppConfig {
       themeMode: json['themeMode'] as String? ?? 'system',
       primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
       useDynamicColor: json['useDynamicColor'] as bool? ?? true,
+      locale: json['locale'] as String? ?? 'system',
     );
   }
 
@@ -251,6 +259,7 @@ class AppConfig {
       themeMode: json['themeMode'] as String? ?? 'system',
       primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
       useDynamicColor: json['useDynamicColor'] as bool? ?? true,
+      locale: json['locale'] as String? ?? 'system',
     );
   }
 
@@ -274,6 +283,7 @@ class AppConfig {
       themeMode: json['themeMode'] as String? ?? 'system',
       primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
       useDynamicColor: json['useDynamicColor'] as bool? ?? true,
+      locale: json['locale'] as String? ?? 'system',
     );
   }
 
@@ -300,6 +310,7 @@ class AppConfig {
         other.themeMode != themeMode ||
         other.primaryColor != primaryColor ||
         other.useDynamicColor != useDynamicColor ||
+        other.locale != locale ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -323,6 +334,7 @@ class AppConfig {
       themeMode,
       primaryColor,
       useDynamicColor,
+      locale,
     );
   }
 

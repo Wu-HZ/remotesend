@@ -561,12 +561,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ListTile(
           leading: const Icon(Icons.language),
           title: const Text('Language'),
-          subtitle: const Text('English'),
+          subtitle: Text(_getLanguageName(config?.locale ?? 'system')),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showComingSoon('Language settings'),
+          onTap: () => _showLanguageDialog(),
         ),
       ],
     );
+  }
+
+  String _getLanguageName(String locale) {
+    switch (locale) {
+      case 'en':
+        return 'English';
+      case 'zh':
+        return '简体中文';
+      default:
+        return 'System default';
+    }
   }
 
   String _getColorName(int colorValue) {
@@ -977,6 +988,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (currentConfig == null) return;
 
     final newConfig = currentConfig.copyWith(useDynamicColor: useDynamicColor);
+    await ref.read(configProvider.notifier).updateConfig(newConfig);
+  }
+
+  void _showLanguageDialog() {
+    final config = ref.read(configProvider).valueOrNull;
+    final currentLocale = config?.locale ?? 'system';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text('System default'),
+              value: 'system',
+              groupValue: currentLocale,
+              onChanged: (value) {
+                Navigator.pop(dialogContext);
+                _saveLocale(value!);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('English'),
+              value: 'en',
+              groupValue: currentLocale,
+              onChanged: (value) {
+                Navigator.pop(dialogContext);
+                _saveLocale(value!);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('简体中文'),
+              value: 'zh',
+              groupValue: currentLocale,
+              onChanged: (value) {
+                Navigator.pop(dialogContext);
+                _saveLocale(value!);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveLocale(String locale) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+
+    final newConfig = currentConfig.copyWith(locale: locale);
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 

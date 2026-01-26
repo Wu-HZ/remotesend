@@ -1,0 +1,246 @@
+{
+  "@@locale": "zh",
+
+  "appTitle": "RemoteSend",
+
+  "navText": "文本",
+  "navFiles": "文件",
+  "navSettings": "设置",
+
+  "retry": "重试",
+  "cancel": "取消",
+  "save": "保存",
+  "delete": "删除",
+  "edit": "编辑",
+  "add": "添加",
+  "clear": "清除",
+  "close": "关闭",
+  "open": "打开",
+  "confirm": "确认",
+
+  "failedToLoadConfig": "加载配置失败：",
+
+  "today": "今天",
+  "yesterday": "昨天",
+  "selectDate": "选择日期",
+
+  "autoSyncOn": "自动同步已开启",
+  "autoSyncOff": "自动同步已关闭",
+  "refresh": "刷新",
+  "switchServer": "切换服务器",
+
+  "configureWebDavToSync": "请在设置中配置WebDAV连接以同步",
+  "notConnectedTestInSettings": "未连接，请在设置中测试连接",
+  "configureWebDavToUseFileDepot": "请在设置中配置WebDAV连接以使用文件仓库",
+
+  "noMessagesYet": "暂无消息",
+  "noMessagesOnThisDay": "当天没有消息",
+  "sendMessageToGetStarted": "发送一条消息开始吧",
+
+  "copiedToClipboard": "已复制到剪贴板",
+  "messageMarkedForDeletion": "消息已标记删除",
+  "undo": "撤销",
+  "couldNotOpenLink": "无法打开链接",
+  "errorOpeningLink": "打开链接时出错：{error}",
+
+  "typeAMessage": "输入消息...",
+
+  "fileDepot": "文件仓库",
+  "goBack": "返回",
+  "openDownloadFolder": "打开下载文件夹",
+
+  "downloadingFile": "正在下载：{fileName}",
+  "downloadingFileWithProgress": "正在下载：{fileName}（{current}/{total}）",
+  "uploadingFile": "正在上传：{fileName}（{current}/{total}）",
+  "uploadingEllipsis": "正在上传...",
+  "filesUploaded": "已上传 {completed}/{total} 个文件",
+  "idle": "空闲",
+
+  "connectToWebDavToViewFiles": "连接WebDAV以查看文件",
+  "noFilesYet": "暂无文件",
+  "emptyFolder": "空文件夹",
+  "tapFileOrFolderToUpload": "点击文件或文件夹按钮上传",
+  "thisFolderIsEmpty": "此文件夹为空",
+
+  "folder": "文件夹",
+  "file": "文件",
+
+  "download": "下载",
+  "downloadFolder": "下载文件夹",
+
+  "todayTime": "今天 {time}",
+  "daysAgo": "{days}天前",
+
+  "couldNotAccessFiles": "无法访问文件",
+  "addedFilesToQueue": "已添加 {count} 个文件到上传队列",
+  "selectFolderToUpload": "选择要上传的文件夹",
+  "addedFolderToQueue": "已添加文件夹 {name} 到上传队列",
+
+  "downloaded": "已下载：{name}",
+  "openFolder": "打开文件夹",
+  "downloadFailed": "下载失败",
+  "downloadedFolderWithCount": "已下载文件夹 {name}（{count}个文件）",
+
+  "deleteFile": "删除文件",
+  "deleteFileConfirm": "确定要删除 {name} 吗？\n\n此操作无法撤销。",
+  "deleted": "已删除：{name}",
+  "failedToDeleteFile": "删除文件失败",
+
+  "transferQueue": "传输队列",
+  "retryFailed": "重试失败项",
+  "clearCompleted": "清除已完成",
+  "clearAll": "清除全部",
+
+  "transferQueueEmpty": "传输队列为空",
+  "filesWillAppearHere": "传输文件时会显示在这里",
+
+  "uploadStatus": "上传：{status}",
+  "downloadStatus": "下载：{status}",
+  "filesCount": "{count} 个文件",
+  "filesProgress": "{completed}/{total} 个文件",
+
+  "elapsed": "已用时间",
+  "duration": "总时长",
+  "remaining": "剩余",
+
+  "statusPending": "等待中",
+  "statusUploading": "上传中",
+  "statusDownloading": "下载中",
+  "statusCompleted": "已完成",
+  "statusFailed": "失败",
+  "statusIdle": "空闲",
+
+  "clearQueue": "清空队列",
+  "clearQueueConfirm": "确定要清空整个上传队列吗？这将取消所有正在进行的上传。",
+
+  "openFileFolderNotSupported": "此平台不支持打开文件夹",
+  "failedToOpenFolder": "打开文件夹失败：{error}",
+  "fileNotFound": "文件未找到",
+  "openFileNotSupported": "此平台不支持打开文件",
+  "failedToOpenFile": "打开文件失败：{error}",
+  "openFile": "打开文件",
+
+  "settings": "设置",
+
+  "sectionConnection": "连接",
+  "sectionGeneral": "通用",
+  "sectionDownload": "下载",
+  "sectionOthers": "其他",
+
+  "configuredServers": "已配置的服务器",
+  "longPressToEditDelete": "长按编辑/删除",
+  "noServersConfigured": "未配置服务器",
+  "addServer": "添加服务器",
+  "editServer": "编辑服务器",
+  "deleteServer": "删除服务器",
+  "deleteServerConfirm": "确定要删除 {name} 吗？",
+  "serverAdded": "服务器已添加",
+  "serverUpdated": "服务器已更新",
+  "serverDeleted": "服务器已删除",
+  "failedToSaveServer": "保存服务器失败",
+  "failedToDelete": "删除失败",
+
+  "textLabel": "文本",
+  "filesLabel": "文件",
+
+  "localName": "本地名称",
+  "localNameHint": "例如：我的手机",
+  "localNameDescription": "此名称将显示在从该设备发送的文本消息中。",
+  "nameUpdated": "名称已更新",
+  "failedToSave": "保存失败",
+
+  "portableMode": "便携模式",
+  "portableModeDescription": "将配置保存在程序旁边（用于U盘）",
+  "portableModeConfig": "配置：{path}",
+  "portableModeEnabled": "便携模式已启用",
+  "portableModeDisabled": "便携模式已禁用",
+  "failedToChangePortableMode": "更改便携模式失败",
+
+  "refreshInterval": "刷新间隔",
+  "refreshIntervalSeconds": "{seconds} 秒",
+  "refreshIntervalDescription": "每次服务器请求后的等待时间",
+
+  "connectionStatusConnected": "已连接",
+  "connectionStatusConnecting": "连接中...",
+  "connectionStatusError": "连接错误",
+  "connectionStatusDisconnected": "未连接",
+
+  "theme": "主题",
+  "themeSystem": "跟随系统",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+
+  "dynamicColor": "动态颜色",
+  "dynamicColorDescription": "使用系统强调色（Material You）",
+  "usingSystemColor": "使用系统颜色",
+
+  "color": "颜色",
+  "chooseColor": "选择颜色",
+  "colorBlue": "蓝色",
+  "colorRed": "红色",
+  "colorGreen": "绿色",
+  "colorOrange": "橙色",
+  "colorPurple": "紫色",
+  "colorCyan": "青色",
+  "colorPink": "粉色",
+  "colorTeal": "蓝绿色",
+  "colorIndigo": "靛蓝色",
+  "colorYellow": "黄色",
+  "colorBrown": "棕色",
+  "colorBlueGrey": "蓝灰色",
+  "colorCustom": "自定义",
+
+  "language": "语言",
+  "languageEnglish": "英语",
+  "languageChinese": "简体中文",
+
+  "autoDownload": "自动下载",
+  "autoDownloadDescription": "检测到新文件时自动下载",
+  "downloadLocation": "下载位置",
+  "systemDefault": "系统默认",
+  "downloadLocationUpdated": "下载位置已更新",
+  "selectDownloadLocation": "选择下载位置",
+
+  "showNotification": "显示通知",
+  "showNotificationDescription": "下载完成时通知",
+
+  "about": "关于",
+  "aboutDescription": "RemoteSend v1.0.0",
+  "aboutLegalese": "© 2025 Wu-HZ",
+  "aboutAppDescription": "一款轻量级、便携的应用，用于通过WebDAV在设备之间传输文本和文件。",
+
+  "sourceCode": "源代码",
+  "sourceCodeUrl": "github.com/Wu-HZ/remotesend",
+  "openGitHub": "打开GitHub",
+
+  "donation": "捐赠",
+  "donationDescription": "支持开发",
+
+  "privacyPolicy": "隐私政策",
+
+  "comingSoon": "{feature} - 即将推出",
+
+  "serverName": "名称",
+  "serverNameHint": "例如：家庭NAS",
+  "serverNameRequired": "请输入名称",
+  "serverUrl": "WebDAV服务器URL",
+  "serverUrlHint": "https://example.com/webdav",
+  "serverUrlRequired": "请输入服务器URL",
+  "serverUrlInvalid": "请输入有效的URL",
+  "username": "用户名",
+  "usernameRequired": "请输入用户名",
+  "password": "密码",
+  "passwordRequired": "请输入密码",
+  "testConnection": "测试连接",
+  "testConnectionSuccess": "成功！已建立连接。",
+  "testConnectionFailed": "失败：{error}",
+
+  "error": "错误：{message}",
+
+  "dropFilesToUpload": "拖放文件到此处上传",
+  "connectToWebDavFirst": "请先连接WebDAV",
+  "goToSettingsToConfigureConnection": "前往设置配置连接",
+  "connectToWebDavFirstToUploadFiles": "请先连接WebDAV以上传文件",
+  "addedFilesAndFolders": "已添加 {files} 个文件和 {folders} 个文件夹到上传队列",
+  "addedFolders": "已添加 {count} 个文件夹到上传队列"
+}

@@ -1,0 +1,389 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "RemoteSend",
+
+  "navText": "Text",
+  "navFiles": "Files",
+  "navSettings": "Settings",
+
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "edit": "Edit",
+  "add": "Add",
+  "clear": "Clear",
+  "close": "Close",
+  "open": "Open",
+  "confirm": "Confirm",
+
+  "failedToLoadConfig": "Failed to load configuration:",
+
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "selectDate": "Select Date",
+
+  "autoSyncOn": "Auto-sync ON",
+  "autoSyncOff": "Auto-sync OFF",
+  "refresh": "Refresh",
+  "switchServer": "Switch server",
+
+  "configureWebDavToSync": "Configure WebDAV connection in Settings to sync",
+  "notConnectedTestInSettings": "Not connected. Test connection in Settings",
+  "configureWebDavToUseFileDepot": "Configure WebDAV connection in Settings to use File Depot",
+
+  "noMessagesYet": "No messages yet",
+  "noMessagesOnThisDay": "No messages on this day",
+  "sendMessageToGetStarted": "Send a message to get started",
+
+  "copiedToClipboard": "Copied to clipboard",
+  "messageMarkedForDeletion": "Message marked for deletion",
+  "undo": "Undo",
+  "couldNotOpenLink": "Could not open link",
+  "errorOpeningLink": "Error opening link: {error}",
+  "@errorOpeningLink": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+
+  "typeAMessage": "Type a message...",
+
+  "fileDepot": "File Depot",
+  "goBack": "Go back",
+  "openDownloadFolder": "Open download folder",
+
+  "downloadingFile": "Downloading: {fileName}",
+  "@downloadingFile": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "downloadingFileWithProgress": "Downloading: {fileName} ({current}/{total})",
+  "@downloadingFileWithProgress": {
+    "placeholders": {
+      "fileName": {},
+      "current": {},
+      "total": {}
+    }
+  },
+  "uploadingFile": "Uploading: {fileName} ({current}/{total})",
+  "@uploadingFile": {
+    "placeholders": {
+      "fileName": {},
+      "current": {},
+      "total": {}
+    }
+  },
+  "uploadingEllipsis": "Uploading...",
+  "filesUploaded": "{completed}/{total} files uploaded",
+  "@filesUploaded": {
+    "placeholders": {
+      "completed": {},
+      "total": {}
+    }
+  },
+  "idle": "Idle",
+
+  "connectToWebDavToViewFiles": "Connect to WebDAV to view files",
+  "noFilesYet": "No files yet",
+  "emptyFolder": "Empty folder",
+  "tapFileOrFolderToUpload": "Tap the File or Folder button to upload",
+  "thisFolderIsEmpty": "This folder is empty",
+
+  "folder": "Folder",
+  "file": "File",
+
+  "download": "Download",
+  "downloadFolder": "Download Folder",
+
+  "todayTime": "Today {time}",
+  "@todayTime": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "daysAgo": "{days} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+
+  "couldNotAccessFiles": "Could not access files",
+  "addedFilesToQueue": "Added {count} file(s) to upload queue",
+  "@addedFilesToQueue": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectFolderToUpload": "Select folder to upload",
+  "addedFolderToQueue": "Added folder \"{name}\" to upload queue",
+  "@addedFolderToQueue": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+
+  "downloaded": "Downloaded: {name}",
+  "@downloaded": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "openFolder": "Open folder",
+  "downloadFailed": "Download failed",
+  "downloadedFolderWithCount": "Downloaded folder \"{name}\" ({count} files)",
+  "@downloadedFolderWithCount": {
+    "placeholders": {
+      "name": {},
+      "count": {}
+    }
+  },
+
+  "deleteFile": "Delete File",
+  "deleteFileConfirm": "Are you sure you want to delete \"{name}\"?\n\nThis cannot be undone.",
+  "@deleteFileConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "Deleted: {name}",
+  "@deleted": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "failedToDeleteFile": "Failed to delete file",
+
+  "transferQueue": "Transfer Queue",
+  "retryFailed": "Retry failed",
+  "clearCompleted": "Clear completed",
+  "clearAll": "Clear all",
+
+  "transferQueueEmpty": "Transfer queue is empty",
+  "filesWillAppearHere": "Files will appear here when transferring",
+
+  "uploadStatus": "Upload: {status}",
+  "@uploadStatus": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "downloadStatus": "Download: {status}",
+  "@downloadStatus": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "filesCount": "{count} files",
+  "@filesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "filesProgress": "{completed}/{total} files",
+  "@filesProgress": {
+    "placeholders": {
+      "completed": {},
+      "total": {}
+    }
+  },
+
+  "elapsed": "Elapsed",
+  "duration": "Duration",
+  "remaining": "remaining",
+
+  "statusPending": "Pending",
+  "statusUploading": "Uploading",
+  "statusDownloading": "Downloading",
+  "statusCompleted": "Completed",
+  "statusFailed": "Failed",
+  "statusIdle": "Idle",
+
+  "clearQueue": "Clear Queue",
+  "clearQueueConfirm": "Are you sure you want to clear the entire upload queue? This will cancel any ongoing uploads.",
+
+  "openFileFolderNotSupported": "Open folder not supported on this platform",
+  "failedToOpenFolder": "Failed to open folder: {error}",
+  "@failedToOpenFolder": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "fileNotFound": "File not found",
+  "openFileNotSupported": "Open file not supported on this platform",
+  "failedToOpenFile": "Failed to open file: {error}",
+  "@failedToOpenFile": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "openFile": "Open file",
+
+  "settings": "Settings",
+
+  "sectionConnection": "Connection",
+  "sectionGeneral": "General",
+  "sectionDownload": "Download",
+  "sectionOthers": "Others",
+
+  "configuredServers": "Configured Servers",
+  "longPressToEditDelete": "Long press to edit/delete",
+  "noServersConfigured": "No servers configured",
+  "addServer": "Add Server",
+  "editServer": "Edit Server",
+  "deleteServer": "Delete Server",
+  "deleteServerConfirm": "Are you sure you want to delete \"{name}\"?",
+  "@deleteServerConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "serverAdded": "Server added",
+  "serverUpdated": "Server updated",
+  "serverDeleted": "Server deleted",
+  "failedToSaveServer": "Failed to save server",
+  "failedToDelete": "Failed to delete",
+
+  "textLabel": "Text",
+  "filesLabel": "Files",
+
+  "localName": "Local Name",
+  "localNameHint": "e.g., My Phone",
+  "localNameDescription": "This name will be shown in Text Bridge messages sent from this device.",
+  "nameUpdated": "Name updated",
+  "failedToSave": "Failed to save",
+
+  "portableMode": "Portable Mode",
+  "portableModeDescription": "Save config next to executable (for USB drives)",
+  "portableModeConfig": "Config: {path}",
+  "@portableModeConfig": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "portableModeEnabled": "Portable mode enabled",
+  "portableModeDisabled": "Portable mode disabled",
+  "failedToChangePortableMode": "Failed to change portable mode",
+
+  "refreshInterval": "Refresh interval",
+  "refreshIntervalSeconds": "{seconds} seconds",
+  "@refreshIntervalSeconds": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "refreshIntervalDescription": "Time to wait after each server request",
+
+  "connectionStatusConnected": "Connected",
+  "connectionStatusConnecting": "Connecting...",
+  "connectionStatusError": "Connection error",
+  "connectionStatusDisconnected": "Not connected",
+
+  "theme": "Theme",
+  "themeSystem": "System default",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+
+  "dynamicColor": "Dynamic Color",
+  "dynamicColorDescription": "Use system accent color (Material You)",
+  "usingSystemColor": "Using system color",
+
+  "color": "Color",
+  "chooseColor": "Choose Color",
+  "colorBlue": "Blue",
+  "colorRed": "Red",
+  "colorGreen": "Green",
+  "colorOrange": "Orange",
+  "colorPurple": "Purple",
+  "colorCyan": "Cyan",
+  "colorPink": "Pink",
+  "colorTeal": "Teal",
+  "colorIndigo": "Indigo",
+  "colorYellow": "Yellow",
+  "colorBrown": "Brown",
+  "colorBlueGrey": "Blue Grey",
+  "colorCustom": "Custom",
+
+  "language": "Language",
+  "languageEnglish": "English",
+  "languageChinese": "Chinese (Simplified)",
+
+  "autoDownload": "Auto-download",
+  "autoDownloadDescription": "Automatically download new files when detected",
+  "downloadLocation": "Download location",
+  "systemDefault": "System default",
+  "downloadLocationUpdated": "Download location updated",
+  "selectDownloadLocation": "Select download location",
+
+  "showNotification": "Show notification",
+  "showNotificationDescription": "Notify when download completes",
+
+  "about": "About",
+  "aboutDescription": "RemoteSend v1.0.0",
+  "aboutLegalese": "© 2025 Wu-HZ",
+  "aboutAppDescription": "A lightweight, portable app to transfer text and files between devices using WebDAV.",
+
+  "sourceCode": "Source code",
+  "sourceCodeUrl": "github.com/Wu-HZ/remotesend",
+  "openGitHub": "Open GitHub",
+
+  "donation": "Donation",
+  "donationDescription": "Support the development",
+
+  "privacyPolicy": "Privacy Policy",
+
+  "comingSoon": "{feature} - coming soon",
+  "@comingSoon": {
+    "placeholders": {
+      "feature": {}
+    }
+  },
+
+  "serverName": "Name",
+  "serverNameHint": "e.g., Home NAS",
+  "serverNameRequired": "Please enter a name",
+  "serverUrl": "WebDAV Server URL",
+  "serverUrlHint": "https://example.com/webdav",
+  "serverUrlRequired": "Please enter a server URL",
+  "serverUrlInvalid": "Please enter a valid URL",
+  "username": "Username",
+  "usernameRequired": "Please enter a username",
+  "password": "Password",
+  "passwordRequired": "Please enter a password",
+  "testConnection": "Test Connection",
+  "testConnectionSuccess": "Success! Connection established.",
+  "testConnectionFailed": "Failed: {error}",
+  "@testConnectionFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+
+  "error": "Error: {message}",
+  "@error": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+
+  "dropFilesToUpload": "Drop files here to upload",
+  "connectToWebDavFirst": "Connect to WebDAV first",
+  "goToSettingsToConfigureConnection": "Go to Settings to configure connection",
+  "connectToWebDavFirstToUploadFiles": "Connect to WebDAV first to upload files",
+  "addedFilesAndFolders": "Added {files} file(s) and {folders} folder(s) to upload queue",
+  "@addedFilesAndFolders": {
+    "placeholders": {
+      "files": {},
+      "folders": {}
+    }
+  },
+  "addedFolders": "Added {count} folder(s) to upload queue",
+  "@addedFolders": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}

@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'l10n/app_localizations.dart';
 import 'providers/config_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
@@ -79,6 +81,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
     final themeMode = ref.watch(themeModeProvider);
     final primaryColor = ref.watch(primaryColorProvider);
     final useDynamicColor = ref.watch(useDynamicColorProvider);
+    final localeString = ref.watch(localeProvider);
 
     // Convert string theme mode to ThemeMode enum
     ThemeMode flutterThemeMode;
@@ -89,6 +92,12 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
         flutterThemeMode = ThemeMode.dark;
       default:
         flutterThemeMode = ThemeMode.system;
+    }
+
+    // Convert locale string to Locale object
+    Locale? appLocale;
+    if (localeString != 'system') {
+      appLocale = Locale(localeString);
     }
 
     return DynamicColorBuilder(
@@ -116,6 +125,17 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
         return MaterialApp(
           title: 'RemoteSend',
           debugShowCheckedModeBanner: false,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en'),
+            Locale('zh'),
+          ],
+          locale: appLocale,
           theme: ThemeData(
             colorScheme: lightColorScheme,
             useMaterial3: true,
