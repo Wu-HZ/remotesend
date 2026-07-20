@@ -34,11 +34,18 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   void initState() {
     super.initState();
     _textController.addListener(_onTextChanged);
+    Future.microtask(_initialize);
   }
 
   Future<void> _initialize() async {
     if (_initialized) return;
     _initialized = true;
+
+    final status = ref.read(textConnectionStatusProvider);
+    if (status.state != WebDavConnectionState.connected) {
+      _initialized = false;
+      return;
+    }
 
     await ref.read(messageHistoryProvider.notifier).initialize();
     _scrollToBottom();
