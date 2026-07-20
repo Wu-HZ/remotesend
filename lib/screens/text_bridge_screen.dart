@@ -105,12 +105,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       }
     });
 
-    // Initialize messages when connection is established
-    ref.listen<ConnectionStatus>(textConnectionStatusProvider, (previous, next) {
-      if (next.state == WebDavConnectionState.connected && !_initialized) {
-        _initialize();
-      }
-    });
+    // Trigger message load once connection is ready
+    if (!_initialized && connectionStatus.state == WebDavConnectionState.connected) {
+      Future.microtask(_initialize);
+    }
 
     final isConnected = connectionStatus.state == WebDavConnectionState.connected;
     final canSync = isConfigured && isConnected;
