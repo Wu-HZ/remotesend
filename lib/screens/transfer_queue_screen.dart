@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/upload_queue.dart';
@@ -64,6 +63,10 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
   }
 
   Future<void> _openFolderAndroid(String path) async {
+    await _openPathAndroid(path);
+  }
+
+  Future<void> _openPathAndroid(String path) async {
     const authority = 'com.remotesend.remote_send.fileprovider';
     const externalStorageRoot = '/storage/emulated/0';
     final String contentUri;
@@ -126,7 +129,7 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
       } else if (Platform.isLinux) {
         await Process.run('xdg-open', [filePath]);
       } else if (Platform.isAndroid) {
-        await OpenFilex.open(filePath);
+        await _openPathAndroid(filePath);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
