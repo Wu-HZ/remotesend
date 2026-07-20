@@ -56,12 +56,15 @@ class TextMessage {
   }
 
   /// Create from JSON map.
-  factory TextMessage.fromJson(Map<String, dynamic> json) {
+  /// [localName] overrides isLocal by comparing with senderName.
+  factory TextMessage.fromJson(Map<String, dynamic> json, {String? localName}) {
     return TextMessage(
       id: json['id'] as String,
       content: json['content'] as String,
       senderName: json['senderName'] as String,
-      isLocal: json['isLocal'] as bool,
+      isLocal: localName != null
+          ? (json['senderName'] as String) == localName
+          : json['isLocal'] as bool,
       timestamp: DateTime.parse(json['timestamp'] as String),
     );
   }

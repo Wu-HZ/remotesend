@@ -67,21 +67,16 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
       if (result.isSuccess) {
         final jsonContent = result.data ?? '[]';
         final List<dynamic> jsonList = jsonDecode(jsonContent);
-        final messages = jsonList
-            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>))
-            .toList();
-
-        // Recalculate isLocal based on current device's localName
         final localName = _ref.read(configProvider).valueOrNull?.localName ?? 'Me';
-        final corrected = messages
-            .map((msg) => msg.copyWith(isLocal: msg.senderName == localName))
+        final messages = jsonList
+            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>, localName: localName))
             .toList();
 
         // Sort by timestamp
-        corrected.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
         state = state.copyWith(
-          messages: corrected,
+          messages: messages,
           isLoading: false,
         );
       } else {
@@ -160,7 +155,7 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
         final jsonContent = readResult.data ?? '[]';
         final List<dynamic> jsonList = jsonDecode(jsonContent);
         todayMessages = jsonList
-            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>))
+            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>, localName: localName))
             .toList();
       }
 
@@ -218,6 +213,8 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
     // Only allow deleting from today's messages
     if (selectedDate != today) return false;
 
+    final localName = _ref.read(configProvider).valueOrNull?.localName ?? 'Me';
+
     state = state.copyWith(isSending: true, error: null);
 
     try {
@@ -229,7 +226,7 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
         final jsonContent = readResult.data ?? '[]';
         final List<dynamic> jsonList = jsonDecode(jsonContent);
         todayMessages = jsonList
-            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>))
+            .map((json) => TextMessage.fromJson(json as Map<String, dynamic>, localName: localName))
             .toList();
       }
 
