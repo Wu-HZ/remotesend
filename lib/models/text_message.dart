@@ -66,6 +66,16 @@ class TextMessage {
     );
   }
 
+  TextMessage copyWith({bool? isLocal}) {
+    return TextMessage(
+      id: id,
+      content: content,
+      senderName: senderName,
+      isLocal: isLocal ?? this.isLocal,
+      timestamp: timestamp,
+    );
+  }
+
   /// Get formatted time string (HH:mm).
   String get formattedTime {
     return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';

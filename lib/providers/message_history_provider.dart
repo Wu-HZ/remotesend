@@ -71,11 +71,17 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
             .map((json) => TextMessage.fromJson(json as Map<String, dynamic>))
             .toList();
 
+        // Recalculate isLocal based on current device's localName
+        final localName = _ref.read(configProvider).valueOrNull?.localName ?? 'Me';
+        final corrected = messages
+            .map((msg) => msg.copyWith(isLocal: msg.senderName == localName))
+            .toList();
+
         // Sort by timestamp
-        messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        corrected.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
         state = state.copyWith(
-          messages: messages,
+          messages: corrected,
           isLoading: false,
         );
       } else {
