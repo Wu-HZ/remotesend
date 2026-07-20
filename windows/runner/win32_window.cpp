@@ -29,6 +29,28 @@ constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme"
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;
 
+// Returns true if running on Windows 11 (build 22000) or later.
+// DWMWA_USE_IMMERSIVE_DARK_MODE only fully darkens the title bar on Win11+.
+// On Windows 10 it only changes text/button colors to white, leaving the
+// title bar background light -- making text and caption buttons invisible.
+bool IsWindows11OrGreater() {
+  HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll");
+  if (!hNtdll) {
+    return false;
+  }
+  typedef LONG (WINAPI *RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+  RtlGetVersionPtr RtlGetVersion =
+      (RtlGetVersionPtr)GetProcAddress(hNtdll, "RtlGetVersion");
+  if (!RtlGetVersion) {
+    return false;
+  }
+  RTL_OSVERSIONINFOW osvi = {sizeof(osvi)};
+  if (RtlGetVersion(&osvi) == 0) {
+    return osvi.dwBuildNumber >= 22000;
+  }
+  return false;
+}
+
 using EnableNonClientDpiScaling = BOOL __stdcall(HWND hwnd);
 
 // Scale helper to convert logical scaler values to physical using passed in
@@ -282,6 +304,9 @@ void Win32Window::UpdateTheme(HWND const window) {
 
   if (result == ERROR_SUCCESS) {
     BOOL enable_dark_mode = light_mode == 0;
+    if (enable_dark_mode && !IsWindows11OrGreater()) {
+      enable_dark_mode = FALSE;
+    }
     DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
                           &enable_dark_mode, sizeof(enable_dark_mode));
   }

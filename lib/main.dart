@@ -27,7 +27,6 @@ void main() async {
       size: Size(windowWidth, windowHeight),
       minimumSize: Size(320, 480),
       center: true,
-      backgroundColor: Colors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
     );
