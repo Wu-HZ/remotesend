@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
@@ -77,6 +78,19 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     return dir.path;
   }
 
+  Future<void> _openFolderAndroid(String path) async {
+    const authority = 'com.remotesend.remote_send.fileprovider';
+    const externalStorageRoot = '/storage/emulated/0';
+    final String contentUri;
+    if (path.startsWith(externalStorageRoot)) {
+      final relative = path.substring(externalStorageRoot.length);
+      contentUri = 'content://$authority/external$relative';
+    } else {
+      contentUri = 'content://$authority/root$path';
+    }
+    await launchUrl(Uri.parse(contentUri), mode: LaunchMode.externalApplication);
+  }
+
   Future<void> _openDownloadLocation() async {
     if (_currentDownloadLocation == null) return;
 
@@ -88,6 +102,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         await Process.run('open', [_currentDownloadLocation!]);
       } else if (Platform.isLinux) {
         await Process.run('xdg-open', [_currentDownloadLocation!]);
+      } else if (Platform.isAndroid) {
+        await _openFolderAndroid(_currentDownloadLocation!);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
