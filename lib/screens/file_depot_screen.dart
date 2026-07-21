@@ -548,9 +548,20 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     return GestureDetector(
       onSecondaryTapDown: (details) => _showContextMenu(l10n, details.globalPosition, file),
       child: ListTile(
-        leading: Icon(
-          isDirectory ? Icons.folder : _getFileIcon(file.name),
-          color: isDirectory ? Theme.of(context).colorScheme.primary : null,
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: isDirectory
+                ? Theme.of(context).colorScheme.primaryContainer
+                : Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            isDirectory ? Icons.folder : _getFileIcon(file.name),
+            color: isDirectory ? Theme.of(context).colorScheme.primary : null,
+            size: 22,
+          ),
         ),
         title: Text(
           file.name,
