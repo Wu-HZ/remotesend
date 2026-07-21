@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/config_provider.dart';
+import '../util/theme_ext.dart';
 import 'file_depot_screen.dart';
 import 'settings_screen.dart';
 import 'text_bridge_screen.dart';
@@ -74,6 +75,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         body: Row(
           children: [
             NavigationRail(
+              backgroundColor: Theme.of(context).cardColorWithElevation,
               selectedIndex: _selectedIndex,
               onDestinationSelected: (index) {
                 setState(() => _selectedIndex = index);
