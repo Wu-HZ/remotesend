@@ -533,43 +533,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: l10n.sectionGeneral,
       icon: Icons.tune,
       children: [
-        ListTile(
-          leading: const Icon(Icons.brightness_6),
-          title: Text(l10n.theme),
-          subtitle: Text(themeModeText),
-          trailing: const Icon(Icons.chevron_right),
+        _ButtonEntry(
+          label: l10n.theme,
+          buttonLabel: themeModeText,
           onTap: () => _showThemeDialog(l10n),
         ),
-        SwitchListTile(
-          secondary: const Icon(Icons.auto_awesome),
-          title: Text(l10n.dynamicColor),
-          subtitle: Text(l10n.dynamicColorDescription),
+        _BooleanEntry(
+          label: l10n.dynamicColor,
           value: useDynamicColor,
           onChanged: (value) => _saveDynamicColor(value),
         ),
-        ListTile(
-          leading: const Icon(Icons.palette),
-          title: Text(l10n.color),
-          subtitle: Text(useDynamicColor ? l10n.usingSystemColor : _getColorName(l10n, primaryColor)),
-          trailing: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: Color(primaryColor),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withAlpha(100),
-              ),
-            ),
-          ),
+        _ButtonEntry(
+          label: l10n.color,
+          buttonLabel: useDynamicColor ? l10n.usingSystemColor : _getColorName(l10n, primaryColor),
           enabled: !useDynamicColor,
-          onTap: useDynamicColor ? null : () => _showColorPicker(l10n),
+          onTap: () => _showColorPicker(l10n),
         ),
-        ListTile(
-          leading: const Icon(Icons.language),
-          title: Text(l10n.language),
-          subtitle: Text(_getLanguageName(l10n, config?.locale ?? 'system')),
-          trailing: const Icon(Icons.chevron_right),
+        _ButtonEntry(
+          label: l10n.language,
+          buttonLabel: _getLanguageName(l10n, config?.locale ?? 'system'),
           onTap: () => _showLanguageDialog(l10n),
         ),
       ],
@@ -615,31 +597,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: l10n.sectionDownload,
       icon: Icons.download,
       children: [
-        SwitchListTile(
-          secondary: const Icon(Icons.sync),
-          title: Text(l10n.autoDownload),
-          subtitle: Text(l10n.autoDownloadDescription),
+        _BooleanEntry(
+          label: l10n.autoDownload,
           value: _autoDownload,
           onChanged: (value) {
             setState(() => _autoDownload = value);
             _showComingSoon(l10n, l10n.autoDownload);
           },
         ),
-        ListTile(
-          leading: const Icon(Icons.folder),
-          title: Text(l10n.downloadLocation),
-          subtitle: Text(
-            displayPath,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-          trailing: const Icon(Icons.chevron_right),
+        _ButtonEntry(
+          label: l10n.downloadLocation,
+          buttonLabel: displayPath,
           onTap: () => _pickDownloadLocation(l10n),
         ),
-        SwitchListTile(
-          secondary: const Icon(Icons.notifications),
-          title: Text(l10n.showNotification),
-          subtitle: Text(l10n.showNotificationDescription),
+        _BooleanEntry(
+          label: l10n.showNotification,
           value: _showNotification,
           onChanged: (value) {
             setState(() => _showNotification = value);
@@ -1349,6 +1321,110 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
   }
 }
 
+class _SettingsEntry extends StatelessWidget {
+  final String label;
+  final Widget child;
+
+  const _SettingsEntry({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          const SizedBox(width: 10),
+          SizedBox(width: 150, child: child),
+        ],
+      ),
+    );
+  }
+}
+
+class _BooleanEntry extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _BooleanEntry({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _SettingsEntry(
+      label: label,
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: 50,
+            decoration: BoxDecoration(
+              color: theme.inputDecorationTheme.fillColor,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+          Positioned.fill(
+            child: Center(
+              child: Switch(
+                value: value,
+                onChanged: onChanged,
+                activeTrackColor: theme.colorScheme.primary,
+                activeThumbColor: theme.colorScheme.onPrimary,
+                inactiveThumbColor: theme.colorScheme.outline,
+                inactiveTrackColor: theme.colorScheme.surface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ButtonEntry extends StatelessWidget {
+  final String label;
+  final String buttonLabel;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _ButtonEntry({
+    required this.label,
+    required this.buttonLabel,
+    this.enabled = true,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsEntry(
+      label: label,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          backgroundColor: Theme.of(context).inputDecorationTheme.fillColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(5),
+          ),
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+        ),
+        onPressed: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Text(
+            buttonLabel,
+            style: Theme.of(context).textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// A settings section with title, icon, and children.
 class _SettingsSection extends StatelessWidget {
   final String title;
@@ -1363,38 +1439,20 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: Row(
-              children: [
-                Icon(icon, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 15, right: 15, top: 15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 10),
+              ...children,
+            ],
           ),
-          // Section Content
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
