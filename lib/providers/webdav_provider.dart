@@ -4,6 +4,7 @@ import '../models/server_config.dart';
 import '../services/webdav_service.dart';
 import '../services/webdav_exceptions.dart';
 import 'config_provider.dart';
+import 'message_history_provider.dart';
 
 /// Provider for the WebDavService for Text Bridge.
 final webDavTextServiceProvider = Provider<WebDavService>((ref) {
@@ -489,20 +490,18 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
 
   AutoPullNotifier(this._service, this._ref) : super(const AutoPullState());
 
-  /// Enable auto-pull with the specified refresh interval.
   void enable(int refreshIntervalSeconds) {
     _refreshIntervalSeconds = refreshIntervalSeconds;
     state = state.copyWith(isEnabled: true, error: null);
-    _startPolling();
+    _isRunning = true;
+    _pollLoop();
   }
 
-  /// Disable auto-pull.
   void disable() {
     _isRunning = false;
     state = state.copyWith(isEnabled: false, isPolling: false);
   }
 
-  /// Toggle auto-pull.
   void toggle(int refreshIntervalSeconds) {
     if (state.isEnabled) {
       disable();
@@ -511,39 +510,33 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
     }
   }
 
-  /// Pause auto-pull temporarily (during manual push/pull).
   void pause() {
     _isPaused = true;
   }
 
-  /// Resume auto-pull after pause.
   void resume() {
     _isPaused = false;
   }
 
-  /// Update refresh interval.
   void updateRefreshInterval(int seconds) {
     _refreshIntervalSeconds = seconds;
   }
 
-  void _startPolling() {
-    if (_isRunning) return;
-    _isRunning = true;
-    _pollLoop();
-  }
+  void _pollLoop() {
+    Future.doWhile(() async {
+      if (!_isRunning || !mounted) return false;
 
-  Future<void> _pollLoop() async {
-    while (_isRunning && mounted) {
-      // Skip check if paused
       if (!_isPaused) {
-        await _checkForUpdates();
+        try {
+          await _checkForUpdates();
+        } catch (_) {}
       }
 
-      // Wait for interval AFTER the request completes
-      if (_isRunning && mounted) {
-        await Future.delayed(Duration(seconds: _refreshIntervalSeconds));
-      }
-    }
+      if (!_isRunning || !mounted) return false;
+
+      await Future.delayed(Duration(seconds: _refreshIntervalSeconds));
+      return _isRunning && mounted;
+    });
   }
 
   Future<void> _checkForUpdates() async {
@@ -551,39 +544,51 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
 
     state = state.copyWith(isPolling: true);
 
-    final result = await _service.getBufferModifiedTime();
+    try {
+      final today = _getTodayDate();
+      final result = await _service.getMessagesModifiedTime(today);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result.isSuccess) {
-      final serverModTime = result.data;
-      final lastKnownModTime = state.lastModifiedTime;
+      if (result.isSuccess) {
+        final serverModTime = result.data;
+        final lastKnownModTime = state.lastModifiedTime;
 
-      state = state.copyWith(
-        isPolling: false,
-        lastCheckTime: DateTime.now(),
-        error: null,
-      );
+        state = state.copyWith(
+          isPolling: false,
+          lastCheckTime: DateTime.now(),
+          error: null,
+        );
 
-      // If server has newer content, pull it
-      if (serverModTime != null && !_isPaused) {
-        if (lastKnownModTime == null || serverModTime.isAfter(lastKnownModTime)) {
-          // Update last modified time first to prevent duplicate pulls
-          state = state.copyWith(lastModifiedTime: serverModTime);
-          // Trigger a pull
-          await _ref.read(bufferProvider.notifier).pullFromRemote();
+        if (serverModTime != null && !_isPaused) {
+          if (lastKnownModTime == null ||
+              serverModTime.isAfter(lastKnownModTime)) {
+            state = state.copyWith(lastModifiedTime: serverModTime);
+            await _ref.read(messageHistoryProvider.notifier).refresh();
+          }
         }
+      } else {
+        state = state.copyWith(
+          isPolling: false,
+          lastCheckTime: DateTime.now(),
+          error: result.error?.userMessage,
+        );
       }
-    } else {
+    } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isPolling: false,
         lastCheckTime: DateTime.now(),
-        error: result.error?.userMessage,
+        error: e.toString(),
       );
     }
   }
 
-  /// Update the last modified time (call after pushing to server).
+  String _getTodayDate() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
   void updateLastModifiedTime(DateTime time) {
     state = state.copyWith(lastModifiedTime: time);
   }

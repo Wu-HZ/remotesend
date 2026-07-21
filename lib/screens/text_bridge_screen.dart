@@ -58,6 +58,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   @override
   void dispose() {
+    ref.read(autoPullProvider.notifier).disable();
     _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _scrollController.dispose();
@@ -292,7 +293,12 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     setState(() {
       _pendingDeletions.clear();
     });
-    await ref.read(messageHistoryProvider.notifier).refresh();
+    try {
+      ref.read(autoPullProvider.notifier).pause();
+      await ref.read(messageHistoryProvider.notifier).refresh();
+    } finally {
+      ref.read(autoPullProvider.notifier).resume();
+    }
   }
 
   Widget _buildServerSelector(ServerConfig? activeServer, List<ServerConfig> servers, AppLocalizations l10n) {
@@ -692,19 +698,25 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     _textController.clear();
 
-    // First, sync pending deletions
-    if (hasPendingDeletions) {
-      final deleteSuccess = await ref.read(messageHistoryProvider.notifier).deleteMessages(_pendingDeletions);
-      if (deleteSuccess) {
-        setState(() {
-          _pendingDeletions.clear();
-        });
-      }
-    }
+    try {
+      ref.read(autoPullProvider.notifier).pause();
 
-    // Then, send new message if any
-    if (text.isNotEmpty) {
-      await ref.read(messageHistoryProvider.notifier).sendMessage(text);
+      // First, sync pending deletions
+      if (hasPendingDeletions) {
+        final deleteSuccess = await ref.read(messageHistoryProvider.notifier).deleteMessages(_pendingDeletions);
+        if (deleteSuccess) {
+          setState(() {
+            _pendingDeletions.clear();
+          });
+        }
+      }
+
+      // Then, send new message if any
+      if (text.isNotEmpty) {
+        await ref.read(messageHistoryProvider.notifier).sendMessage(text);
+      }
+    } finally {
+      ref.read(autoPullProvider.notifier).resume();
     }
 
     _focusNode.requestFocus();

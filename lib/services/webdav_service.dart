@@ -582,6 +582,37 @@ class WebDavService {
     }
   }
 
+  /// Get the last modification time of a messages file for [date].
+  ///
+  /// [date] - Date string in format 'yyyy-MM-dd'.
+  Future<WebDavResult<DateTime?>> getMessagesModifiedTime(String date) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final files = await _client!.readDir(_messagesFolder);
+      final targetFile = files.firstWhere(
+        (f) => f.name == '$date.json',
+        orElse: () => throw const WebDavNotFoundException(
+          message: 'Messages file not found',
+        ),
+      );
+      return WebDavResult.success(targetFile.mTime);
+    } on WebDavException catch (e) {
+      return WebDavResult.failure(e);
+    } on DioException catch (e) {
+      if (_isNotFound(e)) {
+        return const WebDavResult.success(null);
+      }
+      return WebDavResult.failure(_mapException(e));
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
   /// Download a file from a specific remote path.
   Future<WebDavResult<bool>> downloadFileFromPath(
     String remotePath,
