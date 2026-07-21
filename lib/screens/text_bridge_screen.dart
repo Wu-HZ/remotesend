@@ -648,7 +648,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Text input
           Expanded(
@@ -657,7 +657,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               focusNode: _focusNode,
               maxLines: 4,
               minLines: 1,
-              textInputAction: TextInputAction.newline,
+              textInputAction: TextInputAction.send,
               decoration: InputDecoration(
                 hintText: l10n.typeAMessage,
                 border: OutlineInputBorder(
@@ -668,23 +668,38 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              onSubmitted: canSync && !isSending ? (_) => _sendMessage() : null,
+              onSubmitted: canSync && !isSending && _textController.text.trim().isNotEmpty
+                  ? (_) => _sendMessage()
+                  : null,
             ),
           ),
           const SizedBox(width: 8),
+          // Paste button
+          IconButton(
+            onPressed: canSync && !isSending ? _sendClipboard : null,
+            icon: const Icon(Icons.content_paste),
+            tooltip: '发送剪贴板内容',
+          ),
+          const SizedBox(width: 4),
           // Send button
-          FloatingActionButton.small(
-            onPressed: canSync && !isSending && (_textController.text.trim().isNotEmpty || _pendingDeletions.isNotEmpty)
-                ? _sendMessage
-                : null,
-            elevation: 0,
-            child: isSending
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: IconButton(
+              onPressed: canSync &&
+                      !isSending &&
+                      (_textController.text.trim().isNotEmpty ||
+                          _pendingDeletions.isNotEmpty)
+                  ? _sendMessage
+                  : null,
+              icon: isSending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send),
+            ),
           ),
         ],
       ),
@@ -721,5 +736,18 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     }
 
     _focusNode.requestFocus();
+  }
+
+  Future<void> _sendClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text?.trim();
+    if (text == null || text.isEmpty) return;
+
+    try {
+      ref.read(autoPullProvider.notifier).pause();
+      await ref.read(messageHistoryProvider.notifier).sendMessage(text);
+    } finally {
+      ref.read(autoPullProvider.notifier).resume();
+    }
   }
 }
