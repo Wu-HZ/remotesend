@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/config_provider.dart';
+import '../providers/message_history_provider.dart';
+import '../providers/webdav_provider.dart';
 import '../util/theme_ext.dart';
 import 'file_depot_screen.dart';
 import 'settings_screen.dart';
@@ -78,6 +80,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               backgroundColor: Theme.of(context).cardColorWithElevation,
               selectedIndex: _selectedIndex,
               onDestinationSelected: (index) {
+                if (index != _selectedIndex) {
+                  _refreshTab(index);
+                }
                 setState(() => _selectedIndex = index);
               },
               extended: isWideDesktop,
@@ -124,6 +129,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
+          if (index != _selectedIndex) {
+            _refreshTab(index);
+          }
           setState(() => _selectedIndex = index);
         },
         destinations: [
@@ -147,16 +155,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildBody() {
-    switch (_selectedIndex) {
+  void _refreshTab(int index) {
+    switch (index) {
       case 0:
-        return const TextBridgeScreen();
+        ref.read(messageHistoryProvider.notifier).refresh();
       case 1:
-        return const FileDepotScreen();
-      case 2:
-        return const SettingsScreen();
-      default:
-        return const SizedBox.shrink();
+        try {
+          ref.read(fileListProvider.notifier).refresh();
+        } catch (_) {}
     }
+  }
+
+  Widget _buildBody() {
+    return IndexedStack(
+      index: _selectedIndex,
+      children: const [
+        TextBridgeScreen(),
+        FileDepotScreen(),
+        SettingsScreen(),
+      ],
+    );
   }
 }
