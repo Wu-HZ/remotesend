@@ -432,7 +432,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToChangePortableMode => 'Failed to change portable mode';
 
   @override
-  String get refreshInterval => 'Refresh interval';
+  String get refreshInterval => 'Sync interval';
 
   @override
   String refreshIntervalSeconds(Object seconds) {
@@ -440,8 +440,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get refreshIntervalDescription =>
-      'Time to wait after each server request';
+  String get refreshIntervalDescription => 'Auto-sync polling interval';
 
   @override
   String get connectionStatusConnected => 'Connected';

@@ -156,9 +156,9 @@
   "portableModeDisabled": "便携模式已禁用",
   "failedToChangePortableMode": "更改便携模式失败",
 
-  "refreshInterval": "刷新间隔",
+  "refreshInterval": "同步间隔",
   "refreshIntervalSeconds": "{seconds} 秒",
-  "refreshIntervalDescription": "每次服务器请求后的等待时间",
+  "refreshIntervalDescription": "自动同步的轮询间隔",
 
   "connectionStatusConnected": "已连接",
   "connectionStatusConnecting": "连接中...",

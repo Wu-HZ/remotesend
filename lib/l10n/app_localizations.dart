@@ -843,7 +843,7 @@ abstract class AppLocalizations {
   /// No description provided for @refreshInterval.
   ///
   /// In en, this message translates to:
-  /// **'Refresh interval'**
+  /// **'Sync interval'**
   String get refreshInterval;
 
   /// No description provided for @refreshIntervalSeconds.
@@ -855,7 +855,7 @@ abstract class AppLocalizations {
   /// No description provided for @refreshIntervalDescription.
   ///
   /// In en, this message translates to:
-  /// **'Time to wait after each server request'**
+  /// **'Auto-sync polling interval'**
   String get refreshIntervalDescription;
 
   /// No description provided for @connectionStatusConnected.

@@ -424,7 +424,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToChangePortableMode => '更改便携模式失败';
 
   @override
-  String get refreshInterval => '刷新间隔';
+  String get refreshInterval => '同步间隔';
 
   @override
   String refreshIntervalSeconds(Object seconds) {
@@ -432,7 +432,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get refreshIntervalDescription => '每次服务器请求后的等待时间';
+  String get refreshIntervalDescription => '自动同步的轮询间隔';
 
   @override
   String get connectionStatusConnected => '已连接';

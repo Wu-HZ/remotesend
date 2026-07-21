@@ -268,14 +268,14 @@
   "portableModeDisabled": "Portable mode disabled",
   "failedToChangePortableMode": "Failed to change portable mode",
 
-  "refreshInterval": "Refresh interval",
+  "refreshInterval": "Sync interval",
   "refreshIntervalSeconds": "{seconds} seconds",
   "@refreshIntervalSeconds": {
     "placeholders": {
       "seconds": {}
     }
   },
-  "refreshIntervalDescription": "Time to wait after each server request",
+  "refreshIntervalDescription": "Auto-sync polling interval",
 
   "connectionStatusConnected": "Connected",
   "connectionStatusConnecting": "Connecting...",

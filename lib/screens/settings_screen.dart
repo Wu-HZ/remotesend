@@ -227,27 +227,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
 
-        // Refresh Interval
-        Text(l10n.refreshInterval),
-        const SizedBox(height: 4),
-        Slider(
-          value: _refreshInterval,
-          min: 1,
-          max: 10,
-          divisions: 9,
-          label: '${_refreshInterval.toInt()}s',
-          onChanged: (value) {
-            setState(() => _refreshInterval = value);
-          },
-          onChangeEnd: (value) {
-            _saveRefreshInterval(value.toInt());
-          },
-        ),
-        Text(
-          l10n.refreshIntervalDescription,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+        // Sync Interval
+        _ButtonEntry(
+          label: l10n.refreshInterval,
+          buttonLabel: l10n.refreshIntervalSeconds(_refreshInterval.toInt()),
+          onTap: () => _showSyncIntervalDialog(l10n),
         ),
       ],
     );
@@ -792,7 +776,65 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ==================== Other Actions ====================
+  void _showSyncIntervalDialog(AppLocalizations l10n) {
+    double tempValue = _refreshInterval;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l10n.refreshInterval),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.refreshIntervalDescription,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text('1s'),
+                  Expanded(
+                    child: Slider(
+                      value: tempValue,
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      label: '${tempValue.toInt()}s',
+                      onChanged: (value) {
+                        setDialogState(() => tempValue = value);
+                      },
+                    ),
+                  ),
+                  Text('10s'),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _saveRefreshInterval(tempValue.toInt());
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveRefreshInterval(int seconds) async {
+    setState(() => _refreshInterval = seconds.toDouble());
+
     final currentConfig = ref.read(configProvider).valueOrNull;
     if (currentConfig == null) return;
 
