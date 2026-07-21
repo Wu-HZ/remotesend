@@ -11,6 +11,7 @@ import 'providers/config_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
 import 'screens/home_screen.dart';
+import 'services/window_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,21 +20,34 @@ void main() async {
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
 
-    // Window size with 2:3 aspect ratio (width:height)
-    const double windowWidth = 420;
-    const double windowHeight = 630;
+    const double defaultWidth = 420;
+    const double defaultHeight = 630;
+    final windowService = WindowService();
+    final savedState = await windowService.load();
 
-    WindowOptions windowOptions = const WindowOptions(
-      size: Size(windowWidth, windowHeight),
+    final windowOptions = const WindowOptions(
+      size: Size(defaultWidth, defaultHeight),
       minimumSize: Size(320, 480),
       center: true,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
     );
 
+    final windowCloseHandler = _WindowCloseHandler(windowService);
+    windowManager.addListener(windowCloseHandler);
+
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      if (savedState != null && savedState.rect != null) {
+        await windowManager.setBounds(savedState.rect!);
+        if (savedState.isMaximized) {
+          await windowManager.maximize();
+        }
+      }
+
       await windowManager.show();
       await windowManager.focus();
+
+      windowCloseHandler.saveCurrentState();
     });
   }
 
@@ -399,4 +413,33 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
       }
     }
   }
+}
+
+class _WindowCloseHandler with WindowListener {
+  final WindowService windowService;
+  _WindowCloseHandler(this.windowService);
+
+  void _saveState() async {
+    try {
+      final isMaximized = await windowManager.isMaximized();
+      final frame = await windowManager.getBounds();
+      await windowService.save(
+        WindowState.fromRect(frame, isMaximized: isMaximized),
+      );
+    } catch (_) {}
+  }
+
+  void saveCurrentState() => _saveState();
+
+  @override
+  void onWindowResize() => _saveState();
+
+  @override
+  void onWindowMove() => _saveState();
+
+  @override
+  void onWindowMaximize() => _saveState();
+
+  @override
+  void onWindowUnmaximize() => _saveState();
 }
