@@ -132,16 +132,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           // Server selector
           if (servers.isNotEmpty)
             _buildServerSelector(activeServer, servers, l10n),
-          // Sync status indicator
-          if (historyState.isSending || historyState.isLoading || autoPullState.isPolling)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
           // Auto-sync toggle
           if (canSync)
             IconButton(
@@ -158,7 +148,13 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           if (canSync)
             IconButton(
               onPressed: historyState.isLoading ? null : _manualRefresh,
-              icon: const Icon(Icons.refresh),
+              icon: historyState.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
               tooltip: l10n.refresh,
             ),
         ],

@@ -69,15 +69,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settings),
-      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: ListView(
             padding: const EdgeInsets.all(16),
         children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                l10n.settings,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+          ),
           // Connection Section
           _buildConnectionSection(l10n),
           const SizedBox(height: 24),
