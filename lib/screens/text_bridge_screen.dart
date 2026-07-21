@@ -116,6 +116,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: GestureDetector(
           onTap: canSync ? () => _showDatePicker(historyState.availableDates, l10n) : null,
           child: Row(

@@ -145,6 +145,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         leading: fileListState.isAtRoot
             ? null
             : IconButton(
