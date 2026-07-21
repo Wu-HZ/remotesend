@@ -121,7 +121,17 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
           );
         }
 
-        final fontFamily = Platform.isWindows ? 'Segoe UI Variable Display' : null;
+        String? fontFamily;
+        if (Platform.isWindows) {
+          final effectiveLocale = localeString == 'system'
+              ? Platform.localeName
+              : localeString;
+          if (effectiveLocale.startsWith('zh')) {
+            fontFamily = 'Microsoft YaHei UI';
+          } else {
+            fontFamily = 'Segoe UI Variable Display';
+          }
+        }
 
         final lightInputBorder = OutlineInputBorder(
           borderSide: BorderSide(color: lightColorScheme.secondaryContainer),
