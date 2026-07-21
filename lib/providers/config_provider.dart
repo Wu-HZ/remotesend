@@ -308,7 +308,7 @@ final primaryColorProvider = Provider<int>((ref) {
   final configAsync = ref.watch(configProvider);
   return configAsync.maybeWhen(
     data: (config) => config.primaryColor,
-    orElse: () => 0xFF2196F3, // Default blue
+    orElse: () => 0xFF009688, // Default teal
   );
 });
 

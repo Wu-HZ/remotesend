@@ -30,7 +30,7 @@ class AppConfig {
   static const int currentVersion = 4;
 
   // Default primary color (Material Blue 500)
-  static const int defaultPrimaryColor = 0xFF2196F3;
+  static const int defaultPrimaryColor = 0xFF009688;
 
   final int version;
   final List<ServerConfig> servers;

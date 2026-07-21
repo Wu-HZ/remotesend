@@ -511,7 +511,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildGeneralSection(AppLocalizations l10n) {
     final config = ref.watch(configProvider).valueOrNull;
     final themeMode = config?.themeMode ?? 'system';
-    final primaryColor = config?.primaryColor ?? 0xFF2196F3;
+    final primaryColor = config?.primaryColor ?? 0xFF009688;
     final useDynamicColor = config?.useDynamicColor ?? true;
 
     String themeModeText;

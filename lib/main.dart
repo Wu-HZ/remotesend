@@ -121,6 +121,18 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
           );
         }
 
+        final fontFamily = Platform.isWindows ? 'Segoe UI Variable Display' : null;
+
+        final lightInputBorder = OutlineInputBorder(
+          borderSide: BorderSide(color: lightColorScheme.secondaryContainer),
+          borderRadius: BorderRadius.circular(5),
+        );
+
+        final darkInputBorder = OutlineInputBorder(
+          borderSide: BorderSide(color: darkColorScheme.secondaryContainer),
+          borderRadius: BorderRadius.circular(5),
+        );
+
         return MaterialApp(
           title: 'RemoteSend',
           debugShowCheckedModeBanner: false,
@@ -138,10 +150,52 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
           theme: ThemeData(
             colorScheme: lightColorScheme,
             useMaterial3: true,
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: lightColorScheme.secondaryContainer,
+              border: lightInputBorder,
+              focusedBorder: lightInputBorder,
+              enabledBorder: lightInputBorder,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+            fontFamily: fontFamily,
           ),
           darkTheme: ThemeData(
             colorScheme: darkColorScheme,
             useMaterial3: true,
+            navigationBarTheme: const NavigationBarThemeData(
+              iconTheme: WidgetStatePropertyAll(IconThemeData(color: Colors.white)),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: darkColorScheme.secondaryContainer,
+              border: darkInputBorder,
+              focusedBorder: darkInputBorder,
+              enabledBorder: darkInputBorder,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+            fontFamily: fontFamily,
           ),
           themeMode: flutterThemeMode,
           home: _buildAppWithDropTarget(),

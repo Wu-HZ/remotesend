@@ -46,3 +46,4 @@ app.*.map.json
 .claude/
 AGENTS.md
 opencode.json
+localsend_reference/
