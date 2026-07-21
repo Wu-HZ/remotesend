@@ -72,8 +72,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(
         title: Text(l10n.settings),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
         children: [
           // Connection Section
           _buildConnectionSection(l10n),
@@ -90,7 +93,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Others Section
           _buildOthersSection(l10n),
           const SizedBox(height: 32),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

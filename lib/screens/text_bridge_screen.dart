@@ -163,10 +163,13 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          // Connection warning banner
-          if (!canSync) _buildWarningBanner(isConfigured, isConnected, l10n),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            children: [
+              // Connection warning banner
+              if (!canSync) _buildWarningBanner(isConfigured, isConnected, l10n),
 
           // Chat messages
           Expanded(
@@ -206,7 +209,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           // Input area (only show for today)
           if (_isToday(selectedDate))
             _buildInputArea(canSync, historyState.isSending, l10n),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

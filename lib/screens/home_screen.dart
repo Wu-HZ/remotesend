@@ -69,7 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final useRail = isDesktop && width > 600;
 
     if (useRail) {
-      // Desktop layout with side rail
+      final isWideDesktop = width >= 800;
       return Scaffold(
         body: Row(
           children: [
@@ -78,7 +78,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onDestinationSelected: (index) {
                 setState(() => _selectedIndex = index);
               },
-              labelType: NavigationRailLabelType.all,
+              extended: isWideDesktop,
+              leading: isWideDesktop
+                  ? Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        const Text(
+                          'RemoteSend',
+                          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    )
+                  : null,
               destinations: [
                 NavigationRailDestination(
                   icon: const Icon(Icons.text_fields_outlined),
@@ -97,7 +110,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ],
             ),
-            const VerticalDivider(thickness: 1, width: 1),
             Expanded(child: _buildBody()),
           ],
         ),

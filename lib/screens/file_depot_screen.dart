@@ -192,10 +192,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Connection warning banner
-          if (!canOperate) _buildWarningBanner(l10n, isConfigured, isConnected),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            children: [
+              // Connection warning banner
+              if (!canOperate) _buildWarningBanner(l10n, isConfigured, isConnected),
 
           // Status indicator (always visible)
           _buildStatusIndicator(l10n),
@@ -207,7 +210,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           Expanded(
             child: _buildFileList(l10n, fileListState, canOperate),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
       floatingActionButton: canOperate
           ? Row(
