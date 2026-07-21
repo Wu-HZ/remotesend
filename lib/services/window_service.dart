@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show Rect;
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class WindowState {
@@ -31,9 +33,31 @@ class WindowState {
       isMaximized: isMaximized,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+        'isMaximized': isMaximized,
+      };
+
+  factory WindowState.fromJson(Map<String, dynamic> json) {
+    return WindowState(
+      x: (json['x'] as num?)?.toDouble(),
+      y: (json['y'] as num?)?.toDouble(),
+      width: (json['width'] as num?)?.toDouble(),
+      height: (json['height'] as num?)?.toDouble(),
+      isMaximized: json['isMaximized'] == true,
+    );
+  }
 }
 
-/// Persists window position and size via SharedPreferences.
+/// Persists window position and size.
+///
+/// If a portable config.json exists next to the executable, stores
+/// window state in window_state.json alongside it. Otherwise uses
+/// SharedPreferences.
 /// Only active on desktop platforms (Windows, Linux, macOS).
 class WindowService {
   static const String _keyX = 'window_x';
@@ -45,8 +69,29 @@ class WindowService {
   bool get isSupported =>
       Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
+  /// Returns the path to window_state.json if portable mode is active.
+  String get _portableStatePath {
+    if (!isSupported) return '';
+    final executableDir = p.dirname(Platform.resolvedExecutable);
+    final configPath = p.join(executableDir, 'config.json');
+    if (File(configPath).existsSync()) {
+      return p.join(executableDir, 'window_state.json');
+    }
+    return '';
+  }
+
   Future<void> save(WindowState state) async {
     if (!isSupported) return;
+
+    final portablePath = _portableStatePath;
+    if (portablePath.isNotEmpty) {
+      try {
+        await File(portablePath)
+            .writeAsString(const JsonEncoder.withIndent('  ').convert(state.toJson()));
+      } catch (_) {}
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     if (state.x != null) await prefs.setDouble(_keyX, state.x!);
     if (state.y != null) await prefs.setDouble(_keyY, state.y!);
@@ -57,6 +102,20 @@ class WindowService {
 
   Future<WindowState?> load() async {
     if (!isSupported) return null;
+
+    final portablePath = _portableStatePath;
+    if (portablePath.isNotEmpty) {
+      try {
+        final file = File(portablePath);
+        if (!file.existsSync()) return null;
+        final content = await file.readAsString();
+        final json = jsonDecode(content) as Map<String, dynamic>;
+        final state = WindowState.fromJson(json);
+        if (_isValid(state)) return state;
+      } catch (_) {}
+      return null;
+    }
+
     final prefs = await SharedPreferences.getInstance();
 
     final x = prefs.getDouble(_keyX);
@@ -68,19 +127,27 @@ class WindowService {
       return null;
     }
 
-    // Basic sanity check: reject positions that are off-screen
-    if (x < -320 || y < -320 || width < 320 || height < 480) {
-      return null;
-    }
-
     final isMaximized = prefs.getBool(_keyIsMaximized) ?? false;
 
-    return WindowState(
+    final state = WindowState(
       x: x,
       y: y,
       width: width,
       height: height,
       isMaximized: isMaximized,
     );
+    return _isValid(state) ? state : null;
+  }
+
+  bool _isValid(WindowState state) {
+    if (state.x == null || state.y == null ||
+        state.width == null || state.height == null) {
+      return false;
+    }
+    if (state.x! < -320 || state.y! < -320 ||
+        state.width! < 320 || state.height! < 480) {
+      return false;
+    }
+    return true;
   }
 }
