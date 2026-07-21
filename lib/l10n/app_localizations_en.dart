@@ -351,7 +351,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sectionOthers => 'Others';
 
   @override
-  String get configuredServers => 'Configured Servers';
+  String get configuredServers => 'Servers';
 
   @override
   String get longPressToEditDelete => 'Long press to edit/delete';

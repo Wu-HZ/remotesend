@@ -345,7 +345,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sectionOthers => '其他';
 
   @override
-  String get configuredServers => '已配置的服务器';
+  String get configuredServers => '服务器';
 
   @override
   String get longPressToEditDelete => '长按编辑/删除';

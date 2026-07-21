@@ -229,7 +229,7 @@
   "sectionDownload": "Download",
   "sectionOthers": "Others",
 
-  "configuredServers": "Configured Servers",
+  "configuredServers": "Servers",
   "longPressToEditDelete": "Long press to edit/delete",
   "noServersConfigured": "No servers configured",
   "addServer": "Add Server",

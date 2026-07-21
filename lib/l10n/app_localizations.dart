@@ -693,7 +693,7 @@ abstract class AppLocalizations {
   /// No description provided for @configuredServers.
   ///
   /// In en, this message translates to:
-  /// **'Configured Servers'**
+  /// **'Servers'**
   String get configuredServers;
 
   /// No description provided for @longPressToEditDelete.

@@ -182,33 +182,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         const SizedBox(height: 8),
 
-        if (servers.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(100),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withAlpha(50),
+        ...servers.map((server) => _buildServerTile(l10n, server, null)),
+
+        Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.outline.withAlpha(60),
+            ),
+          ),
+          child: InkWell(
+            onTap: () => _showServerDialog(l10n),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.addServer,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Center(
-              child: Text(
-                l10n.noServersConfigured,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
-          )
-        else
-          ...servers.map((server) => _buildServerTile(l10n, server, null)),
-
-        const SizedBox(height: 12),
-
-        // Add Server Button
-        OutlinedButton.icon(
-          onPressed: () => _showServerDialog(l10n),
-          icon: const Icon(Icons.add),
-          label: Text(l10n.addServer),
+          ),
         ),
 
         // Local Name Setting

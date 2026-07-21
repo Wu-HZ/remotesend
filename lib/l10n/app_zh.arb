@@ -127,7 +127,7 @@
   "sectionDownload": "下载",
   "sectionOthers": "其他",
 
-  "configuredServers": "已配置的服务器",
+  "configuredServers": "服务器",
   "longPressToEditDelete": "长按编辑/删除",
   "noServersConfigured": "未配置服务器",
   "addServer": "添加服务器",
