@@ -93,6 +93,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Others Section
           _buildOthersSection(l10n),
           const SizedBox(height: 32),
+
+          // Footer
+          Center(
+            child: Text(
+              'RemoteSend',
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              'Version: 1.0.0',
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Center(
+            child: Text(
+              '\u00a9 ${DateTime.now().year}',
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Center(
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+              ),
+              onPressed: () => _showAboutDialog(l10n),
+              icon: const Icon(Icons.info_outline, size: 16),
+              label: Text(l10n.about),
+            ),
+          ),
+          const SizedBox(height: 80),
             ],
           ),
         ),
@@ -106,10 +141,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final filesConnectionStatus = ref.watch(filesConnectionStatusProvider);
     final isPortableAvailable = ref.watch(portableModeAvailableProvider);
     final isPortableMode = ref.watch(isPortableModeProvider);
-    final configService = ref.watch(configServiceProvider);
     final servers = ref.watch(serversListProvider);
     final textServer = ref.watch(activeTextServerProvider);
     final filesServer = ref.watch(activeFilesServerProvider);
+    final config = ref.watch(configProvider).valueOrNull;
+    final localName = config?.localName ?? 'Unknown';
 
     return _SettingsSection(
       title: l10n.sectionConnection,
@@ -170,34 +206,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
 
         // Local Name Setting
-        const Divider(height: 32),
-        _buildLocalNameTile(l10n),
+        _ButtonEntry(
+          label: l10n.localName,
+          buttonLabel: localName,
+          onTap: () => _showLocalNameDialog(l10n, localName),
+        ),
 
         // Portable Mode (desktop only)
         if (isPortableAvailable) ...[
-          const Divider(height: 32),
-          SwitchListTile(
-            title: Text(l10n.portableMode),
-            subtitle: Text(
-              isPortableMode
-                  ? l10n.portableModeConfig(configService.portableConfigPath)
-                  : l10n.portableModeDescription,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            secondary: const Icon(Icons.usb),
+          _BooleanEntry(
+            label: l10n.portableMode,
             value: isPortableMode,
-            onChanged: _isSaving ? null : (value) => _togglePortableMode(l10n, value),
+            onChanged: _isSaving ? (_) {} : (value) => _togglePortableMode(l10n, value),
           ),
         ],
 
         // Refresh Interval
-        const Divider(height: 32),
-        ListTile(
-          leading: const Icon(Icons.timer),
-          title: Text(l10n.refreshInterval),
-          subtitle: Text(l10n.refreshIntervalSeconds(_refreshInterval.toInt())),
-          contentPadding: EdgeInsets.zero,
-        ),
+        Text(l10n.refreshInterval),
+        const SizedBox(height: 4),
         Slider(
           value: _refreshInterval,
           min: 1,
@@ -434,20 +460,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildLocalNameTile(AppLocalizations l10n) {
-    final config = ref.watch(configProvider).valueOrNull;
-    final localName = config?.localName ?? 'Unknown';
-
-    return ListTile(
-      leading: const Icon(Icons.person),
-      title: Text(l10n.localName),
-      subtitle: Text(localName),
-      trailing: const Icon(Icons.edit),
-      contentPadding: EdgeInsets.zero,
-      onTap: () => _showLocalNameDialog(l10n, localName),
-    );
-  }
-
   void _showLocalNameDialog(AppLocalizations l10n, String currentName) {
     final controller = TextEditingController(text: currentName);
 
@@ -658,31 +670,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: l10n.sectionOthers,
       icon: Icons.more_horiz,
       children: [
-        ListTile(
-          leading: const Icon(Icons.info),
-          title: Text(l10n.about),
-          subtitle: Text(l10n.aboutDescription),
-          trailing: const Icon(Icons.chevron_right),
+        _ButtonEntry(
+          label: l10n.about,
+          buttonLabel: l10n.open,
           onTap: () => _showAboutDialog(l10n),
         ),
-        ListTile(
-          leading: const Icon(Icons.code),
-          title: Text(l10n.sourceCode),
-          subtitle: Text(l10n.sourceCodeUrl),
-          trailing: const Icon(Icons.open_in_new),
+        _ButtonEntry(
+          label: l10n.sourceCode,
+          buttonLabel: l10n.open,
           onTap: () => _showComingSoon(l10n, l10n.openGitHub),
         ),
-        ListTile(
-          leading: const Icon(Icons.favorite),
-          title: Text(l10n.donation),
-          subtitle: Text(l10n.donationDescription),
-          trailing: const Icon(Icons.chevron_right),
+        _ButtonEntry(
+          label: l10n.donation,
+          buttonLabel: l10n.open,
           onTap: () => _showComingSoon(l10n, l10n.donation),
         ),
-        ListTile(
-          leading: const Icon(Icons.privacy_tip),
-          title: Text(l10n.privacyPolicy),
-          trailing: const Icon(Icons.chevron_right),
+        _ButtonEntry(
+          label: l10n.privacyPolicy,
+          buttonLabel: l10n.open,
           onTap: () => _showComingSoon(l10n, l10n.privacyPolicy),
         ),
       ],
