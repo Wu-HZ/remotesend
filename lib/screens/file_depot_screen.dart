@@ -145,6 +145,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
         leading: fileListState.isAtRoot
             ? null

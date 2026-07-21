@@ -116,6 +116,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
         title: GestureDetector(
           onTap: canSync ? () => _showDatePicker(historyState.availableDates, l10n) : null,
