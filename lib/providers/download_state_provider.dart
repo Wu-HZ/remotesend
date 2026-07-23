@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/download_queue.dart';
@@ -167,6 +168,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
   int _completedFilesBytes = 0;
   final List<_DownloadTask> _queue = [];
   bool _processing = false;
+  CancelToken? _cancelToken;
 
   DownloadStateNotifier(this._service) : super(const DownloadState());
 
@@ -211,6 +213,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
 
   void _ensureProcessing() {
     if (_processing) return;
+    _cancelToken = null;
     _processing = true;
     _processNextTask();
   }
@@ -218,8 +221,10 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
   Future<void> _processNextTask() async {
     int completedBytes = 0;
 
-    while (_queue.isNotEmpty) {
+    while (_queue.isNotEmpty && _cancelToken == null) {
       final task = _queue.removeAt(0);
+
+      _cancelToken = CancelToken();
 
       _lastDownloadedBytes = 0;
       _lastSpeedUpdateTime = DateTime.now();
@@ -244,6 +249,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
       final result = await _service.downloadFile(
         task.remoteName,
         task.localPath,
+        cancelToken: _cancelToken,
         onProgress: (downloaded, total) {
           if (!mounted) return;
           final overallProgress = state.totalBytes > 0
@@ -253,7 +259,12 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
         },
       );
 
-      if (!mounted) return;
+      _cancelToken = null;
+
+      if (!mounted || !_processing) {
+        task.completer.complete(false);
+        break;
+      }
 
       if (result.isSuccess) {
         _markItemCompleted(itemId);
@@ -539,6 +550,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
 
   /// Remove all items from the list.
   void clearAll() {
+    _cancelToken?.cancel();
     _queue.clear();
     _processing = false;
     state = state.clear();

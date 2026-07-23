@@ -920,6 +920,10 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       );
 
       if (mounted) {
+        // Skip if state was cleared by user during download
+        final dlState = ref.read(downloadStateProvider);
+        if (dlState.items.isEmpty && !dlState.isDownloading) return;
+
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

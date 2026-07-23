@@ -161,25 +161,14 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
             icon: const Icon(Icons.folder_open),
             tooltip: l10n.openDownloadFolder,
           ),
-          if (downloadState.items.isNotEmpty && !downloadState.isDownloading)
+          if (uploadState.completedCount + downloadState.completedCount > 0 ||
+              uploadState.failedCount + downloadState.failedCount > 0)
             IconButton(
-              onPressed: () => ref.read(downloadStateProvider.notifier).clearAll(),
-              icon: const Icon(Icons.delete_sweep),
-              tooltip: l10n.clearAll,
-            ),
-          if (uploadState.failedCount > 0)
-            IconButton(
-              onPressed: () => ref.read(uploadQueueProvider.notifier).retryFailed(),
-              icon: const Icon(Icons.refresh),
-              tooltip: l10n.retryFailed,
-            ),
-          if (uploadState.completedCount > 0)
-            IconButton(
-              onPressed: () => ref.read(uploadQueueProvider.notifier).clearCompleted(),
+              onPressed: () => _clearCompleted(uploadState, downloadState),
               icon: const Icon(Icons.clear_all),
               tooltip: l10n.clearCompleted,
             ),
-          if (uploadState.items.isNotEmpty)
+          if (uploadState.items.isNotEmpty || downloadState.items.isNotEmpty)
             IconButton(
               onPressed: () => _confirmClearAll(context, l10n),
               icon: const Icon(Icons.delete_sweep),
@@ -831,6 +820,15 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     }
   }
 
+  void _clearCompleted(UploadQueueState uploadState, DownloadState downloadState) {
+    if (!uploadState.isProcessing) {
+      ref.read(uploadQueueProvider.notifier).clearCompleted();
+    }
+    if (!downloadState.isDownloading) {
+      ref.read(downloadStateProvider.notifier).clearCompleted();
+    }
+  }
+
   void _confirmClearAll(BuildContext context, AppLocalizations l10n) {
     showDialog(
       context: context,
@@ -845,6 +843,7 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
           FilledButton(
             onPressed: () {
               ref.read(uploadQueueProvider.notifier).clearAll();
+              ref.read(downloadStateProvider.notifier).clearAll();
               Navigator.pop(context);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),

@@ -465,6 +465,7 @@ class WebDavService {
     String remoteName,
     String localPath, {
     void Function(int downloaded, int total)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     if (_client == null) {
       return const WebDavResult.failure(
@@ -479,9 +480,17 @@ class WebDavService {
         remotePath,
         localPath,
         onProgress: onProgress,
+        cancelToken: cancelToken,
       );
 
       return const WebDavResult.success(true);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        return const WebDavResult.failure(
+          WebDavConfigException(message: 'Download cancelled'),
+        );
+      }
+      return WebDavResult.failure(_mapException(e));
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
     }
