@@ -871,14 +871,28 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(l10n.downloaded(file.name)),
+              content: Row(
+                children: [
+                  Expanded(child: Text(l10n.downloaded(file.name))),
+                  GestureDetector(
+                    onTap: _openDownloadLocation,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: Text(
+                        l10n.openFolder,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
-              action: SnackBarAction(
-                label: l10n.openFolder,
-                textColor: Colors.white,
-                onPressed: _openDownloadLocation,
-              ),
+              showCloseIcon: true,
             ),
           );
         } else {
@@ -945,14 +959,28 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           final count = downloadResult.data ?? 0;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(l10n.downloadedFolderWithCount(folder.name, count)),
+              content: Row(
+                children: [
+                  Expanded(child: Text(l10n.downloadedFolderWithCount(folder.name, count))),
+                  GestureDetector(
+                    onTap: _openDownloadLocation,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: Text(
+                        l10n.openFolder,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
-              action: SnackBarAction(
-                label: l10n.openFolder,
-                textColor: Colors.white,
-                onPressed: _openDownloadLocation,
-              ),
+              showCloseIcon: true,
             ),
           );
         } else {
