@@ -160,7 +160,15 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
 
     final isConnected = connectionStatus.state == WebDavConnectionState.connected;
-    final canOperate = isConfigured && isConnected;
+    final isConnecting = connectionStatus.state == WebDavConnectionState.connecting;
+    final canOperate = isConfigured && (isConnected || isConnecting);
+
+    ref.listen(filesConnectionStatusProvider, (prev, next) {
+      if (prev?.state != WebDavConnectionState.connected &&
+          next.state == WebDavConnectionState.connected) {
+        ref.read(fileListProvider.notifier).refresh();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -220,7 +228,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           child: Column(
             children: [
               // Connection warning banner
-              if (!canOperate) _buildWarningBanner(l10n, isConfigured, isConnected),
+              if (!canOperate) _buildWarningBanner(l10n, isConfigured, connectionStatus.state),
 
           // Status indicator (always visible)
           _buildStatusIndicator(l10n),
@@ -326,14 +334,15 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildWarningBanner(AppLocalizations l10n, bool isConfigured, bool isConnected) {
+  Widget _buildWarningBanner(AppLocalizations l10n, bool isConfigured,
+      WebDavConnectionState connectionState) {
     String message;
     IconData icon;
 
     if (!isConfigured) {
       message = l10n.configureWebDavToUseFileDepot;
       icon = Icons.settings;
-    } else if (!isConnected) {
+    } else if (connectionState == WebDavConnectionState.error) {
       message = l10n.notConnectedTestInSettings;
       icon = Icons.cloud_off;
     } else {
