@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,11 +25,13 @@ class FileDepotScreen extends ConsumerStatefulWidget {
 
 class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   String? _currentDownloadLocation;
+  final _scrollController = ScrollController();
+  bool _fabVisible = true;
 
   @override
   void initState() {
     super.initState();
-    // Refresh file list on screen load if connected
+    _scrollController.addListener(_onScroll);
     Future.microtask(_initialLoad);
   }
 
@@ -49,6 +52,22 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       _currentDownloadLocation = await _getSystemDownloadDirectory();
     }
     if (mounted) setState(() {});
+  }
+
+  void _onScroll() {
+    final direction = _scrollController.position.userScrollDirection;
+    if (direction == ScrollDirection.reverse && _fabVisible) {
+      setState(() => _fabVisible = false);
+    } else if (direction == ScrollDirection.forward && !_fabVisible) {
+      setState(() => _fabVisible = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<String?> _getSystemDownloadDirectory() async {
@@ -218,7 +237,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         ),
       ),
       floatingActionButton: canOperate
-          ? Row(
+          ? IgnorePointer(
+              ignoring: !_fabVisible,
+              child: AnimatedSlide(
+                offset: _fabVisible ? Offset.zero : const Offset(0, 1.5),
+                duration: const Duration(milliseconds: 200),
+                child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 FloatingActionButton.extended(
@@ -235,7 +259,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                   label: Text(l10n.file),
                 ),
               ],
-            )
+            ),
+          ),
+        )
           : null,
     );
   }
@@ -533,6 +559,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     return RefreshIndicator(
       onRefresh: () => ref.read(fileListProvider.notifier).refresh(),
       child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.only(bottom: 80),
         itemCount: fileListState.files.length,
         itemBuilder: (context, index) {
           final file = fileListState.files[index];
