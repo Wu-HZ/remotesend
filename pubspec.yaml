@@ -66,6 +66,9 @@ dependencies:
   # URL Launcher
   url_launcher: ^6.3.1
 
+  # Share Handler (Android/iOS receive intents)
+  share_handler: ^0.0.25
+
   # Android Permissions
   permission_handler: ^11.3.1
 

@@ -6,8 +6,10 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:share_handler/share_handler.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/config_provider.dart';
+import 'providers/message_history_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
 import 'screens/home_screen.dart';
@@ -72,10 +74,48 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
   @override
   void initState() {
     super.initState();
+    _initShareHandler();
     // Initialize config on app start
     Future.microtask(() {
       ref.read(configProvider.notifier).initialize();
     });
+  }
+
+  void _initShareHandler() {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+
+    final handler = ShareHandlerPlatform.instance;
+
+    // Cold start — app launched via share intent
+    handler.getInitialSharedMedia().then((media) {
+      if (media != null) _processSharedMedia(media);
+    });
+
+    // Warm start — share received while app is running
+    handler.sharedMediaStream.listen((media) {
+      _processSharedMedia(media);
+    });
+  }
+
+  void _processSharedMedia(SharedMedia media) {
+    // Text shares → TextBridge
+    if (media.content != null && media.content!.trim().isNotEmpty) {
+      ref.read(messageHistoryProvider.notifier).sendMessage(
+        media.content!.trim(),
+      );
+    }
+
+    // File shares → Upload queue
+    final attachmentsList = <String>[];
+    for (final a in media.attachments ?? <SharedAttachment?>[]) {
+      if (a?.path case final p?) {
+        attachmentsList.add(p);
+      }
+    }
+
+    if (attachmentsList.isNotEmpty) {
+      ref.read(uploadQueueProvider.notifier).addFiles(attachmentsList);
+    }
   }
 
   @override
