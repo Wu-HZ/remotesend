@@ -201,7 +201,9 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   int _calculateTotalUploaded(int currentIndex, int currentItemUploaded) {
     int total = 0;
     for (int i = 0; i < state.items.length; i++) {
-      if (i < currentIndex && state.items[i].status == UploadStatus.completed) {
+      if (i < currentIndex &&
+          (state.items[i].status == UploadStatus.completed ||
+           state.items[i].status == UploadStatus.failed)) {
         total += state.items[i].fileSize;
       } else if (i == currentIndex) {
         total += currentItemUploaded;

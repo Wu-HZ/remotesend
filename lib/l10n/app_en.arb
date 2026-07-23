@@ -84,6 +84,13 @@
       "total": {}
     }
   },
+  "filesDownloaded": "{completed}/{total} files downloaded",
+  "@filesDownloaded": {
+    "placeholders": {
+      "completed": {},
+      "total": {}
+    }
+  },
   "idle": "Idle",
 
   "connectToWebDavToViewFiles": "Connect to WebDAV to view files",

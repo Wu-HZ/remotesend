@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/download_queue.dart';
@@ -35,22 +36,17 @@ class DownloadState {
 
   bool get isFolderDownload => totalFiles > 1;
 
-  /// Get count of pending items.
   int get pendingCount => items.where((i) => i.status == DownloadStatus.pending).length;
 
-  /// Get count of completed items.
   int get completedCount => items.where((i) => i.status == DownloadStatus.completed).length;
 
-  /// Get count of failed items.
   int get failedCount => items.where((i) => i.status == DownloadStatus.failed).length;
 
-  /// Get the currently downloading item.
   DownloadItem? get currentItem => items.cast<DownloadItem?>().firstWhere(
         (i) => i?.status == DownloadStatus.downloading,
         orElse: () => null,
       );
 
-  /// Get display string for speed.
   String get displaySpeed {
     if (currentSpeed < 1024) return '${currentSpeed.toStringAsFixed(0)} B/s';
     if (currentSpeed < 1024 * 1024) return '${(currentSpeed / 1024).toStringAsFixed(1)} KB/s';
@@ -60,7 +56,6 @@ class DownloadState {
     return '${(currentSpeed / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB/s';
   }
 
-  /// Get display string for total size.
   String get displayTotalSize {
     if (totalBytes < 1024) return '$totalBytes B';
     if (totalBytes < 1024 * 1024) return '${(totalBytes / 1024).toStringAsFixed(1)} KB';
@@ -70,7 +65,6 @@ class DownloadState {
     return '${(totalBytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
-  /// Get display string for downloaded size.
   String get displayDownloadedSize {
     if (downloadedBytes < 1024) return '$downloadedBytes B';
     if (downloadedBytes < 1024 * 1024) return '${(downloadedBytes / 1024).toStringAsFixed(1)} KB';
@@ -80,31 +74,26 @@ class DownloadState {
     return '${(downloadedBytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
-  /// Get elapsed time since download started.
   Duration get elapsedTime {
     if (startTime == null) return Duration.zero;
     return DateTime.now().difference(startTime!);
   }
 
-  /// Get elapsed time as formatted string.
   String get displayElapsedTime {
     return _formatDuration(elapsedTime);
   }
 
-  /// Get estimated total duration based on current speed.
   Duration get estimatedTotalDuration {
     if (currentSpeed <= 0 || totalBytes == 0) return Duration.zero;
     final totalSeconds = totalBytes / currentSpeed;
     return Duration(seconds: totalSeconds.round());
   }
 
-  /// Get estimated total duration as formatted string.
   String get displayEstimatedDuration {
     if (currentSpeed <= 0) return '--:--';
     return _formatDuration(estimatedTotalDuration);
   }
 
-  /// Get estimated remaining time based on current speed.
   Duration get estimatedRemainingTime {
     if (currentSpeed <= 0) return Duration.zero;
     final remainingBytes = totalBytes - downloadedBytes;
@@ -113,14 +102,12 @@ class DownloadState {
     return Duration(seconds: remainingSeconds.round());
   }
 
-  /// Get estimated remaining time as formatted string.
   String get displayRemainingTime {
     if (currentSpeed <= 0) return '--:--';
     if (downloadedBytes >= totalBytes) return '0:00';
     return _formatDuration(estimatedRemainingTime);
   }
 
-  /// Format a duration as H:MM:SS or M:SS.
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
@@ -132,7 +119,6 @@ class DownloadState {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  /// Get status text.
   String get statusText {
     if (!isDownloading && error != null) return 'Failed';
     if (!isDownloading && progress >= 1.0 && items.isNotEmpty) return 'Completed';
@@ -179,86 +165,151 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
   DateTime? _lastSpeedUpdateTime;
   int _lastDownloadedBytes = 0;
   int _completedFilesBytes = 0;
+  final List<_DownloadTask> _queue = [];
+  bool _processing = false;
 
   DownloadStateNotifier(this._service) : super(const DownloadState());
 
-  /// Download a single file.
+  /// Download a single file. Returns true on success.
   Future<bool> downloadFile({
     required String remoteName,
     required String localPath,
     int? fileSize,
   }) async {
-    _lastDownloadedBytes = 0;
-    _lastSpeedUpdateTime = DateTime.now();
-    _completedFilesBytes = 0;
+    final completer = Completer<bool>();
+    _queue.add(_DownloadTask(
+      remoteName: remoteName,
+      localPath: localPath,
+      fileSize: fileSize ?? 0,
+      completer: completer,
+    ));
 
+    // Add pending item to state
     final itemId = DateTime.now().millisecondsSinceEpoch.toString();
+    final fileName = p.basename(localPath);
+    final total = fileSize ?? 0;
     final item = DownloadItem(
       id: itemId,
       remotePath: remoteName,
       localPath: localPath,
-      fileName: p.basename(localPath),
-      fileSize: fileSize ?? 0,
-      status: DownloadStatus.downloading,
+      fileName: fileName,
+      fileSize: total,
+      status: DownloadStatus.pending,
     );
 
-    state = DownloadState(
-      isDownloading: true,
-      fileName: p.basename(localPath),
-      progress: 0,
-      currentFileIndex: 1,
-      totalFiles: 1,
-      startTime: DateTime.now(),
-      totalBytes: fileSize ?? 0,
-      items: [item],
+    state = state.copyWith(
+      isDownloading: state.isDownloading || _processing,
+      fileName: state.isDownloading ? state.fileName : fileName,
+      totalFiles: state.totalFiles + 1,
+      totalBytes: state.totalBytes + total,
+      items: [...state.items, item],
     );
 
-    final result = await _service.downloadFile(
-      remoteName,
-      localPath,
-      onProgress: (downloaded, total) {
-        if (!mounted) return;
-        _updateProgress(downloaded, total, itemId);
-      },
-    );
+    _ensureProcessing();
+    return completer.future;
+  }
 
-    if (!mounted) return false;
+  void _ensureProcessing() {
+    if (_processing) return;
+    _processing = true;
+    _processNextTask();
+  }
 
-    if (result.isSuccess) {
+  Future<void> _processNextTask() async {
+    int completedBytes = 0;
+
+    while (_queue.isNotEmpty) {
+      final task = _queue.removeAt(0);
+
+      _lastDownloadedBytes = 0;
+      _lastSpeedUpdateTime = DateTime.now();
+
+      final itemId = _findPendingItemId(task.remoteName);
+      if (itemId == null) continue;
+
       final updatedItems = state.items.map((i) {
         if (i.id == itemId) {
-          return i.copyWith(status: DownloadStatus.completed, progress: 1.0);
+          return i.copyWith(status: DownloadStatus.downloading);
         }
         return i;
       }).toList();
 
       state = state.copyWith(
-        isDownloading: false,
-        progress: 1.0,
-        currentSpeed: 0,
-        downloadedBytes: state.totalBytes,
+        isDownloading: true,
+        fileName: p.basename(task.localPath),
+        currentFileIndex: state.completedCount + 1,
         items: updatedItems,
       );
-      return true;
-    } else {
-      final updatedItems = state.items.map((i) {
-        if (i.id == itemId) {
-          return i.copyWith(
-            status: DownloadStatus.failed,
-            error: result.error?.userMessage,
-          );
-        }
-        return i;
-      }).toList();
 
-      state = state.copyWith(
-        isDownloading: false,
-        error: result.error?.userMessage,
-        currentSpeed: 0,
-        items: updatedItems,
+      final result = await _service.downloadFile(
+        task.remoteName,
+        task.localPath,
+        onProgress: (downloaded, total) {
+          if (!mounted) return;
+          final overallProgress = state.totalBytes > 0
+              ? (completedBytes + downloaded) / state.totalBytes
+              : 0.0;
+          _updateProgressWithOverall(downloaded, total, itemId, overallProgress, completedBytes + downloaded);
+        },
       );
-      return false;
+
+      if (!mounted) return;
+
+      if (result.isSuccess) {
+        _markItemCompleted(itemId);
+        completedBytes += task.fileSize;
+      } else {
+        _markItemFailed(itemId, result.error?.userMessage);
+        completedBytes += task.fileSize;
+      }
+
+      task.completer.complete(result.isSuccess);
     }
+
+    state = state.copyWith(
+      isDownloading: false,
+      currentSpeed: 0,
+      progress: 1.0,
+      downloadedBytes: state.totalBytes,
+    );
+    _processing = false;
+  }
+
+  String? _findPendingItemId(String remoteName) {
+    for (final item in state.items) {
+      if (item.status == DownloadStatus.pending && item.remotePath == remoteName) {
+        return item.id;
+      }
+    }
+    return null;
+  }
+
+  void _markItemCompleted(String itemId) {
+    final updatedItems = state.items.map((i) {
+      if (i.id == itemId) {
+        return i.copyWith(status: DownloadStatus.completed, progress: 1.0);
+      }
+      return i;
+    }).toList();
+
+    state = state.copyWith(
+      items: updatedItems,
+    );
+  }
+
+  void _markItemFailed(String itemId, String? error) {
+    final updatedItems = state.items.map((i) {
+      if (i.id == itemId) {
+        return i.copyWith(status: DownloadStatus.failed, error: error);
+      }
+      return i;
+    }).toList();
+
+    final hasError = updatedItems.any((i) => i.status == DownloadStatus.failed);
+    state = state.copyWith(
+      error: hasError ? error : null,
+      items: updatedItems,
+    );
   }
 
   /// Download a folder.
@@ -266,13 +317,21 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
     required String remoteFolderName,
     required String localFolderPath,
   }) async {
+    if (state.isDownloading) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Download already in progress'),
+      );
+    }
+
     _lastDownloadedBytes = 0;
     _lastSpeedUpdateTime = DateTime.now();
     _completedFilesBytes = 0;
 
+    final folderName = p.basename(localFolderPath);
+
     state = DownloadState(
       isDownloading: true,
-      fileName: p.basename(localFolderPath),
+      fileName: folderName,
       progress: 0,
       currentFileIndex: 0,
       totalFiles: 0,
@@ -286,7 +345,6 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
       localFolderPath,
       onFilesCollected: (files) {
         if (!mounted) return;
-        // Create download items from collected files
         final items = files.asMap().entries.map((entry) {
           final index = entry.key;
           final file = entry.value;
@@ -300,10 +358,10 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
           );
         }).toList();
 
-        // Calculate total bytes
         final totalBytes = files.fold<int>(0, (sum, f) => sum + f.fileSize);
 
         state = state.copyWith(
+          fileName: folderName,
           totalFiles: files.length,
           totalBytes: totalBytes,
           items: items,
@@ -312,7 +370,6 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
       onProgress: (fileName, current, total, downloadedBytes, totalBytes) {
         if (!mounted) return;
 
-        // Update current item status
         final items = List<DownloadItem>.from(state.items);
         final itemIndex = current - 1;
 
@@ -320,7 +377,6 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
           final item = items[itemIndex];
           final newItemId = item.id;
 
-          // If we moved to a new file, mark previous as completed and update completed bytes
           if (currentItemId != null && currentItemId != newItemId) {
             final prevIndex = items.indexWhere((i) => i.id == currentItemId);
             if (prevIndex >= 0) {
@@ -334,7 +390,6 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
 
           currentItemId = newItemId;
 
-          // Update current item progress
           final itemProgress = totalBytes > 0 ? downloadedBytes / totalBytes : 0.0;
           items[itemIndex] = item.copyWith(
             status: DownloadStatus.downloading,
@@ -342,38 +397,62 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
           );
         }
 
-        // Calculate overall progress and downloaded bytes
         final totalDownloaded = _completedFilesBytes + downloadedBytes;
         final overallProgress = state.totalBytes > 0 ? totalDownloaded / state.totalBytes : 0.0;
 
-        _updateProgressWithItems(downloadedBytes, totalBytes, items, overallProgress, totalDownloaded);
+        final now = DateTime.now();
+        final elapsed = _lastSpeedUpdateTime != null
+            ? now.difference(_lastSpeedUpdateTime!).inMilliseconds
+            : 0;
 
-        state = state.copyWith(
-          fileName: fileName,
-          currentFileIndex: current,
-          totalFiles: total,
-          items: items,
-        );
+        if (elapsed >= 300) {
+          final bytesDelta = totalDownloaded - _lastDownloadedBytes;
+          final speed = (bytesDelta > 0 && elapsed > 0)
+              ? bytesDelta / (elapsed / 1000)
+              : 0.0;
+          state = state.copyWith(
+            progress: overallProgress,
+            currentSpeed: speed,
+            downloadedBytes: totalDownloaded,
+            items: items,
+          );
+          _lastDownloadedBytes = totalDownloaded;
+          _lastSpeedUpdateTime = now;
+        } else {
+          state = state.copyWith(
+            progress: overallProgress,
+            downloadedBytes: totalDownloaded,
+            items: items,
+          );
+        }
       },
     );
 
     if (!mounted) return result;
 
     if (result.isSuccess) {
-      // Mark all items as completed
+      final downloadedCount = result.data ?? 0;
       final updatedItems = state.items.map((i) {
-        return i.copyWith(status: DownloadStatus.completed, progress: 1.0);
+        final alreadyCompleted = i.status == DownloadStatus.completed;
+        final isCurrent = i.status == DownloadStatus.downloading;
+        if (isCurrent && downloadedCount < state.totalFiles) {
+          return i.copyWith(status: DownloadStatus.failed);
+        }
+        if (isCurrent) {
+          return i.copyWith(status: DownloadStatus.completed, progress: 1.0);
+        }
+        return alreadyCompleted ? i.copyWith(progress: 1.0) : i;
       }).toList();
 
       state = state.copyWith(
         isDownloading: false,
+        fileName: folderName,
         progress: 1.0,
         currentSpeed: 0,
         downloadedBytes: state.totalBytes,
         items: updatedItems,
       );
     } else {
-      // Mark current item as failed
       final updatedItems = state.items.map((i) {
         if (i.status == DownloadStatus.downloading) {
           return i.copyWith(
@@ -386,6 +465,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
 
       state = state.copyWith(
         isDownloading: false,
+        fileName: folderName,
         error: result.error?.userMessage,
         currentSpeed: 0,
         items: updatedItems,
@@ -395,107 +475,88 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
     return result;
   }
 
-  void _updateProgress(int downloadedBytes, int totalBytes, String itemId) {
+  void _updateProgressWithOverall(int downloadedBytes, int totalBytes,
+      String itemId, double overallProgress, int totalDownloaded) {
     final now = DateTime.now();
     final elapsed = _lastSpeedUpdateTime != null
         ? now.difference(_lastSpeedUpdateTime!).inMilliseconds
         : 0;
 
-    // Use totalBytes from callback only if valid, otherwise keep existing state value
-    final effectiveTotalBytes = totalBytes > 0 ? totalBytes : state.totalBytes;
-
-    // Calculate progress
-    final progress = effectiveTotalBytes > 0 ? downloadedBytes / effectiveTotalBytes : 0.0;
-
-    // Update item progress
     final updatedItems = state.items.map((i) {
       if (i.id == itemId) {
-        return i.copyWith(progress: progress);
+        final fileProgress = totalBytes > 0 ? downloadedBytes / totalBytes : 0.0;
+        return i.copyWith(progress: fileProgress);
       }
       return i;
     }).toList();
 
-    // Update speed every 300ms or more
     if (elapsed >= 300) {
-      final bytesDelta = downloadedBytes - _lastDownloadedBytes;
-      if (bytesDelta > 0 && elapsed > 0) {
-        // Calculate speed: bytes per second
-        final speed = bytesDelta / (elapsed / 1000);
-        state = state.copyWith(
-          progress: progress,
-          currentSpeed: speed,
-          totalBytes: effectiveTotalBytes,
-          downloadedBytes: downloadedBytes,
-          items: updatedItems,
-        );
-      } else {
-        state = state.copyWith(
-          progress: progress,
-          totalBytes: effectiveTotalBytes,
-          downloadedBytes: downloadedBytes,
-          items: updatedItems,
-        );
-      }
-      _lastDownloadedBytes = downloadedBytes;
+      final bytesDelta = totalDownloaded - _lastDownloadedBytes;
+      final speed = (bytesDelta > 0 && elapsed > 0)
+          ? bytesDelta / (elapsed / 1000)
+          : 0.0;
+      state = state.copyWith(
+        progress: overallProgress,
+        currentSpeed: speed,
+        downloadedBytes: totalDownloaded,
+        items: updatedItems,
+      );
+      _lastDownloadedBytes = totalDownloaded;
       _lastSpeedUpdateTime = now;
     } else {
-      // Just update progress without speed calculation
       state = state.copyWith(
-        progress: progress,
-        totalBytes: effectiveTotalBytes,
-        downloadedBytes: downloadedBytes,
+        progress: overallProgress,
+        downloadedBytes: totalDownloaded,
         items: updatedItems,
       );
     }
   }
 
-  void _updateProgressWithItems(
-    int currentFileDownloaded,
-    int currentFileTotal,
-    List<DownloadItem> items,
-    double overallProgress,
-    int totalDownloaded,
-  ) {
-    final now = DateTime.now();
-    final elapsed = _lastSpeedUpdateTime != null
-        ? now.difference(_lastSpeedUpdateTime!).inMilliseconds
-        : 0;
-
-    // Update speed every 300ms or more
-    if (elapsed >= 300) {
-      final bytesDelta = totalDownloaded - _lastDownloadedBytes;
-      if (bytesDelta > 0 && elapsed > 0) {
-        // Calculate speed: bytes per second
-        final speed = bytesDelta / (elapsed / 1000);
-        state = state.copyWith(
-          progress: overallProgress,
-          currentSpeed: speed,
-          downloadedBytes: totalDownloaded,
-          items: items,
-        );
-      } else {
-        state = state.copyWith(
-          progress: overallProgress,
-          downloadedBytes: totalDownloaded,
-          items: items,
-        );
-      }
-      _lastDownloadedBytes = totalDownloaded;
-      _lastSpeedUpdateTime = now;
-    } else {
-      // Just update progress without speed calculation
-      state = state.copyWith(
-        progress: overallProgress,
-        downloadedBytes: totalDownloaded,
-        items: items,
-      );
-    }
+  /// Remove completed items from the list.
+  void clearCompleted() {
+    if (state.isDownloading) return;
+    final remaining = state.items
+        .where((i) => i.status != DownloadStatus.completed)
+        .toList();
+    state = remaining.isEmpty
+        ? state.clear()
+        : state.copyWith(
+            items: remaining,
+            error: remaining.any((i) => i.status == DownloadStatus.failed) ? state.error : null,
+          );
   }
 
-  /// Clear download state.
-  void clear() {
+  /// Remove failed items from the list.
+  void clearFailed() {
+    if (state.isDownloading) return;
+    final remaining = state.items
+        .where((i) => i.status != DownloadStatus.failed)
+        .toList();
+    state = remaining.isEmpty
+        ? state.clear()
+        : state.copyWith(items: remaining, error: null);
+  }
+
+  /// Remove all items from the list.
+  void clearAll() {
+    _queue.clear();
+    _processing = false;
     state = state.clear();
   }
+}
+
+class _DownloadTask {
+  final String remoteName;
+  final String localPath;
+  final int fileSize;
+  final Completer<bool> completer;
+
+  _DownloadTask({
+    required this.remoteName,
+    required this.localPath,
+    required this.fileSize,
+    required this.completer,
+  });
 }
 
 /// Provider for download state management (uses Files service).

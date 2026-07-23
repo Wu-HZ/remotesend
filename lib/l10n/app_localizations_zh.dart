@@ -149,6 +149,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String filesDownloaded(Object completed, Object total) {
+    return '已下载 $completed/$total 个文件';
+  }
+
+  @override
   String get idle => '空闲';
 
   @override

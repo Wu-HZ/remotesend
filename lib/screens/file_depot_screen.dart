@@ -382,7 +382,6 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     String? speedText;
 
     if (isDownloading) {
-      // Download takes priority in display
       if (downloadState.isFolderDownload) {
         statusText = l10n.downloadingFileWithProgress(downloadState.fileName ?? '', downloadState.currentFileIndex, downloadState.totalFiles);
       } else {
@@ -407,8 +406,24 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         speedText = queueState.displaySpeed;
       }
     } else if (queueState.items.isNotEmpty) {
-      statusText = l10n.filesUploaded(queueState.completedCount, queueState.items.length);
-      statusIcon = Icons.check_circle;
+      final fc = queueState.failedCount;
+      if (fc > 0) {
+        statusText = '${l10n.filesUploaded(queueState.completedCount, queueState.items.length)} ($fc failed)';
+        statusIcon = Icons.warning_amber;
+      } else {
+        statusText = l10n.filesUploaded(queueState.completedCount, queueState.items.length);
+        statusIcon = Icons.check_circle;
+      }
+      progress = 1.0;
+    } else if (downloadState.items.isNotEmpty && !downloadState.isDownloading) {
+      final isFailed = downloadState.error != null;
+      if (isFailed) {
+        statusText = downloadState.error ?? l10n.downloadFailed;
+        statusIcon = Icons.error;
+      } else {
+        statusText = l10n.filesDownloaded(downloadState.completedCount, downloadState.items.length);
+        statusIcon = Icons.check_circle;
+      }
       progress = 1.0;
     } else {
       statusText = l10n.idle;
@@ -933,10 +948,10 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             ),
           );
         } else {
-          final error = ref.read(downloadStateProvider).error;
+          final dlState = ref.read(downloadStateProvider);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(error ?? l10n.downloadFailed),
+              content: Text(dlState.error ?? l10n.downloadFailed),
               backgroundColor: Colors.red,
             ),
           );
@@ -955,6 +970,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   }
 
   Future<void> _downloadFolder(AppLocalizations l10n, RemoteFile folder) async {
+    final dlState = ref.read(downloadStateProvider);
+    if (dlState.isDownloading) return;
+
     try {
       // Use configured download location or system default
       String? downloadBasePath;

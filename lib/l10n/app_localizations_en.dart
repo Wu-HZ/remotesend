@@ -152,6 +152,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String filesDownloaded(Object completed, Object total) {
+    return '$completed/$total files downloaded';
+  }
+
+  @override
   String get idle => 'Idle';
 
   @override

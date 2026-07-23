@@ -354,6 +354,12 @@ abstract class AppLocalizations {
   /// **'{completed}/{total} files uploaded'**
   String filesUploaded(Object completed, Object total);
 
+  /// No description provided for @filesDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed}/{total} files downloaded'**
+  String filesDownloaded(Object completed, Object total);
+
   /// No description provided for @idle.
   ///
   /// In en, this message translates to:

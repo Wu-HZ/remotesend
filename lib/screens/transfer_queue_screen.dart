@@ -156,12 +156,17 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
       appBar: AppBar(
         title: Text(l10n.transferQueue),
         actions: [
-          // Open download folder button
           IconButton(
             onPressed: _openDownloadFolder,
             icon: const Icon(Icons.folder_open),
             tooltip: l10n.openDownloadFolder,
           ),
+          if (downloadState.items.isNotEmpty && !downloadState.isDownloading)
+            IconButton(
+              onPressed: () => ref.read(downloadStateProvider.notifier).clearAll(),
+              icon: const Icon(Icons.delete_sweep),
+              tooltip: l10n.clearAll,
+            ),
           if (uploadState.failedCount > 0)
             IconButton(
               onPressed: () => ref.read(uploadQueueProvider.notifier).retryFailed(),
@@ -285,7 +290,7 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (isActive)
+                if (isActive && state.currentSpeed > 0)
                   Text(
                     state.displaySpeed,
                     style: TextStyle(
@@ -475,7 +480,7 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (isActive)
+                if (isActive && state.currentSpeed > 0)
                   Text(
                     state.displaySpeed,
                     style: TextStyle(
@@ -647,8 +652,7 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                   : Theme.of(context).colorScheme.outline,
             ),
           ),
-          if (item.status == UploadStatus.uploading ||
-              item.status == UploadStatus.completed) ...[
+          if (item.status == UploadStatus.uploading) ...[
             const SizedBox(height: 4),
             LinearProgressIndicator(
               value: item.progress,
@@ -740,8 +744,7 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                   : Theme.of(context).colorScheme.outline,
             ),
           ),
-          if (item.status == DownloadStatus.downloading ||
-              item.status == DownloadStatus.completed) ...[
+          if (item.status == DownloadStatus.downloading) ...[
             const SizedBox(height: 4),
             LinearProgressIndicator(
               value: item.progress,
