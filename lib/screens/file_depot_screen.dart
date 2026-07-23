@@ -548,6 +548,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     return GestureDetector(
       onSecondaryTapDown: (details) => _showContextMenu(l10n, details.globalPosition, file),
       child: ListTile(
+        dense: true,
+        visualDensity: VisualDensity.compact,
         leading: Container(
           width: 40,
           height: 40,
