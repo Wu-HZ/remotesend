@@ -98,11 +98,15 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
   }
 
   void _processSharedMedia(SharedMedia media) {
+    bool hasText = false;
+    bool hasFiles = false;
+
     // Text shares → TextBridge
     if (media.content != null && media.content!.trim().isNotEmpty) {
       ref.read(messageHistoryProvider.notifier).sendMessage(
         media.content!.trim(),
       );
+      hasText = true;
     }
 
     // File shares → Upload queue
@@ -115,6 +119,14 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
 
     if (attachmentsList.isNotEmpty) {
       ref.read(uploadQueueProvider.notifier).addFiles(attachmentsList);
+      hasFiles = true;
+    }
+
+    // Switch to the appropriate tab
+    if (hasFiles) {
+      ref.read(selectedTabProvider.notifier).state = 1;
+    } else if (hasText) {
+      ref.read(selectedTabProvider.notifier).state = 0;
     }
   }
 

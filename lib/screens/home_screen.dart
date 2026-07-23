@@ -10,6 +10,10 @@ import 'file_depot_screen.dart';
 import 'settings_screen.dart';
 import 'text_bridge_screen.dart';
 
+/// Global provider for the currently selected tab index.
+/// 0 = TextBridge, 1 = FileDepot, 2 = Settings.
+final selectedTabProvider = StateProvider<int>((ref) => 0);
+
 /// Main home screen with bottom navigation.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +23,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _selectedIndex = 0;
+  int get _selectedIndex => ref.watch(selectedTabProvider);
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // If not configured, go directly to settings screen
         if (!isConfigured && _selectedIndex != 2) {
           Future.microtask(() {
-            setState(() => _selectedIndex = 2);
+            ref.read(selectedTabProvider.notifier).state = 2;
           });
         }
 
@@ -83,7 +87,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 if (index != _selectedIndex) {
                   _refreshTab(index);
                 }
-                setState(() => _selectedIndex = index);
+                ref.read(selectedTabProvider.notifier).state = index;
               },
               extended: isWideDesktop,
               leading: isWideDesktop
@@ -132,7 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (index != _selectedIndex) {
             _refreshTab(index);
           }
-          setState(() => _selectedIndex = index);
+          ref.read(selectedTabProvider.notifier).state = index;
         },
         destinations: [
           NavigationDestination(
