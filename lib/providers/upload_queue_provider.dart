@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/upload_queue.dart';
@@ -12,6 +13,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   bool _isRunning = false;
   DateTime? _lastProgressTime;
   int _lastUploadedBytes = 0;
+  CancelToken? _cancelToken;
 
   UploadQueueNotifier(this._service, this._ref) : super(const UploadQueueState());
 
@@ -107,6 +109,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   /// Start processing the upload queue.
   void _startProcessing() {
     if (_isRunning) return;
+    _cancelToken = null;
     _isRunning = true;
     _lastProgressTime = DateTime.now();
     _lastUploadedBytes = state.uploadedBytes;
@@ -142,10 +145,12 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 
     final item = items[pendingIndex];
 
-    // Upload the file
+    _cancelToken = CancelToken();
+
     final result = await _service.uploadFileToPath(
       item.localPath,
       item.remotePath,
+      cancelToken: _cancelToken,
       onProgress: (progress) {
         if (!mounted) return;
 
@@ -176,7 +181,9 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
       },
     );
 
-    if (!mounted) return;
+    _cancelToken = null;
+
+    if (!mounted || !_isRunning) return;
 
     // Update item status based on result
     final updatedItems = List<UploadItem>.from(state.items);
@@ -232,6 +239,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 
   /// Clear all items from the queue (cancels current upload).
   void clearAll() {
+    _cancelToken?.cancel();
     _isRunning = false;
     state = state.clear();
   }

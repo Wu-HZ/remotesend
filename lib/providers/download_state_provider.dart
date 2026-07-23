@@ -243,6 +243,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
         isDownloading: true,
         fileName: p.basename(task.localPath),
         currentFileIndex: state.completedCount + 1,
+        startTime: state.startTime ?? DateTime.now(),
         items: updatedItems,
       );
 

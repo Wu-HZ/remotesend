@@ -354,6 +354,7 @@ class WebDavService {
     String localPath,
     String remotePath, {
     void Function(double progress)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     if (_client == null) {
       return const WebDavResult.failure(
@@ -375,9 +376,17 @@ class WebDavService {
         onProgress: onProgress != null
             ? (count, total) => onProgress(count / total)
             : null,
+        cancelToken: cancelToken,
       );
 
       return const WebDavResult.success(true);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        return const WebDavResult.failure(
+          WebDavConfigException(message: 'Upload cancelled'),
+        );
+      }
+      return WebDavResult.failure(_mapException(e));
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
     }
