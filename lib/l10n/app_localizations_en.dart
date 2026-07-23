@@ -99,6 +99,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get copiedToClipboard => 'Copied to clipboard';
 
   @override
+  String get sendClipboardContent => 'Send clipboard content';
+
+  @override
   String get messageMarkedForDeletion => 'Message marked for deletion';
 
   @override

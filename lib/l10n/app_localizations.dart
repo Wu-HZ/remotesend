@@ -272,6 +272,12 @@ abstract class AppLocalizations {
   /// **'Copied to clipboard'**
   String get copiedToClipboard;
 
+  /// No description provided for @sendClipboardContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Send clipboard content'**
+  String get sendClipboardContent;
+
   /// No description provided for @messageMarkedForDeletion.
   ///
   /// In en, this message translates to:

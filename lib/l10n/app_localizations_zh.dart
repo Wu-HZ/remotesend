@@ -96,6 +96,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copiedToClipboard => '已复制到剪贴板';
 
   @override
+  String get sendClipboardContent => '发送剪贴板内容';
+
+  @override
   String get messageMarkedForDeletion => '消息已标记删除';
 
   @override

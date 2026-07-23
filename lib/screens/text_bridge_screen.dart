@@ -22,9 +22,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   bool _initialized = false;
-  final Set<String> _pendingDeletions = {};
+  final Set<String> _expandedMessages = {};
+  final Set<String> _deletingMessages = {};
 
-  // URL regex pattern
   static final _urlRegex = RegExp(
     r'https?://[^\s<>"{}|\\^`\[\]]+',
     caseSensitive: false,
@@ -52,7 +52,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   void _onTextChanged() {
-    // Trigger rebuild to update send button state
     setState(() {});
   }
 
@@ -64,6 +63,20 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottomIfNearEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      final pos = _scrollController.position;
+      if (pos.pixels >= pos.maxScrollExtent - 100) {
+        _scrollController.animateTo(
+          pos.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _scrollToBottom() {
@@ -78,13 +91,11 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     });
   }
 
-  bool _isUrl(String text) {
-    return _urlRegex.hasMatch(text.trim());
-  }
-
-  String? _extractUrl(String text) {
-    final match = _urlRegex.firstMatch(text.trim());
-    return match?.group(0);
+  List<String> _extractUrls(String text) {
+    return _urlRegex
+        .allMatches(text.trim())
+        .map((m) => m.group(0)!)
+        .toList();
   }
 
   @override
@@ -99,14 +110,12 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final servers = ref.watch(serversListProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    // Scroll to bottom when new messages arrive
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
       if ((previous?.messages.length ?? 0) < next.messages.length) {
-        _scrollToBottom();
+        _scrollToBottomIfNearEnd();
       }
     });
 
-    // Trigger message load once connection is ready
     if (!_initialized && connectionStatus.state == WebDavConnectionState.connected) {
       Future.microtask(_initialize);
     }
@@ -133,10 +142,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ),
         ),
         actions: [
-          // Server selector
           if (servers.isNotEmpty)
             _buildServerSelector(activeServer, servers, l10n),
-          // Auto-sync toggle
           if (canSync)
             IconButton(
               onPressed: () => _toggleAutoSync(),
@@ -148,7 +155,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               ),
               tooltip: autoPullState.isEnabled ? l10n.autoSyncOn : l10n.autoSyncOff,
             ),
-          // Manual refresh button
           if (canSync)
             IconButton(
               onPressed: historyState.isLoading ? null : _manualRefresh,
@@ -168,10 +174,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
             children: [
-              // Connection warning banner
               if (!canSync) _buildWarningBanner(isConfigured, isConnected, l10n),
 
-          // Chat messages
           Expanded(
             child: historyState.isLoading && historyState.messages.isEmpty
                 ? const Center(child: CircularProgressIndicator())
@@ -180,7 +184,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     : _buildMessageList(historyState.messages, localName, l10n),
           ),
 
-          // Error message
           if (historyState.error != null)
             Container(
               width: double.infinity,
@@ -193,7 +196,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                   Expanded(
                     child: Text(
                       historyState.error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                      style: const TextStyle(color: Colors.red, fontSize: 14),
                     ),
                   ),
                   IconButton(
@@ -206,7 +209,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               ),
             ),
 
-          // Input area (only show for today)
           if (_isToday(selectedDate))
             _buildInputArea(canSync, historyState.isSending, l10n),
             ],
@@ -292,10 +294,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Future<void> _manualRefresh() async {
-    // Clear pending deletions on refresh (undo)
-    setState(() {
-      _pendingDeletions.clear();
-    });
     try {
       ref.read(autoPullProvider.notifier).pause();
       await ref.read(messageHistoryProvider.notifier).refresh();
@@ -433,152 +431,305 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Widget _buildMessageList(List<TextMessage> messages, String localName, AppLocalizations l10n) {
-    // Filter out pending deletions
-    final visibleMessages = messages
-        .where((m) => !_pendingDeletions.contains(m.id))
-        .toList();
-
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: visibleMessages.length,
+      itemCount: messages.length,
       itemBuilder: (context, index) {
-        return _buildMessageBubble(visibleMessages[index], localName, l10n);
+        final message = messages[index];
+        return _buildMessageBubble(message, localName, l10n,
+            key: ValueKey(message.id));
       },
     );
   }
 
-  Widget _buildMessageBubble(TextMessage message, String localName, AppLocalizations l10n) {
+  Widget _buildMessageBubble(TextMessage message, String localName, AppLocalizations l10n, {Key? key}) {
     final isLocal = message.isLocal;
     final colorScheme = Theme.of(context).colorScheme;
-    final isUrl = _isUrl(message.content);
-    final url = isUrl ? _extractUrl(message.content) : null;
+    final urls = _extractUrls(message.content);
+    final isDeleting = _deletingMessages.contains(message.id);
+    final isExpanded = _expandedMessages.contains(message.id);
+    final needsExpand = message.content.split('\n').length > 6 || message.content.length > 300;
+
+    final displayContent = (needsExpand && !isExpanded)
+        ? _truncateContent(message.content)
+        : message.content;
+
+    final textColor = isLocal ? Colors.white : colorScheme.onSurface;
+    final timeColor = isLocal
+        ? Colors.white.withAlpha(150)
+        : colorScheme.outline;
+    final linkColor = isLocal
+        ? Colors.white.withAlpha(230)
+        : colorScheme.primary;
+    final senderName = message.senderName.trim();
+    final senderInitial = senderName.isNotEmpty ? senderName[0].toUpperCase() : '?';
+
+    // Measure if time fits on the same line as the text
+    final bubbleMaxWidth = MediaQuery.of(context).size.width * 0.75 - 24; // padding
+    final painter = TextPainter(
+      text: TextSpan(text: displayContent, style: const TextStyle(fontSize: 14)),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final timeInline = painter.width + 40 <= bubbleMaxWidth;
 
     return Padding(
+      key: key,
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: isLocal ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isLocal) ...[
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: colorScheme.secondary,
-              child: const Icon(Icons.cloud, size: 14, color: Colors.white),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: GestureDetector(
-              onTap: () => _copyMessage(message.content, l10n),
-              onLongPress: () => _markForDeletion(message, l10n),
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.75,
+      child: Opacity(
+        opacity: isDeleting ? 0.4 : 1.0,
+        child: Row(
+          mainAxisAlignment: isLocal ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (!isLocal) ...[
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: colorScheme.secondary,
+                child: Text(
+                  senderInitial,
+                  style: const TextStyle(fontSize: 12, color: Colors.white),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isLocal
-                      ? colorScheme.primary
-                      : colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isLocal ? 16 : 4),
-                    bottomRight: Radius.circular(isLocal ? 4 : 16),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Flexible(
+              child: GestureDetector(
+                onTap: () => _copyMessage(message.content, l10n),
+                onLongPress: () => _markForDeletion(message, l10n),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isLocal
+                        ? colorScheme.primary
+                        : colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(16),
+                      topRight: const Radius.circular(16),
+                      bottomLeft: Radius.circular(isLocal ? 16 : 4),
+                      bottomRight: Radius.circular(isLocal ? 4 : 16),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!needsExpand || isExpanded)
+                        timeInline && !displayContent.contains('\n')
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Flexible(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: TextStyle(fontSize: 14, color: textColor),
+                                        children: urls.isNotEmpty
+                                            ? _buildInlineSpans(
+                                                displayContent,
+                                                urls,
+                                                textColor,
+                                                linkColor,
+                                                l10n,
+                                                isLocal: isLocal,
+                                                colorScheme: colorScheme,
+                                              )
+                                            : [TextSpan(text: displayContent)],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    message.formattedTime,
+                                    style: TextStyle(fontSize: 10, color: timeColor),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(fontSize: 14, color: textColor),
+                                      children: urls.isNotEmpty
+                                          ? _buildInlineSpans(
+                                              displayContent,
+                                              urls,
+                                              textColor,
+                                              linkColor,
+                                              l10n,
+                                              isLocal: isLocal,
+                                              colorScheme: colorScheme,
+                                            )
+                                          : [TextSpan(text: displayContent)],
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      message.formattedTime,
+                                      style: TextStyle(fontSize: 10, color: timeColor),
+                                    ),
+                                  ),
+                                ],
+                              )
+                      else
+                        Text(
+                          displayContent,
+                          style: TextStyle(fontSize: 14, color: textColor),
+                        ),
+                      if (needsExpand && !isExpanded)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: GestureDetector(
+                            onTap: () => setState(() => _expandedMessages.add(message.id)),
+                            child: Row(
+                              children: [
+                                Text(
+                                  '展开 ↓',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: linkColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  message.formattedTime,
+                                  style: TextStyle(fontSize: 10, color: timeColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (needsExpand && isExpanded)
+                        GestureDetector(
+                          onTap: () => setState(() => _expandedMessages.remove(message.id)),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '收起 ↑',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: linkColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Sender name (only for remote messages or if different from current local name)
-                    if (!isLocal || message.senderName != localName)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          message.senderName,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isLocal
-                                ? Colors.white.withAlpha(200)
-                                : colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                    // Message content
-                    Text(
-                      message.content,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isLocal ? Colors.white : colorScheme.onSurface,
-                      ),
-                    ),
-                    // URL Open button
-                    if (isUrl && url != null) ...[
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () => _openUrl(url, l10n),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: isLocal
-                                ? Colors.white.withAlpha(30)
-                                : colorScheme.primary.withAlpha(20),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.open_in_new,
-                                size: 14,
-                                color: isLocal ? Colors.white : colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                l10n.open,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: isLocal ? Colors.white : colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    // Timestamp
-                    const SizedBox(height: 4),
-                    Text(
-                      message.formattedTime,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isLocal
-                            ? Colors.white.withAlpha(150)
-                            : colorScheme.outline,
-                      ),
-                    ),
-                  ],
+              ),
+            ),
+            if (isLocal) ...[
+              const SizedBox(width: 8),
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: colorScheme.primary,
+                child: Text(
+                  localName.trim().isNotEmpty
+                      ? localName.trim()[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(fontSize: 12, color: Colors.white),
                 ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _truncateContent(String content) {
+    final lines = content.split('\n');
+    if (lines.length > 6) {
+      return '${lines.take(6).join('\n')}...';
+    }
+    if (content.length > 300) {
+      return '${content.substring(0, 300)}...';
+    }
+    return content;
+  }
+
+  List<InlineSpan> _buildInlineSpans(
+    String content,
+    List<String> urls,
+    Color textColor,
+    Color linkColor,
+    AppLocalizations l10n, {
+    required bool isLocal,
+    required ColorScheme colorScheme,
+  }) {
+    final spans = <InlineSpan>[];
+    int searchStart = 0;
+
+    for (final url in urls) {
+      final urlIndex = content.indexOf(url, searchStart);
+      if (urlIndex == -1) continue;
+
+      // Text before this URL
+      if (urlIndex > searchStart) {
+        spans.add(TextSpan(
+          text: content.substring(searchStart, urlIndex),
+          style: TextStyle(color: textColor),
+        ));
+      }
+
+      // URL text
+      spans.add(TextSpan(
+        text: url,
+        style: TextStyle(color: linkColor, decoration: TextDecoration.underline),
+      ));
+
+      // Open button
+      spans.add(WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: TextButton(
+            onPressed: () => _openUrl(url, l10n),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: isLocal
+                  ? Colors.white.withAlpha(30)
+                  : colorScheme.primary.withAlpha(20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            child: Text(
+              '打开',
+              style: TextStyle(
+                color: linkColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
               ),
             ),
           ),
-          if (isLocal) ...[
-            const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: colorScheme.primary,
-              child: Text(
-                localName.isNotEmpty ? localName[0].toUpperCase() : 'M',
-                style: const TextStyle(fontSize: 12, color: Colors.white),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
+        ),
+      ));
+
+      searchStart = urlIndex + url.length;
+    }
+
+    // Remaining text after last URL
+    if (searchStart < content.length) {
+      spans.add(TextSpan(
+        text: content.substring(searchStart),
+        style: TextStyle(color: textColor),
+      ));
+    }
+
+    return spans;
   }
 
   void _copyMessage(String content, AppLocalizations l10n) {
@@ -592,27 +743,36 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   void _markForDeletion(TextMessage message, AppLocalizations l10n) {
-    setState(() {
-      _pendingDeletions.add(message.id);
+    setState(() => _deletingMessages.add(message.id));
+
+    final cachedContent = message.content;
+
+    ref.read(messageHistoryProvider.notifier).deleteMessages({message.id}).then((success) {
+      if (mounted && success) {
+        setState(() => _deletingMessages.remove(message.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.messageMarkedForDeletion),
+            duration: const Duration(seconds: 2),
+            action: SnackBarAction(
+              label: l10n.undo,
+              onPressed: () {
+                ref.read(messageHistoryProvider.notifier).sendMessage(cachedContent);
+              },
+            ),
+          ),
+        );
+      } else if (mounted) {
+        setState(() => _deletingMessages.remove(message.id));
+      }
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.messageMarkedForDeletion),
-        duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: l10n.undo,
-          onPressed: () {
-            setState(() {
-              _pendingDeletions.remove(message.id);
-            });
-          },
-        ),
-      ),
-    );
   }
 
   Future<void> _openUrl(String url, AppLocalizations l10n) async {
-    final uri = Uri.parse(url);
+    final fixed = url.startsWith('http://') || url.startsWith('https://')
+        ? url
+        : 'https://$url';
+    final uri = Uri.parse(fixed);
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -652,7 +812,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Text input
           Expanded(
             child: TextField(
               controller: _textController,
@@ -676,22 +835,19 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Paste button
           IconButton(
             onPressed: canSync && !isSending ? _sendClipboard : null,
             icon: const Icon(Icons.content_paste),
-            tooltip: '发送剪贴板内容',
+            tooltip: l10n.sendClipboardContent,
           ),
           const SizedBox(width: 4),
-          // Send button
           SizedBox(
             width: 44,
             height: 44,
             child: IconButton(
               onPressed: canSync &&
                       !isSending &&
-                      (_textController.text.trim().isNotEmpty ||
-                          _pendingDeletions.isNotEmpty)
+                      _textController.text.trim().isNotEmpty
                   ? _sendMessage
                   : null,
               icon: isSending
@@ -710,29 +866,13 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
-    final hasPendingDeletions = _pendingDeletions.isNotEmpty;
-
-    if (text.isEmpty && !hasPendingDeletions) return;
+    if (text.isEmpty) return;
 
     _textController.clear();
 
     try {
       ref.read(autoPullProvider.notifier).pause();
-
-      // First, sync pending deletions
-      if (hasPendingDeletions) {
-        final deleteSuccess = await ref.read(messageHistoryProvider.notifier).deleteMessages(_pendingDeletions);
-        if (deleteSuccess) {
-          setState(() {
-            _pendingDeletions.clear();
-          });
-        }
-      }
-
-      // Then, send new message if any
-      if (text.isNotEmpty) {
-        await ref.read(messageHistoryProvider.notifier).sendMessage(text);
-      }
+      await ref.read(messageHistoryProvider.notifier).sendMessage(text);
     } finally {
       ref.read(autoPullProvider.notifier).resume();
     }

@@ -38,6 +38,7 @@
   "sendMessageToGetStarted": "Send a message to get started",
 
   "copiedToClipboard": "Copied to clipboard",
+  "sendClipboardContent": "Send clipboard content",
   "messageMarkedForDeletion": "Message marked for deletion",
   "undo": "Undo",
   "couldNotOpenLink": "Could not open link",

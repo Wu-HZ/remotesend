@@ -38,6 +38,7 @@
   "sendMessageToGetStarted": "发送一条消息开始吧",
 
   "copiedToClipboard": "已复制到剪贴板",
+  "sendClipboardContent": "发送剪贴板内容",
   "messageMarkedForDeletion": "消息已标记删除",
   "undo": "撤销",
   "couldNotOpenLink": "无法打开链接",
