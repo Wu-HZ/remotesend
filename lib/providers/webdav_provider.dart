@@ -447,6 +447,90 @@ final fileListProvider =
   return FileListNotifier(service);
 });
 
+/// State for storage usage.
+class StorageUsageState {
+  final int? totalBytes;
+  final bool isLoading;
+  final String? error;
+  final DateTime? lastRefresh;
+
+  const StorageUsageState({
+    this.totalBytes,
+    this.isLoading = false,
+    this.error,
+    this.lastRefresh,
+  });
+
+  StorageUsageState copyWith({
+    int? totalBytes,
+    bool? isLoading,
+    String? error,
+    DateTime? lastRefresh,
+  }) {
+    return StorageUsageState(
+      totalBytes: totalBytes ?? this.totalBytes,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+      lastRefresh: lastRefresh ?? this.lastRefresh,
+    );
+  }
+
+  String get displaySize {
+    if (totalBytes == null) return '--';
+    if (totalBytes! < 1024) return '$totalBytes B';
+    if (totalBytes! < 1024 * 1024) {
+      return '${(totalBytes! / 1024).toStringAsFixed(1)} KB';
+    }
+    if (totalBytes! < 1024 * 1024 * 1024) {
+      return '${(totalBytes! / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(totalBytes! / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+}
+
+/// Notifier for storage usage.
+class StorageUsageNotifier extends StateNotifier<StorageUsageState> {
+  final WebDavService _service;
+
+  StorageUsageNotifier(this._service) : super(const StorageUsageState()) {
+    // Auto-fetch on creation.
+    Future.microtask(refresh);
+  }
+
+  Future<void> refresh() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final result = await _service.getStorageUsage();
+
+    if (result.isSuccess) {
+      state = state.copyWith(
+        totalBytes: result.data,
+        isLoading: false,
+        lastRefresh: DateTime.now(),
+      );
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error?.userMessage,
+      );
+    }
+  }
+
+  /// Auto-fetch once if not yet loaded.
+  void ensureLoaded() {
+    if (state.totalBytes == null && !state.isLoading) {
+      refresh();
+    }
+  }
+}
+
+/// Provider for storage usage (uses Files service, shared across screens).
+final storageUsageProvider =
+    StateNotifierProvider<StorageUsageNotifier, StorageUsageState>((ref) {
+  final service = ref.watch(webDavFilesServiceProvider);
+  return StorageUsageNotifier(service);
+});
+
 /// State for auto-pull functionality.
 class AutoPullState {
   final bool isEnabled;

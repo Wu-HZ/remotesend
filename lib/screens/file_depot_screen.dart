@@ -13,6 +13,7 @@ import '../providers/webdav_provider.dart';
 import '../providers/upload_queue_provider.dart';
 import '../providers/download_state_provider.dart';
 import '../services/webdav_service.dart';
+import '../widgets/storage_usage_widget.dart';
 import 'transfer_queue_screen.dart';
 
 /// File Depot screen for uploading and downloading files via WebDAV.
@@ -174,26 +175,25 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
-        centerTitle: true,
-        leading: fileListState.isAtRoot
-            ? null
-            : IconButton(
-                onPressed: () => ref.read(fileListProvider.notifier).navigateUp(),
-                icon: const Icon(Icons.arrow_back),
-                tooltip: l10n.goBack,
-              ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(l10n.fileDepot),
-            if (!fileListState.isAtRoot)
-              Text(
-                fileListState.currentPathDisplay,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
+            if (canOperate) const StorageUsageWidget(),
+            const Spacer(),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.fileDepot),
+                if (!fileListState.isAtRoot)
+                  Text(
+                    fileListState.currentPathDisplay,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+            const Spacer(),
           ],
         ),
         actions: [
@@ -585,9 +585,18 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.only(bottom: 80),
-        itemCount: fileListState.files.length,
+        itemCount:
+            fileListState.files.length + (fileListState.isAtRoot ? 0 : 1),
         itemBuilder: (context, index) {
-          final file = fileListState.files[index];
+          if (!fileListState.isAtRoot && index == 0) {
+            return ListTile(
+              leading: const Icon(Icons.subdirectory_arrow_left),
+              title: Text('..', style: const TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () => ref.read(fileListProvider.notifier).navigateUp(),
+            );
+          }
+          final fileIndex = fileListState.isAtRoot ? index : index - 1;
+          final file = fileListState.files[fileIndex];
           return _buildFileItem(l10n, file);
         },
       ),

@@ -842,6 +842,76 @@ class WebDavService {
       originalError: error,
     );
   }
+
+  /// Get total storage usage by recursively summing all file sizes in RemoteSend.
+  Future<WebDavResult<int>> getStorageUsage() async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final propfindBody = '''<?xml version="1.0" encoding="utf-8"?>
+<D:propfind xmlns:D="DAV:">
+  <D:prop>
+    <D:getcontentlength/>
+    <D:resourcetype/>
+  </D:prop>
+</D:propfind>''';
+
+      final response = await _client!.c.req<String>(
+        _client!,
+        'PROPFIND',
+        _remoteSendFolder,
+        data: propfindBody,
+        optionsHandler: (options) {
+          options.headers?['Depth'] = 'infinity';
+          options.headers?['Content-Type'] = 'application/xml;charset=UTF-8';
+        },
+      );
+
+      if (response.statusCode != 207) {
+        return WebDavResult.failure(
+          WebDavServerException(message: 'Server returned ${response.statusCode}'),
+        );
+      }
+
+      // Parse XML to sum file sizes
+      final xmlStr = response.data?.toString() ?? '';
+      int totalSize = 0;
+
+      // Match each <D:response> block: href + propstat with 200 status only
+      final responseRegex = RegExp(
+        r'<D:response>(.*?)</D:response>',
+        dotAll: true,
+      );
+
+      for (final match in responseRegex.allMatches(xmlStr)) {
+        final block = match.group(1) ?? '';
+        // Skip non-200 propstat blocks
+        if (!block.contains('<D:status>HTTP/1.1 200 OK</D:status>')) continue;
+        // Skip directories (those with <D:collection/>)
+        if (block.contains('<D:collection')) continue;
+        // Extract size
+        final sizeMatch =
+            RegExp(r'<D:getcontentlength>(\d+)</D:getcontentlength>')
+                .firstMatch(block);
+        if (sizeMatch != null) {
+          totalSize += int.parse(sizeMatch.group(1)!);
+        }
+      }
+
+      return WebDavResult.success(totalSize);
+    } on DioException catch (e) {
+      if (_isNotFound(e)) {
+        return const WebDavResult.success(0);
+      }
+      return WebDavResult.failure(_mapException(e));
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
 }
 
 /// Helper class to store file info for recursive folder operations.

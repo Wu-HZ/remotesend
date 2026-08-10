@@ -8,6 +8,7 @@ import '../models/text_message.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/message_history_provider.dart';
+import '../widgets/storage_usage_widget.dart';
 
 /// Text Bridge screen with chat-like interface.
 class TextBridgeScreen extends ConsumerStatefulWidget {
@@ -127,19 +128,27 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
-        centerTitle: true,
-        title: GestureDetector(
-          onTap: canSync ? () => _showDatePicker(historyState.availableDates, l10n) : null,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_formatDateForTitle(selectedDate, l10n)),
-              if (canSync) ...[
-                const SizedBox(width: 4),
-                const Icon(Icons.arrow_drop_down, size: 20),
-              ],
-            ],
-          ),
+        title: Row(
+          children: [
+            if (canSync) const StorageUsageWidget(),
+            const Spacer(),
+            GestureDetector(
+              onTap: canSync
+                  ? () => _showDatePicker(historyState.availableDates, l10n)
+                  : null,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_formatDateForTitle(selectedDate, l10n)),
+                  if (canSync) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down, size: 20),
+                  ],
+                ],
+              ),
+            ),
+            const Spacer(),
+          ],
         ),
         actions: [
           if (servers.isNotEmpty)
