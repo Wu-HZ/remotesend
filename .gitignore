@@ -46,5 +46,6 @@ app.*.map.json
 .claude/
 AGENTS.md
 opencode.json
+.mcp.json
 localsend_reference/
 mcp/
