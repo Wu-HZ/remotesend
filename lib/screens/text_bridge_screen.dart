@@ -130,7 +130,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            if (canSync) const StorageUsageWidget(),
+            if (canSync) StorageUsageWidget(provider: textStorageUsageProvider),
             const Spacer(),
             GestureDetector(
               onTap: canSync

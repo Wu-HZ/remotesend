@@ -177,7 +177,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            if (canOperate) const StorageUsageWidget(),
+            if (canOperate) StorageUsageWidget(provider: filesStorageUsageProvider),
             const Spacer(),
             Column(
               mainAxisSize: MainAxisSize.min,

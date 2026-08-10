@@ -852,6 +852,27 @@ class WebDavService {
     }
 
     try {
+      // Try Depth: infinity first (fast, single request).
+      final totalSize = await _tryDepthInfinity();
+      if (totalSize != null && totalSize > 0) {
+        return WebDavResult.success(totalSize);
+      }
+
+      // Fallback: recursively walk directories (works on all servers).
+      return WebDavResult.success(await _recursiveUsage(_remoteSendFolder));
+    } on DioException catch (e) {
+      if (_isNotFound(e)) {
+        return const WebDavResult.success(0);
+      }
+      return WebDavResult.failure(_mapException(e));
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Try Depth: infinity PROPFIND. Returns total bytes, or null if unsupported.
+  Future<int?> _tryDepthInfinity() async {
+    try {
       final propfindBody = '''<?xml version="1.0" encoding="utf-8"?>
 <D:propfind xmlns:D="DAV:">
   <D:prop>
@@ -871,17 +892,12 @@ class WebDavService {
         },
       );
 
-      if (response.statusCode != 207) {
-        return WebDavResult.failure(
-          WebDavServerException(message: 'Server returned ${response.statusCode}'),
-        );
-      }
+      if (response.statusCode != 207) return null;
 
-      // Parse XML to sum file sizes
       final xmlStr = response.data?.toString() ?? '';
       int totalSize = 0;
+      bool hasFiles = false;
 
-      // Match each <D:response> block: href + propstat with 200 status only
       final responseRegex = RegExp(
         r'<D:response>(.*?)</D:response>',
         dotAll: true,
@@ -889,11 +905,9 @@ class WebDavService {
 
       for (final match in responseRegex.allMatches(xmlStr)) {
         final block = match.group(1) ?? '';
-        // Skip non-200 propstat blocks
         if (!block.contains('<D:status>HTTP/1.1 200 OK</D:status>')) continue;
-        // Skip directories (those with <D:collection/>)
         if (block.contains('<D:collection')) continue;
-        // Extract size
+        hasFiles = true;
         final sizeMatch =
             RegExp(r'<D:getcontentlength>(\d+)</D:getcontentlength>')
                 .firstMatch(block);
@@ -902,15 +916,31 @@ class WebDavService {
         }
       }
 
-      return WebDavResult.success(totalSize);
-    } on DioException catch (e) {
-      if (_isNotFound(e)) {
-        return const WebDavResult.success(0);
-      }
-      return WebDavResult.failure(_mapException(e));
-    } catch (e) {
-      return WebDavResult.failure(_mapException(e));
+      // If no files found but we know the server responded 207,
+      // it might not support depth infinity (only returned root dir).
+      if (!hasFiles) return null;
+      return totalSize;
+    } catch (_) {
+      return null;
     }
+  }
+
+  /// Recursively sum file sizes by walking directories.
+  Future<int> _recursiveUsage(String path) async {
+    int total = 0;
+    try {
+      final files = await _client!.readDir(path);
+      for (final f in files) {
+        if (f.isDir ?? false) {
+          total += await _recursiveUsage(f.path ?? (path + f.name! + '/'));
+        } else {
+          total += f.size ?? 0;
+        }
+      }
+    } catch (_) {
+      // Silently skip inaccessible directories.
+    }
+    return total;
   }
 }
 

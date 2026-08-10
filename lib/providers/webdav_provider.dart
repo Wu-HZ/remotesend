@@ -524,8 +524,15 @@ class StorageUsageNotifier extends StateNotifier<StorageUsageState> {
   }
 }
 
-/// Provider for storage usage (uses Files service, shared across screens).
-final storageUsageProvider =
+/// Provider for storage usage (uses Text service).
+final textStorageUsageProvider =
+    StateNotifierProvider<StorageUsageNotifier, StorageUsageState>((ref) {
+  final service = ref.watch(webDavTextServiceProvider);
+  return StorageUsageNotifier(service);
+});
+
+/// Provider for storage usage (uses Files service).
+final filesStorageUsageProvider =
     StateNotifierProvider<StorageUsageNotifier, StorageUsageState>((ref) {
   final service = ref.watch(webDavFilesServiceProvider);
   return StorageUsageNotifier(service);
