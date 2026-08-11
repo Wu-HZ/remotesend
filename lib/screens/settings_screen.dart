@@ -285,18 +285,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
+              // Enable/disable toggle
+              _buildFeatureToggle(
+                label: server.enabled ? l10n.enabledLabel : l10n.disabledLabel,
+                isSelected: server.enabled,
+                onTap: () =>
+                    ref.read(configProvider.notifier).toggleServerEnabled(server.id),
+              ),
+              const SizedBox(width: 4),
               // Text/Files toggle buttons
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               _buildFeatureToggle(
                 label: l10n.textLabel,
                 isSelected: isTextServer,
-                onTap: () => _setServerForFeature(server.id, forText: true),
+                onTap: server.enabled
+                    ? () => _setServerForFeature(server.id, forText: true)
+                    : null,
+                enabled: server.enabled,
               ),
               const SizedBox(width: 4),
               _buildFeatureToggle(
                 label: l10n.filesLabel,
                 isSelected: isFilesServer,
-                onTap: () => _setServerForFeature(server.id, forFiles: true),
+                onTap: server.enabled
+                    ? () => _setServerForFeature(server.id, forFiles: true)
+                    : null,
+                enabled: server.enabled,
               ),
             ],
           ),
@@ -308,27 +322,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildFeatureToggle({
     required String label,
     required bool isSelected,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    bool enabled = true,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+    final effectiveSelected = isSelected && enabled;
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? colorScheme.primary : colorScheme.outline.withAlpha(50),
+      child: Opacity(
+        opacity: enabled ? 1.0 : 0.4,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: effectiveSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: effectiveSelected ? colorScheme.primary : colorScheme.outline.withAlpha(50),
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: effectiveSelected ? FontWeight.w600 : FontWeight.normal,
+              color: effectiveSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+            ),
           ),
         ),
       ),

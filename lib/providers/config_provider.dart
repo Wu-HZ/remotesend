@@ -211,6 +211,43 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
     await _configService.clearConfig();
     state = AsyncValue.data(AppConfig());
   }
+
+  /// Toggle whether a server is enabled.
+  Future<bool> toggleServerEnabled(String serverId) async {
+    final currentConfig = state.valueOrNull;
+    if (currentConfig == null) return false;
+
+    final serverIndex = currentConfig.servers.indexWhere((s) => s.id == serverId);
+    if (serverIndex == -1) return false;
+
+    final server = currentConfig.servers[serverIndex];
+    final disabling = server.enabled;
+
+    final updatedServers = currentConfig.servers.map((s) {
+      if (s.id == serverId) {
+        return s.copyWith(enabled: !s.enabled);
+      }
+      return s;
+    }).toList();
+
+    var newConfig = currentConfig.copyWith(servers: updatedServers);
+
+    // If disabling the active text server, switch to another enabled server
+    if (disabling &&
+        currentConfig.activeTextServerId == serverId) {
+      final fallback = updatedServers.where((s) => s.enabled).firstOrNull;
+      newConfig = newConfig.copyWith(activeTextServerId: fallback?.id);
+    }
+
+    // If disabling the active files server, switch to another enabled server
+    if (disabling &&
+        currentConfig.activeFilesServerId == serverId) {
+      final fallback = updatedServers.where((s) => s.enabled).firstOrNull;
+      newConfig = newConfig.copyWith(activeFilesServerId: fallback?.id);
+    }
+
+    return updateConfig(newConfig);
+  }
 }
 
 /// Provider for the configuration state.
@@ -244,7 +281,7 @@ final portableModeAvailableProvider = Provider<bool>((ref) {
   return configService.portableConfigPath.isNotEmpty;
 });
 
-/// Provider for the list of all configured servers.
+/// Provider for the list of all configured servers (including disabled).
 final serversListProvider = Provider<List<ServerConfig>>((ref) {
   final configAsync = ref.watch(configProvider);
   return configAsync.maybeWhen(
@@ -253,11 +290,21 @@ final serversListProvider = Provider<List<ServerConfig>>((ref) {
   );
 });
 
+/// Provider for the list of enabled servers only (used in selector dropdowns).
+final enabledServersProvider = Provider<List<ServerConfig>>((ref) {
+  final allServers = ref.watch(serversListProvider);
+  return allServers.where((s) => s.enabled).toList();
+});
+
 /// Provider for the active server for Text Bridge.
 final activeTextServerProvider = Provider<ServerConfig?>((ref) {
   final configAsync = ref.watch(configProvider);
   return configAsync.maybeWhen(
-    data: (config) => config.activeTextServer,
+    data: (config) {
+      final server = config.activeTextServer;
+      if (server != null && !server.enabled) return null;
+      return server;
+    },
     orElse: () => null,
   );
 });
@@ -266,7 +313,11 @@ final activeTextServerProvider = Provider<ServerConfig?>((ref) {
 final activeFilesServerProvider = Provider<ServerConfig?>((ref) {
   final configAsync = ref.watch(configProvider);
   return configAsync.maybeWhen(
-    data: (config) => config.activeFilesServer,
+    data: (config) {
+      final server = config.activeFilesServer;
+      if (server != null && !server.enabled) return null;
+      return server;
+    },
     orElse: () => null,
   );
 });

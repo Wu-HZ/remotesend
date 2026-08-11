@@ -144,6 +144,8 @@
 
   "textLabel": "文本",
   "filesLabel": "文件",
+  "enabledLabel": "已启用",
+  "disabledLabel": "已禁用",
 
   "localName": "本地名称",
   "localNameHint": "例如：我的手机",

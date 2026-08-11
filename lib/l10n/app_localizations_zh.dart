@@ -397,6 +397,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get filesLabel => '文件';
 
   @override
+  String get enabledLabel => '已启用';
+
+  @override
+  String get disabledLabel => '已禁用';
+
+  @override
   String get localName => '本地名称';
 
   @override

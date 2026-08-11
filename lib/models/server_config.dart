@@ -9,6 +9,7 @@ class ServerConfig {
   final String password;
   final DateTime createdAt;
   final DateTime? lastUsed;
+  final bool enabled;
 
   const ServerConfig({
     required this.id,
@@ -18,6 +19,7 @@ class ServerConfig {
     required this.password,
     required this.createdAt,
     this.lastUsed,
+    this.enabled = true,
   });
 
   /// Create a new server config with auto-generated ID.
@@ -50,6 +52,7 @@ class ServerConfig {
     String? password,
     DateTime? createdAt,
     DateTime? lastUsed,
+    bool? enabled,
   }) {
     return ServerConfig(
       id: id ?? this.id,
@@ -59,6 +62,7 @@ class ServerConfig {
       password: password ?? this.password,
       createdAt: createdAt ?? this.createdAt,
       lastUsed: lastUsed ?? this.lastUsed,
+      enabled: enabled ?? this.enabled,
     );
   }
 
@@ -72,6 +76,7 @@ class ServerConfig {
       'password': password,
       'createdAt': createdAt.toIso8601String(),
       'lastUsed': lastUsed?.toIso8601String(),
+      'enabled': enabled,
     };
   }
 
@@ -87,6 +92,7 @@ class ServerConfig {
       lastUsed: json['lastUsed'] != null
           ? DateTime.parse(json['lastUsed'] as String)
           : null,
+      enabled: json['enabled'] as bool? ?? true,
     );
   }
 
@@ -100,12 +106,13 @@ class ServerConfig {
         other.username == username &&
         other.password == password &&
         other.createdAt == createdAt &&
-        other.lastUsed == lastUsed;
+        other.lastUsed == lastUsed &&
+        other.enabled == enabled;
   }
 
   @override
   int get hashCode {
-    return Object.hash(id, name, serverUrl, username, password, createdAt, lastUsed);
+    return Object.hash(id, name, serverUrl, username, password, createdAt, lastUsed, enabled);
   }
 
   @override

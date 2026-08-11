@@ -786,6 +786,18 @@ abstract class AppLocalizations {
   /// **'Files'**
   String get filesLabel;
 
+  /// No description provided for @enabledLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get enabledLabel;
+
+  /// No description provided for @disabledLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get disabledLabel;
+
   /// No description provided for @localName.
   ///
   /// In en, this message translates to:

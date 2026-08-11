@@ -403,6 +403,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filesLabel => 'Files';
 
   @override
+  String get enabledLabel => 'Enabled';
+
+  @override
+  String get disabledLabel => 'Disabled';
+
+  @override
   String get localName => 'Local Name';
 
   @override

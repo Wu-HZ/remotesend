@@ -108,7 +108,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final localName = ref.watch(localNameProvider);
     final selectedDate = ref.watch(selectedDateProvider);
     final activeServer = ref.watch(activeTextServerProvider);
-    final servers = ref.watch(serversListProvider);
+    final servers = ref.watch(enabledServersProvider);
     final l10n = AppLocalizations.of(context)!;
 
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {

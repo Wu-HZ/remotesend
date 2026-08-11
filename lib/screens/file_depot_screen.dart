@@ -148,7 +148,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final fileListState = ref.watch(fileListProvider);
     final config = ref.watch(configProvider).valueOrNull;
     final activeServer = ref.watch(activeFilesServerProvider);
-    final servers = ref.watch(serversListProvider);
+    final servers = ref.watch(enabledServersProvider);
 
     // Update download location if config changed
     if (config != null) {

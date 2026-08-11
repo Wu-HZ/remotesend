@@ -257,6 +257,8 @@
 
   "textLabel": "Text",
   "filesLabel": "Files",
+  "enabledLabel": "Enabled",
+  "disabledLabel": "Disabled",
 
   "localName": "Local Name",
   "localNameHint": "e.g., My Phone",
