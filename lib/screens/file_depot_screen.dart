@@ -289,10 +289,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           const Icon(Icons.arrow_drop_down, size: 16),
         ],
       ),
-      onSelected: (serverId) {
+      onSelected: (serverId) async {
         ref.read(configProvider.notifier).switchFilesServer(serverId);
-        ref.read(filesConnectionStatusProvider.notifier).testConnection();
-        ref.read(fileListProvider.notifier).refresh();
+        await ref.read(filesConnectionStatusProvider.notifier).testConnection();
       },
       itemBuilder: (context) => servers.map((server) {
         final isActive = server.id == activeServer?.id;
