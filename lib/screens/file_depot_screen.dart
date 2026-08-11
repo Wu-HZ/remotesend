@@ -179,6 +179,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           children: [
             if (canOperate) StorageUsageWidget(
               provider: filesStorageUsageProvider,
+              clearDescription:
+                  '${activeServer?.name ?? ''}上的所有文件',
               onClear: () async {
                 final service = ref.read(webDavFilesServiceProvider);
                 final result = await service.clearAllFiles();

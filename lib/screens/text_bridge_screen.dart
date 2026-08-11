@@ -132,6 +132,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           children: [
             if (canSync) StorageUsageWidget(
               provider: textStorageUsageProvider,
+              clearDescription:
+                  '${activeServer?.name ?? ''}上的所有文本',
               onClear: () async {
                 final service = ref.read(webDavTextServiceProvider);
                 final result = await service.clearAllMessages();

@@ -13,10 +13,14 @@ class StorageUsageWidget extends ConsumerWidget {
   /// Called when the user confirms deletion. Should return true on success.
   final Future<bool> Function() onClear;
 
+  /// Description of what will be deleted, used in the confirmation dialog.
+  final String clearDescription;
+
   const StorageUsageWidget({
     super.key,
     required this.provider,
     required this.onClear,
+    required this.clearDescription,
   });
 
   @override
@@ -104,7 +108,7 @@ class StorageUsageWidget extends ConsumerWidget {
     final confirmed = await showCountdownConfirmDialog(
       context: context,
       title: '确认删除',
-      message: '此操作将清空当前服务器上的所有数据，不可恢复。',
+      message: '此操作将清空$clearDescription，不可恢复。',
       confirmLabel: '删除',
     );
 
