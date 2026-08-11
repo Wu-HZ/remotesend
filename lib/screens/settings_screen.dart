@@ -1749,8 +1749,8 @@ class _ButtonEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SettingsEntry(
       label: label,
-      child: SizedBox(
-        height: 50,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 50),
         child: TextButton(
           style: TextButton.styleFrom(
             backgroundColor: Theme.of(context).inputDecorationTheme.fillColor,
