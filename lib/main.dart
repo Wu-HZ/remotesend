@@ -403,20 +403,21 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
       if (allPaths.isEmpty) return;
 
       if (dragMode == 'pending') {
-        // Pending mode: open the pending upload page (or add to existing)
+        // Pending mode: open the pending upload page
         ref.read(pendingUploadProvider.notifier).addFiles(allPaths);
         if (mounted) {
-          // Only push if not already on the pending page
-          final currentRoute = ModalRoute.of(context);
-          if (currentRoute == null ||
-              currentRoute.settings.name != '/pending_upload') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                settings: const RouteSettings(name: '/pending_upload'),
-                builder: (_) => const PendingUploadScreen(),
-              ),
-            );
-          }
+          showGeneralDialog(
+            context: context,
+            barrierDismissible: false,
+            barrierLabel: 'PendingUpload',
+            transitionDuration: const Duration(milliseconds: 200),
+            pageBuilder: (context, animation, secondaryAnimation) {
+              return const PendingUploadScreen();
+            },
+          ).then((_) {
+            // Clean up when dismissed
+            ref.read(pendingUploadProvider.notifier).clear();
+          });
         }
         return;
       }
