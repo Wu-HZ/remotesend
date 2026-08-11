@@ -289,8 +289,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           const Icon(Icons.arrow_drop_down, size: 16),
         ],
       ),
-      onSelected: (serverId) {
-        ref.read(configProvider.notifier).switchFilesServer(serverId);
+      onSelected: (serverId) async {
+        await ref.read(configProvider.notifier).switchFilesServer(serverId);
         ref.read(filesConnectionStatusProvider.notifier).testConnection();
         ref.read(fileListProvider.notifier).refresh();
       },

@@ -326,8 +326,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           const Icon(Icons.arrow_drop_down, size: 16),
         ],
       ),
-      onSelected: (serverId) {
-        ref.read(configProvider.notifier).switchTextServer(serverId);
+      onSelected: (serverId) async {
+        await ref.read(configProvider.notifier).switchTextServer(serverId);
         ref.read(textConnectionStatusProvider.notifier).testConnection();
         ref.read(messageHistoryProvider.notifier).refresh();
       },
