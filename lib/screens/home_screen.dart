@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -70,10 +69,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildScaffold(AppLocalizations l10n) {
-    // Use NavigationRail for desktop, NavigationBar for mobile
-    final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    // Use NavigationRail for wide windows, NavigationBar for narrow
     final width = MediaQuery.of(context).size.width;
-    final useRail = isDesktop && width > 600;
+    final useRail = width > 600;
 
     if (useRail) {
       final isWideDesktop = width >= 800;
