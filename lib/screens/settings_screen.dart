@@ -654,7 +654,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         _ButtonEntry(
           label: '拖拽上传模式',
-          buttonLabel: dragMode == 'instant' ? '直接上传' : '待传窗口',
+          buttonLabel: dragMode == 'instant' ? '直接上传' : '待传页面',
           onTap: () => _showDragModeDialog(l10n, dragMode),
         ),
       ],
@@ -678,7 +678,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
           RadioListTile<String>(
-            title: const Text('待传窗口'),
+            title: const Text('待传页面'),
             subtitle: const Text('拖入后选择服务器再传输'),
             value: 'pending',
             groupValue: currentMode,

@@ -119,7 +119,13 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
     }
 
     if (attachmentsList.isNotEmpty) {
-      ref.read(uploadQueueProvider.notifier).addFiles(attachmentsList);
+      final config = ref.read(configProvider).valueOrNull;
+      final dragMode = config?.dragMode ?? 'instant';
+      if (dragMode == 'pending') {
+        ref.read(pendingUploadProvider.notifier).addFiles(attachmentsList);
+      } else {
+        ref.read(uploadQueueProvider.notifier).addFiles(attachmentsList);
+      }
       hasFiles = true;
     }
 

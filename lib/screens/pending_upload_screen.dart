@@ -18,11 +18,12 @@ class PendingUploadScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pending = ref.watch(pendingUploadProvider);
     final enabledServers = ref.watch(enabledServersProvider);
+    final activeServer = ref.watch(activeFilesServerProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('待上传'),
+        title: const Text('待传页面'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -118,20 +119,47 @@ class PendingUploadScreen extends ConsumerWidget {
                     itemCount: enabledServers.length,
                     itemBuilder: (context, index) {
                       final server = enabledServers[index];
+                      final isActive = server.id == activeServer?.id;
                       return Card(
+                        color: isActive
+                            ? colorScheme.primaryContainer
+                            : null,
                         child: ListTile(
-                          leading: server.emoji.isNotEmpty
-                              ? Text(server.emoji,
-                                  style: const TextStyle(fontSize: 24))
-                              : Icon(Icons.cloud,
-                                  color: colorScheme.primary),
-                          title: Text(server.name),
+                          leading: SizedBox(
+                            width: 24,
+                            child: server.emoji.isNotEmpty
+                                ? Text(server.emoji,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 18))
+                                : Icon(Icons.cloud,
+                                    size: 20,
+                                    color: colorScheme.primary),
+                          ),
+                          title: Text(server.name,
+                              style: TextStyle(
+                                  fontWeight: isActive
+                                      ? FontWeight.bold
+                                      : FontWeight.normal)),
                           subtitle: Text(server.serverUrl,
                               style: TextStyle(
                                   fontSize: 12,
                                   color: colorScheme.outline)),
-                          trailing: Icon(Icons.send,
-                              color: colorScheme.primary),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isActive)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(right: 4),
+                                  child: Text('当前服务器',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: colorScheme.primary)),
+                                ),
+                              Icon(Icons.send,
+                                  color: colorScheme.primary),
+                            ],
+                          ),
                           onTap: () => _uploadToServer(ref, server),
                         ),
                       );
