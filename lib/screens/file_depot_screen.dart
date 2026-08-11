@@ -177,7 +177,17 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            if (canOperate) StorageUsageWidget(provider: filesStorageUsageProvider),
+            if (canOperate) StorageUsageWidget(
+              provider: filesStorageUsageProvider,
+              onClear: () async {
+                final service = ref.read(webDavFilesServiceProvider);
+                final result = await service.clearAllFiles();
+                if (result.isSuccess) {
+                  ref.read(fileListProvider.notifier).refresh();
+                }
+                return result.isSuccess;
+              },
+            ),
             const Spacer(),
             Column(
               mainAxisSize: MainAxisSize.min,

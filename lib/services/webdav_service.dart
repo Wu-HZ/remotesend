@@ -942,6 +942,66 @@ class WebDavService {
     }
     return total;
   }
+
+  /// Delete all files and folders under /RemoteSend/Files/.
+  Future<WebDavResult<bool>> clearAllFiles() async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      await _deleteDirectoryContents(_filesFolder);
+      return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Delete all files and folders under /RemoteSend/Messages/.
+  Future<WebDavResult<bool>> clearAllMessages() async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      await _deleteDirectoryContents(_messagesFolder);
+      return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Recursively delete all contents of a directory (keeps the directory itself).
+  Future<void> _deleteDirectoryContents(String path) async {
+    try {
+      final files = await _client!.readDir(path);
+      for (final f in files) {
+        final filePath = f.path ?? (path + (f.name ?? ''));
+        if (f.isDir ?? false) {
+          await _deleteDirectoryContents(filePath);
+          try {
+            await _client!.remove(filePath);
+          } catch (_) {
+            // Ignore errors deleting empty directories
+          }
+        } else {
+          await _client!.remove(filePath);
+        }
+      }
+    } catch (e) {
+      if (!_isDioNotFound(e)) {
+        rethrow;
+      }
+    }
+  }
+
+  bool _isDioNotFound(dynamic e) {
+    return e is DioException && (e.response?.statusCode == 404);
+  }
 }
 
 /// Helper class to store file info for recursive folder operations.

@@ -130,7 +130,17 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            if (canSync) StorageUsageWidget(provider: textStorageUsageProvider),
+            if (canSync) StorageUsageWidget(
+              provider: textStorageUsageProvider,
+              onClear: () async {
+                final service = ref.read(webDavTextServiceProvider);
+                final result = await service.clearAllMessages();
+                if (result.isSuccess) {
+                  ref.read(messageHistoryProvider.notifier).refresh();
+                }
+                return result.isSuccess;
+              },
+            ),
             const Spacer(),
             Material(
               color: Colors.transparent,
