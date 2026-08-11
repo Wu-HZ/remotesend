@@ -789,11 +789,24 @@ class WebDavService {
     final buf = StringBuffer();
     buf.writeln('HTTP $statusCode');
 
-    // Include response body snippet for debugging
+    // Include request URL
+    final url = e.response?.requestOptions.uri.toString() ?? '';
+    if (url.isNotEmpty) {
+      buf.writeln('URL: $url');
+    }
+
+    // Include www-authenticate header if present (digest info)
+    final authHeader =
+        e.response?.headers.value('www-authenticate');
+    if (authHeader != null) {
+      buf.writeln('Auth: $authHeader');
+    }
+
+    // Include response body snippet
     final body = e.response?.data?.toString() ?? '';
     if (body.isNotEmpty) {
       final preview =
-          body.length > 300 ? '${body.substring(0, 300)}...' : body;
+          body.length > 400 ? '${body.substring(0, 400)}...' : body;
       buf.write(preview);
     }
     return buf.toString().trim();
