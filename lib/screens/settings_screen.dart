@@ -274,7 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           Text(server.emoji,
                               style: const TextStyle(fontSize: 18))
                         else
-                          Icon(Icons.cloud_outlined,
+                          Icon(Icons.cloud,
                               size: 18,
                               color: Theme.of(context)
                                   .colorScheme

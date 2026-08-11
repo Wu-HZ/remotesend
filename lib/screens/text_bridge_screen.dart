@@ -368,7 +368,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               if (server.emoji.isNotEmpty)
                 Text(server.emoji, style: const TextStyle(fontSize: 16))
               else
-                Icon(Icons.cloud_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                Icon(Icons.cloud, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(

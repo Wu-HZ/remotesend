@@ -57,7 +57,7 @@ class StorageUsageWidget extends ConsumerWidget {
                     Icon(Icons.error_outline,
                         size: 14, color: colorScheme.error)
                   else
-                    Icon(Icons.cloud_outlined,
+                    Icon(Icons.cloud,
                         size: 14,
                         color: colorScheme.onSurfaceVariant),
                   const SizedBox(width: 5),
