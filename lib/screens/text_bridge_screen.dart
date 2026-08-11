@@ -336,11 +336,14 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       icon: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.cloud,
-            size: 18,
-            color: activeServer != null ? Theme.of(context).colorScheme.primary : Colors.grey,
-          ),
+          if (activeServer != null && activeServer!.emoji.isNotEmpty)
+            Text(activeServer!.emoji, style: const TextStyle(fontSize: 16))
+          else
+            Icon(
+              Icons.cloud,
+              size: 18,
+              color: activeServer != null ? Theme.of(context).colorScheme.primary : Colors.grey,
+            ),
           const SizedBox(width: 2),
           const Icon(Icons.arrow_drop_down, size: 16),
         ],
@@ -363,8 +366,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               ),
               const SizedBox(width: 8),
               if (server.emoji.isNotEmpty)
-                Text(server.emoji, style: const TextStyle(fontSize: 16)),
-              if (server.emoji.isNotEmpty) const SizedBox(width: 4),
+                Text(server.emoji, style: const TextStyle(fontSize: 16))
+              else
+                Icon(Icons.cloud_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   server.name,

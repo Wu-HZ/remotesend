@@ -272,9 +272,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         if (server.emoji.isNotEmpty)
                           Text(server.emoji,
-                              style: const TextStyle(fontSize: 18)),
-                        if (server.emoji.isNotEmpty)
-                          const SizedBox(width: 6),
+                              style: const TextStyle(fontSize: 18))
+                        else
+                          Icon(Icons.cloud_outlined,
+                              size: 18,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                        const SizedBox(width: 6),
                         Text(
                           server.name,
                           style: TextStyle(
@@ -1209,15 +1214,14 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                 // Emoji icon
                 TextFormField(
                   controller: _emojiController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Emoji',
-                    hintText: '🏠',
-                    prefixIcon: const Icon(Icons.emoji_emotions),
-                    border: const OutlineInputBorder(),
-                    helperText: 'Win+. 打开系统表情面板',
+                    prefixIcon: Icon(Icons.emoji_emotions),
+                    border: OutlineInputBorder(),
+                    helperText: '仅支持一个表情 (Win+.)',
                     helperMaxLines: 1,
                   ),
-                  maxLength: 3,
+                  maxLength: 2,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 24),
                 ),
@@ -1404,6 +1408,13 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
     }
   }
 
+  /// Keep only the first visible character (handles multi-codepoint emoji).
+  String _trimEmoji(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed.characters.first;
+  }
+
   Future<void> _saveServer() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -1417,7 +1428,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
           serverUrl: _urlController.text.trim(),
           username: _usernameController.text.trim(),
           password: _passwordController.text,
-          emoji: _emojiController.text.trim(),
+          emoji: _trimEmoji(_emojiController.text),
         );
       } else {
         newServer = ServerConfig.create(
@@ -1425,7 +1436,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
           serverUrl: _urlController.text.trim(),
           username: _usernameController.text.trim(),
           password: _passwordController.text,
-          emoji: _emojiController.text.trim(),
+          emoji: _trimEmoji(_emojiController.text),
         );
       }
 
