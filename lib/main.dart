@@ -305,7 +305,9 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
         if (dragMode == 'pending' || isConnected) {
           _handleDroppedFiles(details.files);
         } else {
-          _showNotConnectedMessage();
+          // Instant mode with no connection: still try, upload queue
+          // will detect the connection error and fallback to pending.
+          _handleDroppedFiles(details.files);
         }
       },
       child: Stack(

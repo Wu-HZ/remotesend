@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/upload_queue.dart';
 import '../services/webdav_service.dart';
+import '../services/webdav_exceptions.dart';
+import '../screens/home_screen.dart' show selectedTabProvider;
 import 'webdav_provider.dart';
+import 'pending_upload_provider.dart';
 
 /// Notifier for managing the upload queue.
 class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
@@ -197,6 +200,40 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
         status: UploadStatus.failed,
         error: result.error?.userMessage,
       );
+
+      // If the error is connection/auth/timeout-related,
+      // move remaining files to pending upload page as fallback.
+      if (_isConnectionError(result.error)) {
+        final pendingPaths = <String>[];
+        for (final item in updatedItems) {
+          if (item.status == UploadStatus.pending) {
+            pendingPaths.add(item.localPath);
+          }
+        }
+        // Also include the failed item so user can retry it
+        pendingPaths.add(item.localPath);
+
+        if (pendingPaths.isNotEmpty) {
+          _ref.read(pendingUploadProvider.notifier).addFiles(pendingPaths);
+          // Switch to file depot tab so user sees the pending page
+          _ref.read(selectedTabProvider.notifier).state = 1;
+        }
+
+        // Remove these items from the queue
+        final remaining = updatedItems
+            .where((i) =>
+                i.status == UploadStatus.completed ||
+                (i.status == UploadStatus.failed && i.localPath != item.localPath))
+            .toList();
+
+        if (remaining.isEmpty) {
+          _isRunning = false;
+          state = state.clear();
+        } else {
+          state = state.copyWith(items: remaining);
+        }
+        return;
+      }
     }
     state = state.copyWith(items: updatedItems);
 
@@ -258,6 +295,16 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
     if (!_isRunning && updatedItems.any((i) => i.status == UploadStatus.pending)) {
       _startProcessing();
     }
+  }
+
+  /// Check if an upload failure should fallback to pending page.
+  /// Connection/auth/timeout/server errors all qualify.
+  bool _isConnectionError(WebDavException? error) {
+    if (error == null) return false;
+    // NotFound means the remote folder doesn't exist — that's a
+    // legitimate error we shouldn't fallback for.
+    if (error is WebDavNotFoundException) return false;
+    return true;
   }
 }
 
