@@ -10,6 +10,7 @@ class ServerConfig {
   final DateTime createdAt;
   final DateTime? lastUsed;
   final bool enabled;
+  final String emoji;
 
   const ServerConfig({
     required this.id,
@@ -20,6 +21,7 @@ class ServerConfig {
     required this.createdAt,
     this.lastUsed,
     this.enabled = true,
+    this.emoji = '',
   });
 
   /// Create a new server config with auto-generated ID.
@@ -28,6 +30,7 @@ class ServerConfig {
     required String serverUrl,
     required String username,
     required String password,
+    String emoji = '',
   }) {
     return ServerConfig(
       id: const Uuid().v4(),
@@ -36,6 +39,7 @@ class ServerConfig {
       username: username,
       password: password,
       createdAt: DateTime.now(),
+      emoji: emoji,
     );
   }
 
@@ -53,6 +57,7 @@ class ServerConfig {
     DateTime? createdAt,
     DateTime? lastUsed,
     bool? enabled,
+    String? emoji,
   }) {
     return ServerConfig(
       id: id ?? this.id,
@@ -63,6 +68,7 @@ class ServerConfig {
       createdAt: createdAt ?? this.createdAt,
       lastUsed: lastUsed ?? this.lastUsed,
       enabled: enabled ?? this.enabled,
+      emoji: emoji ?? this.emoji,
     );
   }
 
@@ -77,6 +83,7 @@ class ServerConfig {
       'createdAt': createdAt.toIso8601String(),
       'lastUsed': lastUsed?.toIso8601String(),
       'enabled': enabled,
+      'emoji': emoji,
     };
   }
 
@@ -93,6 +100,7 @@ class ServerConfig {
           ? DateTime.parse(json['lastUsed'] as String)
           : null,
       enabled: json['enabled'] as bool? ?? true,
+      emoji: json['emoji'] as String? ?? '',
     );
   }
 
@@ -107,12 +115,13 @@ class ServerConfig {
         other.password == password &&
         other.createdAt == createdAt &&
         other.lastUsed == lastUsed &&
-        other.enabled == enabled;
+        other.enabled == enabled &&
+        other.emoji == emoji;
   }
 
   @override
   int get hashCode {
-    return Object.hash(id, name, serverUrl, username, password, createdAt, lastUsed, enabled);
+    return Object.hash(id, name, serverUrl, username, password, createdAt, lastUsed, enabled, emoji);
   }
 
   @override

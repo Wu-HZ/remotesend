@@ -267,12 +267,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      server.name,
-                      style: TextStyle(
-                        fontWeight: (isTextServer || isFilesServer) ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 15,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (server.emoji.isNotEmpty)
+                          Text(server.emoji,
+                              style: const TextStyle(fontSize: 18)),
+                        if (server.emoji.isNotEmpty)
+                          const SizedBox(width: 6),
+                        Text(
+                          server.name,
+                          style: TextStyle(
+                            fontWeight: (isTextServer || isFilesServer)
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1151,6 +1163,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
   final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emojiController = TextEditingController();
   bool _obscurePassword = true;
   bool _isTesting = false;
   bool _isSaving = false;
@@ -1164,6 +1177,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
       _urlController.text = widget.server!.serverUrl;
       _usernameController.text = widget.server!.username;
       _passwordController.text = widget.server!.password;
+      _emojiController.text = widget.server!.emoji;
     }
   }
 
@@ -1173,6 +1187,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
     _urlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _emojiController.dispose();
     super.dispose();
   }
 
@@ -1191,6 +1206,22 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Emoji icon
+                TextFormField(
+                  controller: _emojiController,
+                  decoration: InputDecoration(
+                    labelText: 'Emoji',
+                    hintText: '🏠',
+                    prefixIcon: const Icon(Icons.emoji_emotions),
+                    border: const OutlineInputBorder(),
+                    helperText: 'Win+. 打开系统表情面板',
+                    helperMaxLines: 1,
+                  ),
+                  maxLength: 3,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -1386,6 +1417,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
           serverUrl: _urlController.text.trim(),
           username: _usernameController.text.trim(),
           password: _passwordController.text,
+          emoji: _emojiController.text.trim(),
         );
       } else {
         newServer = ServerConfig.create(
@@ -1393,6 +1425,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
           serverUrl: _urlController.text.trim(),
           username: _usernameController.text.trim(),
           password: _passwordController.text,
+          emoji: _emojiController.text.trim(),
         );
       }
 

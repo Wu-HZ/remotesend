@@ -317,6 +317,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                 color: isActive ? Theme.of(context).colorScheme.primary : null,
               ),
               const SizedBox(width: 8),
+              if (server.emoji.isNotEmpty)
+                Text(server.emoji, style: const TextStyle(fontSize: 16)),
+              if (server.emoji.isNotEmpty) const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   server.name,
