@@ -132,19 +132,26 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           children: [
             if (canSync) StorageUsageWidget(provider: textStorageUsageProvider),
             const Spacer(),
-            GestureDetector(
-              onTap: canSync
-                  ? () => _showDatePicker(historyState.availableDates, l10n)
-                  : null,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_formatDateForTitle(selectedDate, l10n)),
-                  if (canSync) ...[
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, size: 20),
-                  ],
-                ],
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: canSync
+                    ? () => _showDatePicker(historyState.availableDates, l10n)
+                    : null,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_formatDateForTitle(selectedDate, l10n)),
+                      if (canSync) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_drop_down, size: 20),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
             const Spacer(),
