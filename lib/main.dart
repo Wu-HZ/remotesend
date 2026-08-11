@@ -295,7 +295,9 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
       },
       onDragDone: (details) {
         setState(() => _isDragging = false);
-        if (isConnected) {
+        final config = ref.read(configProvider).valueOrNull;
+        final dragMode = config?.dragMode ?? 'instant';
+        if (dragMode == 'pending' || isConnected) {
           _handleDroppedFiles(details.files);
         } else {
           _showNotConnectedMessage();
