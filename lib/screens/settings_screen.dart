@@ -74,7 +74,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+            constraints: const BoxConstraints(maxWidth: 700),
             child: ListView(
               padding: const EdgeInsets.all(16),
           children: [

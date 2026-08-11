@@ -200,7 +200,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(maxWidth: 700),
           child: Column(
             children: [
               if (!canSync) _buildWarningBanner(isConfigured, isConnected, l10n),

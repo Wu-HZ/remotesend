@@ -244,7 +244,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(maxWidth: 700),
           child: Column(
             children: [
               // Connection warning banner

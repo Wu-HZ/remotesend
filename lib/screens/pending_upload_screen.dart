@@ -32,8 +32,11 @@ class PendingUploadScreen extends ConsumerWidget {
           },
         ),
       ),
-      body: Column(
-        children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Column(
+            children: [
           // File selection card (matching LocalSend style)
           if (pending.filePaths.isNotEmpty)
             Card(
@@ -166,7 +169,9 @@ class PendingUploadScreen extends ConsumerWidget {
                     },
                   ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
