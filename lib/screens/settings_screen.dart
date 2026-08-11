@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
@@ -99,6 +101,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // Transfer Section
           _buildTransferSection(l10n),
+          const SizedBox(height: 24),
+
+          // Data Section
+          _buildDataSection(l10n),
           const SizedBox(height: 24),
 
           // Others Section
@@ -697,6 +703,143 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (currentConfig == null) return;
     final newConfig = currentConfig.copyWith(dragMode: mode);
     await ref.read(configProvider.notifier).updateConfig(newConfig);
+  }
+
+  // ==================== Data Section ====================
+  Widget _buildDataSection(AppLocalizations l10n) {
+    return _SettingsSection(
+      title: '数据',
+      icon: Icons.folder_open,
+      children: [
+        _ButtonEntry(
+          label: '导入配置',
+          buttonLabel: '选择文件',
+          onTap: () => _importConfig(l10n),
+        ),
+        _ButtonEntry(
+          label: '导出配置',
+          buttonLabel: '导出',
+          onTap: () => _exportConfig(l10n),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _importConfig(AppLocalizations l10n) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      String content;
+      if (file.path != null) {
+        content = await File(file.path!).readAsString();
+      } else if (file.bytes != null) {
+        content = String.fromCharCodes(file.bytes!);
+      } else {
+        return;
+      }
+
+      if (!mounted) return;
+      final count =
+          ref.read(configProvider.notifier).importFromString(content);
+
+      if (!mounted) return;
+      if (count == -1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('文件格式错误'),
+              backgroundColor: Colors.red),
+        );
+      } else if (count == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('没有新服务器可导入（URL 重复）'),
+              backgroundColor: Colors.orange),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('已导入 $count 个服务器'),
+              backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('导入失败: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportConfig(AppLocalizations l10n) async {
+    final jsonStr = ref.read(configProvider.notifier).exportToString();
+    if (jsonStr == null) return;
+
+    // Warn about plaintext passwords
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导出配置'),
+        content: const Text('配置文件包含服务器密码（明文），请妥善保管。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('继续导出'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        // Mobile: save to temp and share
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/remotesend_config.json');
+        await file.writeAsString(jsonStr);
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'RemoteSend 配置',
+        );
+      } else {
+        // Desktop: save to chosen location
+        final result = await FilePicker.platform.saveFile(
+          dialogTitle: '保存配置文件',
+          fileName: 'remotesend_config.json',
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+        if (result != null) {
+          await File(result).writeAsString(jsonStr);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('配置已导出'),
+                  backgroundColor: Colors.green),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('导出失败: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   // ==================== Download Section ====================

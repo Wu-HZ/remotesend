@@ -212,6 +212,49 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
     state = AsyncValue.data(AppConfig());
   }
 
+  /// Export current config as JSON string.
+  String? exportToString() {
+    final config = state.valueOrNull;
+    if (config == null) return null;
+    return config.toJsonString();
+  }
+
+  /// Import servers from a JSON config string.
+  /// Returns number of newly added servers (skip duplicates by URL).
+  int importFromString(String jsonString) {
+    final currentConfig = state.valueOrNull;
+    if (currentConfig == null) return 0;
+
+    AppConfig imported;
+    try {
+      imported = AppConfig.fromJsonString(jsonString);
+    } catch (_) {
+      return -1; // parse error
+    }
+
+    final existingUrls = currentConfig.servers.map((s) => s.serverUrl).toSet();
+    final newServers = imported.servers
+        .where((s) => !existingUrls.contains(s.serverUrl))
+        .toList();
+
+    if (newServers.isEmpty) return 0;
+
+    final updated = currentConfig.copyWith(
+      servers: [...currentConfig.servers, ...newServers],
+      // If no active server yet, set the first imported one
+      activeTextServerId:
+          currentConfig.activeTextServerId ?? newServers.first.id,
+      activeFilesServerId:
+          currentConfig.activeFilesServerId ?? newServers.first.id,
+    );
+
+    // Persist (fire-and-forget, state already updated)
+    state = AsyncValue.data(updated);
+    _configService.saveConfig(updated);
+
+    return newServers.length;
+  }
+
   /// Toggle whether a server is enabled.
   Future<bool> toggleServerEnabled(String serverId) async {
     final currentConfig = state.valueOrNull;
