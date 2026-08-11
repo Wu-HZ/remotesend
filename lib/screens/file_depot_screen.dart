@@ -318,24 +318,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      server.name,
-                      style: TextStyle(
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    Text(
-                      server.serverUrl,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: Text(
+                  server.name,
+                  style: TextStyle(
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
               ),
             ],
