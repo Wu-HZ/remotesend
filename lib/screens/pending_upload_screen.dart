@@ -10,7 +10,9 @@ import '../providers/upload_queue_provider.dart';
 /// Full-screen page shown in "pending" drag mode.
 /// Files are displayed as horizontal thumbnails; enabled servers as a vertical list.
 class PendingUploadScreen extends ConsumerWidget {
-  const PendingUploadScreen({super.key});
+  final VoidCallback onClose;
+
+  const PendingUploadScreen({super.key, required this.onClose});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,7 +28,7 @@ class PendingUploadScreen extends ConsumerWidget {
           icon: const Icon(Icons.close),
           onPressed: () {
             ref.read(pendingUploadProvider.notifier).clear();
-            Navigator.pop(context);
+            onClose();
           },
         ),
       ),
@@ -94,7 +96,6 @@ class PendingUploadScreen extends ConsumerWidget {
                 child: FilledButton.icon(
                   onPressed: () => _uploadToServer(
                     ref,
-                    context,
                     activeServer ?? enabledServers.first,
                   ),
                   icon: const Icon(Icons.bolt),
@@ -158,7 +159,7 @@ class PendingUploadScreen extends ConsumerWidget {
                                   color: colorScheme.outline)),
                           trailing: Icon(Icons.send,
                               color: colorScheme.primary),
-                          onTap: () => _uploadToServer(ref, context, server),
+                          onTap: () => _uploadToServer(ref, server),
                         ),
                       );
                     },
@@ -170,7 +171,7 @@ class PendingUploadScreen extends ConsumerWidget {
   }
 
   Future<void> _uploadToServer(
-      WidgetRef ref, BuildContext context, ServerConfig server) async {
+      WidgetRef ref, ServerConfig server) async {
     final paths =
         List<String>.from(ref.read(pendingUploadProvider).filePaths);
     if (paths.isEmpty) return;
@@ -185,9 +186,7 @@ class PendingUploadScreen extends ConsumerWidget {
     // Add to upload queue
     await ref.read(uploadQueueProvider.notifier).addFiles(paths);
     ref.read(pendingUploadProvider.notifier).clear();
-    if (context.mounted) {
-      Navigator.pop(context);
-    }
+    onClose();
   }
 }
 

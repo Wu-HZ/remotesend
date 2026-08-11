@@ -72,6 +72,7 @@ class RemoteSendApp extends ConsumerStatefulWidget {
 class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
   bool _autoConnectAttempted = false;
   bool _isDragging = false;
+  bool _showPending = false;
 
   @override
   void initState() {
@@ -358,6 +359,18 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
                 },
               ),
             ),
+          // Pending upload overlay
+          if (_showPending)
+            Positioned.fill(
+              child: Material(
+                child: PendingUploadScreen(
+                  onClose: () {
+                    ref.read(pendingUploadProvider.notifier).clear();
+                    setState(() => _showPending = false);
+                  },
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -403,22 +416,8 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
       if (allPaths.isEmpty) return;
 
       if (dragMode == 'pending') {
-        // Pending mode: open the pending upload page
         ref.read(pendingUploadProvider.notifier).addFiles(allPaths);
-        if (mounted) {
-          showGeneralDialog(
-            context: context,
-            barrierDismissible: false,
-            barrierLabel: 'PendingUpload',
-            transitionDuration: const Duration(milliseconds: 200),
-            pageBuilder: (context, animation, secondaryAnimation) {
-              return const PendingUploadScreen();
-            },
-          ).then((_) {
-            // Clean up when dismissed
-            ref.read(pendingUploadProvider.notifier).clear();
-          });
-        }
+        setState(() => _showPending = true);
         return;
       }
 
