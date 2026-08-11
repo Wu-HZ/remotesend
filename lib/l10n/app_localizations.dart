@@ -1266,6 +1266,18 @@ abstract class AppLocalizations {
   /// **'Drop files here to upload'**
   String get dropFilesToUpload;
 
+  /// No description provided for @chatOwnMessageLeftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show own messages on left'**
+  String get chatOwnMessageLeftLabel;
+
+  /// No description provided for @chatOwnMessageLeftDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Place your own messages on the left side like remote messages'**
+  String get chatOwnMessageLeftDescription;
+
   /// No description provided for @connectToWebDavFirst.
   ///
   /// In en, this message translates to:

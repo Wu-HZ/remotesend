@@ -647,6 +647,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dropFilesToUpload => '拖放文件到此处上传';
 
   @override
+  String get chatOwnMessageLeftLabel => '自己消息显示在左侧';
+
+  @override
+  String get chatOwnMessageLeftDescription => '将自己的消息也放在左侧，与远程消息对齐';
+
+  @override
   String get connectToWebDavFirst => '请先连接WebDAV';
 
   @override

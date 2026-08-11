@@ -580,6 +580,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeMode = config?.themeMode ?? 'system';
     final primaryColor = config?.primaryColor ?? 0xFF009688;
     final useDynamicColor = config?.useDynamicColor ?? true;
+    final chatOwnLeft = config?.chatOwnMessageLeft ?? false;
 
     String themeModeText;
     switch (themeMode) {
@@ -615,6 +616,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           label: l10n.language,
           buttonLabel: _getLanguageName(l10n, config?.locale ?? 'system'),
           onTap: () => _showLanguageDialog(l10n),
+        ),
+        _BooleanEntry(
+          label: l10n.chatOwnMessageLeftLabel,
+          value: chatOwnLeft,
+          onChanged: (value) => _saveChatOwnMessageLeft(l10n, value),
         ),
       ],
     );
@@ -702,6 +708,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final currentConfig = ref.read(configProvider).valueOrNull;
     if (currentConfig == null) return;
     final newConfig = currentConfig.copyWith(dragMode: mode);
+    await ref.read(configProvider.notifier).updateConfig(newConfig);
+  }
+
+  Future<void> _saveChatOwnMessageLeft(AppLocalizations l10n, bool value) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+    final newConfig = currentConfig.copyWith(chatOwnMessageLeft: value);
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 

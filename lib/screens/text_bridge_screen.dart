@@ -109,6 +109,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final selectedDate = ref.watch(selectedDateProvider);
     final activeServer = ref.watch(activeTextServerProvider);
     final servers = ref.watch(enabledServersProvider);
+    final ownOnLeft = ref.watch(configProvider).valueOrNull?.chatOwnMessageLeft ?? false;
     final l10n = AppLocalizations.of(context)!;
 
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
@@ -209,7 +210,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : historyState.messages.isEmpty
                     ? _buildEmptyState(selectedDate, l10n)
-                    : _buildMessageList(historyState.messages, localName, l10n),
+                    : _buildMessageList(historyState.messages, localName, l10n, ownOnLeft),
           ),
 
           if (historyState.error != null)
@@ -459,21 +460,23 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildMessageList(List<TextMessage> messages, String localName, AppLocalizations l10n) {
+  Widget _buildMessageList(List<TextMessage> messages, String localName, AppLocalizations l10n, bool ownOnLeft) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
-        return _buildMessageBubble(message, localName, l10n,
+        return _buildMessageBubble(message, localName, l10n, ownOnLeft,
             key: ValueKey(message.id));
       },
     );
   }
 
-  Widget _buildMessageBubble(TextMessage message, String localName, AppLocalizations l10n, {Key? key}) {
+  Widget _buildMessageBubble(TextMessage message, String localName, AppLocalizations l10n, bool ownOnLeft, {Key? key}) {
     final isLocal = message.isLocal;
+    final showRight = isLocal && !ownOnLeft; // own messages on right side
+    final showLeft = !isLocal || (isLocal && ownOnLeft); // all left-side messages
     final colorScheme = Theme.of(context).colorScheme;
     final urls = _extractUrls(message.content);
     final isDeleting = _deletingMessages.contains(message.id);
@@ -509,13 +512,13 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       child: Opacity(
         opacity: isDeleting ? 0.4 : 1.0,
         child: Row(
-          mainAxisAlignment: isLocal ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: showRight ? MainAxisAlignment.end : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (!isLocal) ...[
+            if (showLeft) ...[
               CircleAvatar(
                 radius: 14,
-                backgroundColor: colorScheme.secondary,
+                backgroundColor: isLocal ? colorScheme.primary : colorScheme.secondary,
                 child: Text(
                   senderInitial,
                   style: const TextStyle(fontSize: 12, color: Colors.white),
@@ -539,8 +542,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isLocal ? 16 : 4),
-                      bottomRight: Radius.circular(isLocal ? 4 : 16),
+                      bottomLeft: Radius.circular(showRight ? 16 : 4),
+                      bottomRight: Radius.circular(showRight ? 4 : 16),
                     ),
                   ),
                   child: Column(
@@ -657,7 +660,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                 ),
               ),
             ),
-            if (isLocal) ...[
+            if (showRight) ...[
               const SizedBox(width: 8),
               CircleAvatar(
                 radius: 14,

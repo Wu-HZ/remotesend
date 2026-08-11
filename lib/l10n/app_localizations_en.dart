@@ -658,6 +658,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dropFilesToUpload => 'Drop files here to upload';
 
   @override
+  String get chatOwnMessageLeftLabel => 'Show own messages on left';
+
+  @override
+  String get chatOwnMessageLeftDescription =>
+      'Place your own messages on the left side like remote messages';
+
+  @override
   String get connectToWebDavFirst => 'Connect to WebDAV first';
 
   @override

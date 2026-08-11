@@ -45,6 +45,7 @@ class AppConfig {
   final bool useDynamicColor; // Use system dynamic color (Material You)
   final String locale; // 'system', 'en', 'zh'
   final String dragMode; // 'instant' or 'pending'
+  final bool chatOwnMessageLeft; // show own messages on left side too
 
   AppConfig({
     this.version = currentVersion,
@@ -60,6 +61,7 @@ class AppConfig {
     this.useDynamicColor = true,
     this.locale = 'system',
     this.dragMode = 'instant',
+    this.chatOwnMessageLeft = false,
   }) : localName = localName ?? _generateRandomName();
 
   /// Get the active server for Text Bridge.
@@ -118,6 +120,7 @@ class AppConfig {
     bool? useDynamicColor,
     String? locale,
     String? dragMode,
+    bool? chatOwnMessageLeft,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -133,6 +136,7 @@ class AppConfig {
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
+      chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
     );
   }
 
@@ -149,6 +153,7 @@ class AppConfig {
     bool? useDynamicColor,
     String? locale,
     String? dragMode,
+    bool? chatOwnMessageLeft,
     bool clearText = false,
     bool clearFiles = false,
   }) {
@@ -166,6 +171,7 @@ class AppConfig {
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
+      chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
     );
   }
 
@@ -185,6 +191,7 @@ class AppConfig {
       'useDynamicColor': useDynamicColor,
       'locale': locale,
       'dragMode': dragMode,
+      'chatOwnMessageLeft': chatOwnMessageLeft,
     };
   }
 
@@ -221,6 +228,7 @@ class AppConfig {
       useDynamicColor: json['useDynamicColor'] as bool? ?? true,
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
+      chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
     );
   }
 
@@ -269,6 +277,7 @@ class AppConfig {
       useDynamicColor: json['useDynamicColor'] as bool? ?? true,
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
+      chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
     );
   }
 
@@ -294,6 +303,7 @@ class AppConfig {
       useDynamicColor: json['useDynamicColor'] as bool? ?? true,
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
+      chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
     );
   }
 
@@ -322,6 +332,7 @@ class AppConfig {
         other.useDynamicColor != useDynamicColor ||
         other.locale != locale ||
         other.dragMode != dragMode ||
+        other.chatOwnMessageLeft != chatOwnMessageLeft ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -347,6 +358,7 @@ class AppConfig {
       useDynamicColor,
       locale,
       dragMode,
+      chatOwnMessageLeft,
     );
   }
 
