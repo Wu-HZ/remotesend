@@ -1749,21 +1749,24 @@ class _ButtonEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SettingsEntry(
       label: label,
-      child: TextButton(
-        style: TextButton.styleFrom(
-          backgroundColor: Theme.of(context).inputDecorationTheme.fillColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(5),
+      child: SizedBox(
+        height: 50,
+        child: TextButton(
+          style: TextButton.styleFrom(
+            backgroundColor: Theme.of(context).inputDecorationTheme.fillColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5),
+            ),
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            padding: EdgeInsets.zero,
           ),
-          foregroundColor: Theme.of(context).colorScheme.onSurface,
-        ),
-        onPressed: enabled ? onTap : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          child: Text(
-            buttonLabel,
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
+          onPressed: enabled ? onTap : null,
+          child: Center(
+            child: Text(
+              buttonLabel,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ),
