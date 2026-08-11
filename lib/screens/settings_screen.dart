@@ -97,6 +97,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildDownloadSection(l10n),
           const SizedBox(height: 24),
 
+          // Transfer Section
+          _buildTransferSection(l10n),
+          const SizedBox(height: 24),
+
           // Others Section
           _buildOthersSection(l10n),
           const SizedBox(height: 32),
@@ -637,6 +641,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       0xFF607D8B: l10n.colorBlueGrey,
     };
     return colorNames[colorValue] ?? l10n.colorCustom;
+  }
+
+  // ==================== Transfer Section ====================
+  Widget _buildTransferSection(AppLocalizations l10n) {
+    final config = ref.watch(configProvider).valueOrNull;
+    final dragMode = config?.dragMode ?? 'instant';
+
+    return _SettingsSection(
+      title: '传输',
+      icon: Icons.swap_horiz,
+      children: [
+        _ButtonEntry(
+          label: '拖拽上传模式',
+          buttonLabel: dragMode == 'instant' ? '直接上传' : '待传窗口',
+          onTap: () => _showDragModeDialog(l10n, dragMode),
+        ),
+      ],
+    );
+  }
+
+  void _showDragModeDialog(AppLocalizations l10n, String currentMode) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('拖拽上传模式'),
+        children: [
+          RadioListTile<String>(
+            title: const Text('直接上传'),
+            subtitle: const Text('拖入文件后立即传输到当前服务器'),
+            value: 'instant',
+            groupValue: currentMode,
+            onChanged: (v) {
+              Navigator.pop(ctx);
+              _saveDragMode(l10n, v!);
+            },
+          ),
+          RadioListTile<String>(
+            title: const Text('待传窗口'),
+            subtitle: const Text('拖入后选择服务器再传输'),
+            value: 'pending',
+            groupValue: currentMode,
+            onChanged: (v) {
+              Navigator.pop(ctx);
+              _saveDragMode(l10n, v!);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveDragMode(AppLocalizations l10n, String mode) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+    final newConfig = currentConfig.copyWith(dragMode: mode);
+    await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
   // ==================== Download Section ====================

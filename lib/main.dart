@@ -12,7 +12,9 @@ import 'providers/config_provider.dart';
 import 'providers/message_history_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
+import 'providers/pending_upload_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/pending_upload_screen.dart';
 import 'services/window_service.dart';
 
 void main() async {
@@ -379,6 +381,9 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
   Future<void> _handleDroppedFiles(List<XFile> xFiles) async {
     if (xFiles.isEmpty) return;
 
+    final config = ref.read(configProvider).valueOrNull;
+    final dragMode = config?.dragMode ?? 'instant';
+
     try {
       final filePaths = <String>[];
       final folderPaths = <String>[];
@@ -392,15 +397,36 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
         }
       }
 
+      final allPaths = [...filePaths, ...folderPaths];
+      if (allPaths.isEmpty) return;
+
+      if (dragMode == 'pending') {
+        // Pending mode: open the pending upload page (or add to existing)
+        ref.read(pendingUploadProvider.notifier).addFiles(allPaths);
+        if (mounted) {
+          // Only push if not already on the pending page
+          final currentRoute = ModalRoute.of(context);
+          if (currentRoute == null ||
+              currentRoute.settings.name != '/pending_upload') {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                settings: const RouteSettings(name: '/pending_upload'),
+                builder: (_) => const PendingUploadScreen(),
+              ),
+            );
+          }
+        }
+        return;
+      }
+
+      // Instant mode: upload directly
       int addedCount = 0;
 
-      // Add files to upload queue
       if (filePaths.isNotEmpty) {
         await ref.read(uploadQueueProvider.notifier).addFiles(filePaths);
         addedCount += filePaths.length;
       }
 
-      // Add folders to upload queue
       for (final folderPath in folderPaths) {
         await ref.read(uploadQueueProvider.notifier).addFolder(folderPath);
         addedCount++;
