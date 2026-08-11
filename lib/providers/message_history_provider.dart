@@ -117,10 +117,8 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
     final today = _getTodayDate();
     _ref.read(selectedDateProvider.notifier).state = today;
 
-    await Future.wait([
-      loadMessagesForDate(today),
-      loadAvailableDates(),
-    ]);
+    await loadMessagesForDate(today);
+    await loadAvailableDates();
   }
 
   /// Refresh messages for today's date, switching to today automatically.
