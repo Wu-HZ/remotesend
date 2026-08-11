@@ -116,7 +116,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get typeAMessage => '输入消息...';
 
   @override
-  String get fileDepot => '文件仓库';
+  String get fileDepot => '文件';
 
   @override
   String get goBack => '返回';

@@ -119,7 +119,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeAMessage => 'Type a message...';
 
   @override
-  String get fileDepot => 'File Depot';
+  String get fileDepot => 'File';
 
   @override
   String get goBack => 'Go back';

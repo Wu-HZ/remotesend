@@ -311,7 +311,7 @@ abstract class AppLocalizations {
   /// No description provided for @fileDepot.
   ///
   /// In en, this message translates to:
-  /// **'File Depot'**
+  /// **'File'**
   String get fileDepot;
 
   /// No description provided for @goBack.
