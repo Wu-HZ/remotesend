@@ -278,7 +278,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               size: 18,
                               color: Theme.of(context)
                                   .colorScheme
-                                  .onSurfaceVariant),
+                                  .primary),
                         const SizedBox(width: 6),
                         Text(
                           server.name,
