@@ -365,10 +365,16 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                 color: isActive ? Theme.of(context).colorScheme.primary : null,
               ),
               const SizedBox(width: 8),
-              if (server.emoji.isNotEmpty)
-                Text(server.emoji, style: const TextStyle(fontSize: 16))
-              else
-                Icon(Icons.cloud, size: 18, color: Theme.of(context).colorScheme.primary),
+              SizedBox(
+                width: 24,
+                child: server.emoji.isNotEmpty
+                    ? Text(server.emoji,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16))
+                    : Icon(Icons.cloud,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary),
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(

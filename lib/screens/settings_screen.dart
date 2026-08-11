@@ -270,15 +270,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (server.emoji.isNotEmpty)
-                          Text(server.emoji,
-                              style: const TextStyle(fontSize: 18))
-                        else
-                          Icon(Icons.cloud,
-                              size: 18,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary),
+                        SizedBox(
+                          width: 24,
+                          child: server.emoji.isNotEmpty
+                              ? Text(server.emoji,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 18))
+                              : Icon(Icons.cloud,
+                                  size: 18,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           server.name,
