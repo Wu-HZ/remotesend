@@ -12,8 +12,10 @@ import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/upload_queue_provider.dart';
 import '../providers/download_state_provider.dart';
+import '../providers/pending_upload_provider.dart';
 import '../services/webdav_service.dart';
 import '../widgets/storage_usage_widget.dart';
+import 'pending_upload_screen.dart';
 import 'transfer_queue_screen.dart';
 
 /// File Depot screen for uploading and downloading files via WebDAV.
@@ -149,6 +151,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final config = ref.watch(configProvider).valueOrNull;
     final activeServer = ref.watch(activeFilesServerProvider);
     final servers = ref.watch(enabledServersProvider);
+    final pendingFiles = ref.watch(pendingUploadProvider);
+
+    // Show pending upload page if there are files waiting
+    if (pendingFiles.filePaths.isNotEmpty) {
+      return _buildPendingUploadView(l10n);
+    }
 
     // Update download location if config changed
     if (config != null) {
@@ -343,6 +351,14 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildPendingUploadView(AppLocalizations l10n) {
+    return PendingUploadScreen(
+      onClose: () {
+        ref.read(pendingUploadProvider.notifier).clear();
+      },
     );
   }
 

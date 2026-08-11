@@ -14,7 +14,6 @@ import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
 import 'providers/pending_upload_provider.dart';
 import 'screens/home_screen.dart';
-import 'screens/pending_upload_screen.dart';
 import 'services/window_service.dart';
 
 void main() async {
@@ -72,7 +71,6 @@ class RemoteSendApp extends ConsumerStatefulWidget {
 class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
   bool _autoConnectAttempted = false;
   bool _isDragging = false;
-  bool _showPending = false;
 
   @override
   void initState() {
@@ -359,18 +357,6 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
                 },
               ),
             ),
-          // Pending upload overlay
-          if (_showPending)
-            Positioned.fill(
-              child: Material(
-                child: PendingUploadScreen(
-                  onClose: () {
-                    ref.read(pendingUploadProvider.notifier).clear();
-                    setState(() => _showPending = false);
-                  },
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -417,7 +403,8 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
 
       if (dragMode == 'pending') {
         ref.read(pendingUploadProvider.notifier).addFiles(allPaths);
-        setState(() => _showPending = true);
+        // Switch to file depot tab
+        ref.read(selectedTabProvider.notifier).state = 1;
         return;
       }
 

@@ -18,12 +18,11 @@ class PendingUploadScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pending = ref.watch(pendingUploadProvider);
     final enabledServers = ref.watch(enabledServersProvider);
-    final activeServer = ref.watch(activeFilesServerProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('待上传 (${pending.filePaths.length} 个文件)'),
+        title: const Text('待上传'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -34,74 +33,54 @@ class PendingUploadScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // File thumbnails section
+          // File selection card (matching LocalSend style)
           if (pending.filePaths.isNotEmpty)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '已选文件',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () =>
-                            ref.read(pendingUploadProvider.notifier).clear(),
-                        child: const Text('清空'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 80,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: pending.filePaths.length,
-                      itemBuilder: (context, index) {
-                        final path = pending.filePaths[index];
-                        final name = p.basename(path);
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _FileThumbnail(
-                            path: path,
-                            name: name,
-                            onRemove: () => ref
-                                .read(pendingUploadProvider.notifier)
-                                .removeFile(path),
-                          ),
-                        );
+            Card(
+              margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text('已选文件',
+                            style: Theme.of(context).textTheme.titleMedium),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('文件：${pending.filePaths.length}'),
+                    FutureBuilder<int>(
+                      future: _totalSize(pending.filePaths),
+                      builder: (ctx, snap) {
+                        final bytes = snap.data ?? 0;
+                        return Text('大小：${_formatSize(bytes)}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: colorScheme.outline));
                       },
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Quick send to last used server
-          if (pending.filePaths.isNotEmpty && enabledServers.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _uploadToServer(
-                    ref,
-                    activeServer ?? enabledServers.first,
-                  ),
-                  icon: const Icon(Icons.bolt),
-                  label: Text(
-                    '传到 ${activeServer != null ? activeServer!.name : enabledServers.first.name}',
-                  ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 54,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: pending.filePaths.length,
+                        itemBuilder: (context, index) {
+                          final path = pending.filePaths[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _SimpleThumbnail(
+                              path: path,
+                              onRemove: () => ref
+                                  .read(pendingUploadProvider.notifier)
+                                  .removeFile(path),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -139,7 +118,6 @@ class PendingUploadScreen extends ConsumerWidget {
                     itemCount: enabledServers.length,
                     itemBuilder: (context, index) {
                       final server = enabledServers[index];
-                      final isActive = server.id == activeServer?.id;
                       return Card(
                         child: ListTile(
                           leading: server.emoji.isNotEmpty
@@ -147,12 +125,7 @@ class PendingUploadScreen extends ConsumerWidget {
                                   style: const TextStyle(fontSize: 24))
                               : Icon(Icons.cloud,
                                   color: colorScheme.primary),
-                          title: Text(server.name,
-                              style: TextStyle(
-                                fontWeight: isActive
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              )),
+                          title: Text(server.name),
                           subtitle: Text(server.serverUrl,
                               style: TextStyle(
                                   fontSize: 12,
@@ -168,6 +141,25 @@ class PendingUploadScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<int> _totalSize(List<String> paths) async {
+    int total = 0;
+    for (final path in paths) {
+      try {
+        total += await File(path).length();
+      } catch (_) {}
+    }
+    return total;
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 
   Future<void> _uploadToServer(
@@ -190,16 +182,11 @@ class PendingUploadScreen extends ConsumerWidget {
   }
 }
 
-class _FileThumbnail extends StatelessWidget {
+class _SimpleThumbnail extends StatelessWidget {
   final String path;
-  final String name;
   final VoidCallback onRemove;
 
-  const _FileThumbnail({
-    required this.path,
-    required this.name,
-    required this.onRemove,
-  });
+  const _SimpleThumbnail({required this.path, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -207,35 +194,26 @@ class _FileThumbnail extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Container(
-          width: 72,
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
+        SizedBox(
+          width: 48,
+          height: 48,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: ColoredBox(
+              color: colorScheme.surfaceContainerHighest,
+              child: Icon(
                 _iconForExtension(ext),
                 size: 28,
                 color: colorScheme.primary,
               ),
-              const SizedBox(height: 4),
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
         ),
         Positioned(
-          top: 0,
-          right: 0,
+          top: -4,
+          right: -4,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
@@ -247,6 +225,11 @@ class _FileThumbnail extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withAlpha(30),
+                        blurRadius: 2),
+                  ],
                 ),
                 child: Icon(Icons.close, size: 12, color: colorScheme.error),
               ),
