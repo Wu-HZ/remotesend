@@ -62,7 +62,11 @@ class StorageUsageWidget extends ConsumerWidget {
                         color: colorScheme.onSurfaceVariant),
                   const SizedBox(width: 5),
                   Text(
-                    state.isLoading ? '...' : state.displaySize,
+                    state.isLoading
+                        ? '...'
+                        : state.totalBytes == null
+                            ? '已用空间'
+                            : state.displaySize,
                     style: TextStyle(
                       fontSize: 12,
                       color: state.error != null

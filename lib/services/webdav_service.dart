@@ -781,6 +781,24 @@ class WebDavService {
     return e.response?.statusCode == 404;
   }
 
+  /// Build a detailed user message from Dio response.
+  String _buildUserMessage(DioException e, String baseMessage) {
+    final statusCode = e.response?.statusCode;
+    if (statusCode == null) return baseMessage;
+
+    final buf = StringBuffer();
+    buf.writeln('HTTP $statusCode');
+
+    // Include response body snippet for debugging
+    final body = e.response?.data?.toString() ?? '';
+    if (body.isNotEmpty) {
+      final preview =
+          body.length > 300 ? '${body.substring(0, 300)}...' : body;
+      buf.write(preview);
+    }
+    return buf.toString().trim();
+  }
+
   WebDavException _mapException(Object error) {
     if (error is DioException) {
       final statusCode = error.response?.statusCode;
@@ -788,18 +806,23 @@ class WebDavService {
 
       // Map HTTP status codes to specific exceptions
       if (statusCode != null) {
+        final detail = _buildUserMessage(error, message);
         switch (statusCode) {
           case 401:
-            return WebDavAuthException(message: message, originalError: error);
+            return WebDavAuthException(
+                message: message, originalError: error, userMessage: detail);
           case 403:
             return WebDavPermissionException(
-                message: message, originalError: error);
+                message: message, originalError: error, userMessage: detail);
           case 404:
             return WebDavNotFoundException(
-                message: message, originalError: error);
+                message: message, originalError: error, userMessage: detail);
           case >= 500 && < 600:
             return WebDavServerException(
-                message: message, originalError: error);
+                message: message, originalError: error, userMessage: detail);
+          default:
+            return WebDavServerException(
+                message: message, originalError: error, userMessage: detail);
         }
       }
 
@@ -815,9 +838,13 @@ class WebDavService {
               message: message, originalError: error);
         case DioExceptionType.badResponse:
           if (statusCode == 401) {
-            return WebDavAuthException(message: message, originalError: error);
+            return WebDavAuthException(
+                message: message, originalError: error,
+                userMessage: _buildUserMessage(error, message));
           }
-          return WebDavServerException(message: message, originalError: error);
+          return WebDavServerException(
+              message: message, originalError: error,
+              userMessage: _buildUserMessage(error, message));
         default:
           return WebDavUnknownException(message: message, originalError: error);
       }

@@ -492,10 +492,7 @@ class StorageUsageState {
 class StorageUsageNotifier extends StateNotifier<StorageUsageState> {
   final WebDavService _service;
 
-  StorageUsageNotifier(this._service) : super(const StorageUsageState()) {
-    // Auto-fetch on creation.
-    Future.microtask(refresh);
-  }
+  StorageUsageNotifier(this._service) : super(const StorageUsageState());
 
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true, error: null);

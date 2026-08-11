@@ -22,7 +22,8 @@ class WebDavConnectionException extends WebDavException {
   const WebDavConnectionException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'Cannot connect to server. Check your internet connection and server URL.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'Cannot connect to server. Check your internet connection and server URL.');
 }
 
 /// Authentication failed - wrong username/password.
@@ -30,7 +31,8 @@ class WebDavAuthException extends WebDavException {
   const WebDavAuthException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'Authentication failed. Check your username and password.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'Authentication failed. Check your username and password.');
 }
 
 /// Resource not found - file or folder doesn't exist.
@@ -38,7 +40,8 @@ class WebDavNotFoundException extends WebDavException {
   const WebDavNotFoundException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'Resource not found on the server.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'Resource not found on the server.');
 }
 
 /// Permission denied - no access to resource.
@@ -46,7 +49,8 @@ class WebDavPermissionException extends WebDavException {
   const WebDavPermissionException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'Permission denied. Check your access rights on the server.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'Permission denied. Check your access rights on the server.');
 }
 
 /// Server error - 5xx responses.
@@ -54,7 +58,8 @@ class WebDavServerException extends WebDavException {
   const WebDavServerException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'Server error. Please try again later.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'Server error. Please try again later.');
 }
 
 /// Invalid URL or configuration.
@@ -62,7 +67,8 @@ class WebDavConfigException extends WebDavException {
   const WebDavConfigException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'Invalid server configuration. Check the server URL.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'Invalid server configuration. Check the server URL.');
 }
 
 /// Timeout during operation.
@@ -70,7 +76,8 @@ class WebDavTimeoutException extends WebDavException {
   const WebDavTimeoutException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'Connection timed out. Server may be slow or unreachable.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'Connection timed out. Server may be slow or unreachable.');
 }
 
 /// Unknown/unexpected error.
@@ -78,7 +85,8 @@ class WebDavUnknownException extends WebDavException {
   const WebDavUnknownException({
     required super.message,
     super.originalError,
-  }) : super(userMessage: 'An unexpected error occurred. Please try again.');
+    String? userMessage,
+  }) : super(userMessage: userMessage ?? 'An unexpected error occurred. Please try again.');
 }
 
 /// Result wrapper for WebDAV operations.
