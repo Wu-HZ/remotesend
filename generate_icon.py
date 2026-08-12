@@ -81,25 +81,16 @@ def main():
                 '</resources>\n')
     print('Generated: icon background color')
 
-    # Windows/macOS/Web — classic blue-circle + white dots
-    bg=(33,150,243); w=(255,255,255); wt=(255,255,255,220)
-    def old_icon(s):
-        img=Image.new('RGBA',(s,s),(0,0,0,0)); d=ImageDraw.Draw(img)
-        m=int(s*0.02); d.ellipse([m,m,s-m,s-m],fill=bg)
-        c=s//2; o=int(s*0.18); cr=int(s*0.13); orb=int(s*0.28)
-        for a in[270,30,150]:
-            r=math.radians(a); x=c+int(orb*math.cos(r)); y=c+int(orb*math.sin(r))
-            d.ellipse([x-o,y-o,x+o,y+o],fill=wt)
-        d.ellipse([c-cr,c-cr,c+cr,c+cr],fill=w)
-        return img
-    ims=[old_icon(s) for s in[16,32,48,64,128,256]]
-    ims[-1].save('windows/runner/resources/app_icon.ico',format='ICO',sizes=[(s,s)for s in[16,32,48,64,128,256]])
+    # Windows .ico — SVG design
+    ico_sizes = [16, 32, 48, 64, 128, 256]
+    ico_images = [render_svg_icon(s) for s in ico_sizes]
+    ico_images[-1].save('windows/runner/resources/app_icon.ico', format='ICO', sizes=[(s, s) for s in ico_sizes])
     print('Generated: windows .ico')
     for fn,sz in{'app_icon_16.png':16,'app_icon_32.png':32,'app_icon_64.png':64,'app_icon_128.png':128,'app_icon_256.png':256,'app_icon_512.png':512,'app_icon_1024.png':1024}.items():
-        old_icon(sz).save(f'macos/Runner/Assets.xcassets/AppIcon.appiconset/{fn}','PNG')
-    old_icon(32).save('web/favicon.png','PNG')
-    old_icon(192).save('web/icons/Icon-192.png','PNG')
-    old_icon(512).save('web/icons/Icon-512.png','PNG')
+        render_svg_icon(sz).save(f'macos/Runner/Assets.xcassets/AppIcon.appiconset/{fn}','PNG')
+    render_svg_icon(32).save('web/favicon.png','PNG')
+    render_svg_icon(192).save('web/icons/Icon-192.png','PNG')
+    render_svg_icon(512).save('web/icons/Icon-512.png','PNG')
     render_svg_icon(512).save('icon_preview.png','PNG')
     print('Done!')
 
