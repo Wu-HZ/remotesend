@@ -586,7 +586,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get about => 'About';
 
   @override
-  String get aboutDescription => 'RemoteSend v1.0.0';
+  String get aboutDescription => 'RemoteSend v1.1.0';
 
   @override
   String get aboutLegalese => '© 2026 Wu-HZ';

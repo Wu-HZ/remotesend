@@ -1137,7 +1137,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutDescription.
   ///
   /// In en, this message translates to:
-  /// **'RemoteSend v1.0.0'**
+  /// **'RemoteSend v1.1.0'**
   String get aboutDescription;
 
   /// No description provided for @aboutLegalese.

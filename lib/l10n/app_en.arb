@@ -337,7 +337,7 @@
   "showNotificationDescription": "Notify when download completes",
 
   "about": "About",
-  "aboutDescription": "RemoteSend v1.0.0",
+  "aboutDescription": "RemoteSend v1.1.0",
   "aboutLegalese": "© 2026 Wu-HZ",
   "aboutAppDescription": "A lightweight, portable app to transfer text and files between devices using WebDAV.",
 
