@@ -52,6 +52,35 @@ def main():
         render_svg_icon(size).save(f'android/app/src/main/res/{folder}/ic_launcher.png', 'PNG')
         print(f'Generated: {folder}/ic_launcher.png ({size}x{size})')
 
+    # Android adaptive icon foreground (SVG scaled to 72dp safe zone within 108dp)
+    import os
+    os.makedirs('android/app/src/main/res/drawable-xxxhdpi', exist_ok=True)
+    fg_size = 432
+    safe = int(fg_size * 0.667)  # 72dp / 108dp
+    fg_full = render_svg_icon(fg_size)
+    fg_scaled = fg_full.resize((safe, safe), Image.LANCZOS)
+    fg_canvas = Image.new('RGBA', (fg_size, fg_size), (0, 0, 0, 0))
+    fg_canvas.paste(fg_scaled, ((fg_size - safe) // 2, (fg_size - safe) // 2))
+    fg_canvas.save('android/app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png', 'PNG')
+    print('Generated: adaptive foreground')
+
+    os.makedirs('android/app/src/main/res/mipmap-anydpi-v26', exist_ok=True)
+    for name in ['ic_launcher', 'ic_launcher_round']:
+        with open(f'android/app/src/main/res/mipmap-anydpi-v26/{name}.xml', 'w') as f:
+            f.write('<?xml version="1.0" encoding="utf-8"?>\n'
+                    '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
+                    '    <background android:drawable="@color/ic_launcher_background"/>\n'
+                    '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>\n'
+                    '</adaptive-icon>\n')
+    print('Generated: adaptive icon XMLs')
+
+    with open('android/app/src/main/res/values/ic_launcher_background.xml', 'w') as f:
+        f.write('<?xml version="1.0" encoding="utf-8"?>\n'
+                '<resources>\n'
+                '    <color name="ic_launcher_background">#FFFFFF</color>\n'
+                '</resources>\n')
+    print('Generated: icon background color')
+
     # Windows/macOS/Web — classic blue-circle + white dots
     bg=(33,150,243); w=(255,255,255); wt=(255,255,255,220)
     def old_icon(s):
