@@ -1143,7 +1143,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLegalese.
   ///
   /// In en, this message translates to:
-  /// **'© 2025 Wu-HZ'**
+  /// **'© 2026 Wu-HZ'**
   String get aboutLegalese;
 
   /// No description provided for @aboutAppDescription.
@@ -1187,6 +1187,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Privacy Policy'**
   String get privacyPolicy;
+
+  /// No description provided for @changelog.
+  ///
+  /// In en, this message translates to:
+  /// **'Changelog'**
+  String get changelog;
+
+  /// No description provided for @changelog_1_1_0_1.
+  ///
+  /// In en, this message translates to:
+  /// **'Adaptive icon (SVG design, fills tablet icon area)'**
+  String get changelog_1_1_0_1;
+
+  /// No description provided for @changelog_1_1_0_2.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings page footer logo with theme tint'**
+  String get changelog_1_1_0_2;
+
+  /// No description provided for @changelog_1_1_0_3.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync persistence (survives app restart)'**
+  String get changelog_1_1_0_3;
+
+  /// No description provided for @changelog_1_1_0_4.
+  ///
+  /// In en, this message translates to:
+  /// **'Own messages on left layout option'**
+  String get changelog_1_1_0_4;
+
+  /// No description provided for @changelog_1_1_0_5.
+  ///
+  /// In en, this message translates to:
+  /// **'Portable mode as data-location picker dialog'**
+  String get changelog_1_1_0_5;
+
+  /// No description provided for @changelog_1_1_0_6.
+  ///
+  /// In en, this message translates to:
+  /// **'Full English localization (no hardcoded Chinese left)'**
+  String get changelog_1_1_0_6;
+
+  /// No description provided for @changelog_1_1_0_7.
+  ///
+  /// In en, this message translates to:
+  /// **'Content max-width 700px, pending page same constraint'**
+  String get changelog_1_1_0_7;
+
+  /// No description provided for @changelog_1_1_0_8.
+  ///
+  /// In en, this message translates to:
+  /// **'NavigationRail adapts to screen width (tablet landscape)'**
+  String get changelog_1_1_0_8;
+
+  /// No description provided for @changelog_1_1_0_9.
+  ///
+  /// In en, this message translates to:
+  /// **'APK slimmed to 19.5MB (arm64 only + minify)'**
+  String get changelog_1_1_0_9;
+
+  /// No description provided for @changelog_1_1_0_10.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings entry row height unified'**
+  String get changelog_1_1_0_10;
+
+  /// No description provided for @changelog_1_1_0_11.
+  ///
+  /// In en, this message translates to:
+  /// **'Config import/export (JSON sharing)'**
+  String get changelog_1_1_0_11;
+
+  /// No description provided for @changelog_1_1_0_12.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage usage widget with clear button'**
+  String get changelog_1_1_0_12;
+
+  /// No description provided for @changelog_1_1_0_13.
+  ///
+  /// In en, this message translates to:
+  /// **'Server enable/disable toggle'**
+  String get changelog_1_1_0_13;
+
+  /// No description provided for @changelog_1_1_0_14.
+  ///
+  /// In en, this message translates to:
+  /// **'Server emoji icon picker'**
+  String get changelog_1_1_0_14;
+
+  /// No description provided for @changelog_1_1_0_15.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag & drop with instant/pending modes'**
+  String get changelog_1_1_0_15;
+
+  /// No description provided for @changelog_1_1_0_16.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failure auto-fallback to pending page'**
+  String get changelog_1_1_0_16;
+
+  /// No description provided for @changelog_1_1_0_17.
+  ///
+  /// In en, this message translates to:
+  /// **'Error messages show HTTP status, URL, auth details'**
+  String get changelog_1_1_0_17;
+
+  /// No description provided for @changelog_1_1_0_18.
+  ///
+  /// In en, this message translates to:
+  /// **'Serialized init to avoid concurrent PROPFIND'**
+  String get changelog_1_1_0_18;
+
+  /// No description provided for @changelog_1_0_0_1.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV-based text bridge with chat interface'**
+  String get changelog_1_0_0_1;
+
+  /// No description provided for @changelog_1_0_0_2.
+  ///
+  /// In en, this message translates to:
+  /// **'File depot with folder navigation & multi-file upload'**
+  String get changelog_1_0_0_2;
+
+  /// No description provided for @changelog_1_0_0_3.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-server support with separate text/files selection'**
+  String get changelog_1_0_0_3;
+
+  /// No description provided for @changelog_1_0_0_4.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload/download queue with progress tracking'**
+  String get changelog_1_0_0_4;
+
+  /// No description provided for @changelog_1_0_0_5.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-pull for new messages'**
+  String get changelog_1_0_0_5;
+
+  /// No description provided for @changelog_1_0_0_6.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme mode, color picker, dynamic color (Material You)'**
+  String get changelog_1_0_0_6;
+
+  /// No description provided for @changelog_1_0_0_7.
+  ///
+  /// In en, this message translates to:
+  /// **'English/Chinese localization'**
+  String get changelog_1_0_0_7;
+
+  /// No description provided for @changelog_1_0_0_8.
+  ///
+  /// In en, this message translates to:
+  /// **'Window size/position remembered on desktop'**
+  String get changelog_1_0_0_8;
+
+  /// No description provided for @changelog_1_0_0_9.
+  ///
+  /// In en, this message translates to:
+  /// **'Portable mode (config.json next to executable)'**
+  String get changelog_1_0_0_9;
+
+  /// No description provided for @changelog_1_0_0_10.
+  ///
+  /// In en, this message translates to:
+  /// **'Original app icon design'**
+  String get changelog_1_0_0_10;
 
   /// No description provided for @comingSoon.
   ///

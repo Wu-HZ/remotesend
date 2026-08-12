@@ -589,7 +589,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutDescription => 'RemoteSend v1.0.0';
 
   @override
-  String get aboutLegalese => '© 2025 Wu-HZ';
+  String get aboutLegalese => '© 2026 Wu-HZ';
 
   @override
   String get aboutAppDescription =>
@@ -612,6 +612,108 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get changelog => 'Changelog';
+
+  @override
+  String get changelog_1_1_0_1 =>
+      'Adaptive icon (SVG design, fills tablet icon area)';
+
+  @override
+  String get changelog_1_1_0_2 => 'Settings page footer logo with theme tint';
+
+  @override
+  String get changelog_1_1_0_3 =>
+      'Auto-sync persistence (survives app restart)';
+
+  @override
+  String get changelog_1_1_0_4 => 'Own messages on left layout option';
+
+  @override
+  String get changelog_1_1_0_5 =>
+      'Portable mode as data-location picker dialog';
+
+  @override
+  String get changelog_1_1_0_6 =>
+      'Full English localization (no hardcoded Chinese left)';
+
+  @override
+  String get changelog_1_1_0_7 =>
+      'Content max-width 700px, pending page same constraint';
+
+  @override
+  String get changelog_1_1_0_8 =>
+      'NavigationRail adapts to screen width (tablet landscape)';
+
+  @override
+  String get changelog_1_1_0_9 => 'APK slimmed to 19.5MB (arm64 only + minify)';
+
+  @override
+  String get changelog_1_1_0_10 => 'Settings entry row height unified';
+
+  @override
+  String get changelog_1_1_0_11 => 'Config import/export (JSON sharing)';
+
+  @override
+  String get changelog_1_1_0_12 => 'Storage usage widget with clear button';
+
+  @override
+  String get changelog_1_1_0_13 => 'Server enable/disable toggle';
+
+  @override
+  String get changelog_1_1_0_14 => 'Server emoji icon picker';
+
+  @override
+  String get changelog_1_1_0_15 => 'Drag & drop with instant/pending modes';
+
+  @override
+  String get changelog_1_1_0_16 =>
+      'Upload failure auto-fallback to pending page';
+
+  @override
+  String get changelog_1_1_0_17 =>
+      'Error messages show HTTP status, URL, auth details';
+
+  @override
+  String get changelog_1_1_0_18 =>
+      'Serialized init to avoid concurrent PROPFIND';
+
+  @override
+  String get changelog_1_0_0_1 =>
+      'WebDAV-based text bridge with chat interface';
+
+  @override
+  String get changelog_1_0_0_2 =>
+      'File depot with folder navigation & multi-file upload';
+
+  @override
+  String get changelog_1_0_0_3 =>
+      'Multi-server support with separate text/files selection';
+
+  @override
+  String get changelog_1_0_0_4 =>
+      'Upload/download queue with progress tracking';
+
+  @override
+  String get changelog_1_0_0_5 => 'Auto-pull for new messages';
+
+  @override
+  String get changelog_1_0_0_6 =>
+      'Theme mode, color picker, dynamic color (Material You)';
+
+  @override
+  String get changelog_1_0_0_7 => 'English/Chinese localization';
+
+  @override
+  String get changelog_1_0_0_8 => 'Window size/position remembered on desktop';
+
+  @override
+  String get changelog_1_0_0_9 =>
+      'Portable mode (config.json next to executable)';
+
+  @override
+  String get changelog_1_0_0_10 => 'Original app icon design';
 
   @override
   String comingSoon(Object feature) {

@@ -11,6 +11,7 @@ import '../models/server_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../services/webdav_service.dart';
+import 'changelog_page.dart';
 
 /// Settings screen with Connection, General, Download, and Others sections.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -141,7 +142,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              'Version: 1.0.0',
+              'Version: 1.1.0',
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
@@ -158,9 +159,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.onSurface,
               ),
-              onPressed: () => _showAboutDialog(l10n),
-              icon: const Icon(Icons.info_outline, size: 16),
-              label: Text(l10n.about),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ChangelogPage()),
+                );
+              },
+              icon: const Icon(Icons.history, size: 16),
+              label: Text(l10n.changelog),
             ),
           ),
           const SizedBox(height: 80),
@@ -1418,8 +1423,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showAboutDialog(
       context: context,
       applicationName: 'RemoteSend',
-      applicationVersion: '1.0.0',
-      applicationLegalese: l10n.aboutLegalese,
+      applicationVersion: '1.1.0',
+      applicationLegalese: '© ${DateTime.now().year} Wu-HZ',
       children: [
         const SizedBox(height: 16),
         Text(l10n.aboutAppDescription),
