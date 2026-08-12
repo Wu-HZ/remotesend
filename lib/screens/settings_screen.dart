@@ -248,13 +248,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => _showDataLocationDialog(l10n, isPortableMode),
           ),
         ],
-
-        // Sync Interval
-        _ButtonEntry(
-          label: l10n.refreshInterval,
-          buttonLabel: l10n.refreshIntervalSeconds(_refreshInterval.toInt()),
-          onTap: () => _showSyncIntervalDialog(l10n),
-        ),
       ],
     );
   }
@@ -582,7 +575,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final primaryColor = config?.primaryColor ?? 0xFF009688;
     final useDynamicColor = config?.useDynamicColor ?? true;
     final chatOwnLeft = config?.chatOwnMessageLeft ?? false;
-    final autoSyncEnabled = config?.autoSyncEnabled ?? false;
 
     String themeModeText;
     switch (themeMode) {
@@ -624,11 +616,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           value: chatOwnLeft,
           onChanged: (value) => _saveChatOwnMessageLeft(l10n, value),
         ),
-        _BooleanEntry(
-          label: l10n.autoSyncEnabledLabel,
-          value: autoSyncEnabled,
-          onChanged: (value) => _saveAutoSyncEnabled(l10n, value),
-        ),
       ],
     );
   }
@@ -666,6 +653,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildTransferSection(AppLocalizations l10n) {
     final config = ref.watch(configProvider).valueOrNull;
     final dragMode = config?.dragMode ?? 'instant';
+    final autoSyncEnabled = config?.autoSyncEnabled ?? false;
 
     return _SettingsSection(
       title: l10n.sectionTransferSetting,
@@ -675,6 +663,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           label: l10n.dragModeLabel,
           buttonLabel: dragMode == 'instant' ? l10n.dragModeInstant : l10n.dragModePending,
           onTap: () => _showDragModeDialog(l10n, dragMode),
+        ),
+        _ButtonEntry(
+          label: l10n.refreshInterval,
+          buttonLabel: l10n.refreshIntervalSeconds(_refreshInterval.toInt()),
+          onTap: () => _showSyncIntervalDialog(l10n),
+        ),
+        _BooleanEntry(
+          label: l10n.autoSyncEnabledLabel,
+          value: autoSyncEnabled,
+          onChanged: (value) => _saveAutoSyncEnabled(l10n, value),
         ),
       ],
     );
