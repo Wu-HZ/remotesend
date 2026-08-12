@@ -50,3 +50,8 @@ opencode.json
 localsend_reference/
 mcp/
 icon_preview.png
+
+# Generated adaptive icons
+android/app/src/main/res/drawable-xxxhdpi/
+android/app/src/main/res/mipmap-anydpi-v26/
+android/app/src/main/res/values/ic_launcher_background.xml
