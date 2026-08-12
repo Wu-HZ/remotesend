@@ -127,6 +127,10 @@ flutter build apk --release --target-platform android-arm64
 - dynamic_color（Material You 取色）
 - flutter_localizations（国际化）
 
+## 致谢
+
+本项目的 UI 设计大量参考了 [LocalSend](https://github.com/localsend/localsend)，在此表示感谢。
+
 ## 开源协议
 
 MIT License
