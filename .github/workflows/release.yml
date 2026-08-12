@@ -93,6 +93,6 @@ jobs:
           files: |
             RemoteSend-Windows-${{ github.ref_name }}.zip
             RemoteSend-Android-${{ github.ref_name }}.apk
-          body_path: release_notes.md
+          generate_release_notes: true
           draft: false
           prerelease: false
