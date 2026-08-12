@@ -86,14 +86,20 @@ def main():
     ico_images = [render_svg_icon(s) for s in ico_sizes]
     ico_images[-1].save('windows/runner/resources/app_icon.ico', format='ICO', sizes=[(s, s) for s in ico_sizes])
     print('Generated: windows .ico')
-    for fn,sz in{'app_icon_16.png':16,'app_icon_32.png':32,'app_icon_64.png':64,'app_icon_128.png':128,'app_icon_256.png':256,'app_icon_512.png':512,'app_icon_1024.png':1024}.items():
-        render_svg_icon(sz).save(f'macos/Runner/Assets.xcassets/AppIcon.appiconset/{fn}','PNG')
+    # macOS icons (skip if dir missing)
+    mp = 'macos/Runner/Assets.xcassets/AppIcon.appiconset'
+    if os.path.exists(mp):
+        for fn,sz in{'app_icon_16.png':16,'app_icon_32.png':32,'app_icon_64.png':64,'app_icon_128.png':128,'app_icon_256.png':256,'app_icon_512.png':512,'app_icon_1024.png':1024}.items():
+            render_svg_icon(sz).save(f'{mp}/{fn}','PNG')
+    # Web icons
+    os.makedirs('web/icons', exist_ok=True)
     render_svg_icon(32).save('web/favicon.png','PNG')
     render_svg_icon(192).save('web/icons/Icon-192.png','PNG')
     render_svg_icon(512).save('web/icons/Icon-512.png','PNG')
     render_svg_icon(512).save('icon_preview.png','PNG')
 
     # Logo for settings page — white background + blue elements
+    os.makedirs('assets', exist_ok=True)
     logo = render_svg_icon(256)
     logo.save('assets/logo.png','PNG')
     # Tintable variant: remove white, keep blue elements on transparent
