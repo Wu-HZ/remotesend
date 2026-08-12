@@ -1331,6 +1331,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added {count} folder(s) to upload queue'**
   String addedFolders(Object count);
+
+  /// No description provided for @sectionTransferSetting.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get sectionTransferSetting;
+
+  /// No description provided for @sectionDataSetting.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get sectionDataSetting;
+
+  /// No description provided for @dragModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag & drop mode'**
+  String get dragModeLabel;
+
+  /// No description provided for @dragModeInstant.
+  ///
+  /// In en, this message translates to:
+  /// **'Instant upload'**
+  String get dragModeInstant;
+
+  /// No description provided for @dragModeInstantDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload files immediately to current server'**
+  String get dragModeInstantDesc;
+
+  /// No description provided for @dragModePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending page'**
+  String get dragModePending;
+
+  /// No description provided for @dragModePendingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a server after dropping files'**
+  String get dragModePendingDesc;
+
+  /// No description provided for @importConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Import config'**
+  String get importConfig;
+
+  /// No description provided for @exportConfig2.
+  ///
+  /// In en, this message translates to:
+  /// **'Export config'**
+  String get exportConfig2;
+
+  /// No description provided for @selectFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select file'**
+  String get selectFile;
+
+  /// No description provided for @exportButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportButton;
+
+  /// No description provided for @exportConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export configuration'**
+  String get exportConfigTitle;
+
+  /// No description provided for @exportConfigWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The exported file contains server passwords (plain text). Keep it safe.'**
+  String get exportConfigWarning;
+
+  /// No description provided for @continueExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue export'**
+  String get continueExport;
+
+  /// No description provided for @configExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Config exported'**
+  String get configExported;
+
+  /// No description provided for @configExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String configExportFailed(Object error);
+
+  /// No description provided for @configFileExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Config file exported'**
+  String get configFileExported;
+
+  /// No description provided for @invalidConfigFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid config file'**
+  String get invalidConfigFile;
+
+  /// No description provided for @noServersFoundInConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'No servers found (duplicate URL check)'**
+  String get noServersFoundInConfig;
+
+  /// No description provided for @importedServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {count} servers'**
+  String importedServers(Object count);
+
+  /// No description provided for @importFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed: {error}'**
+  String importFailed(Object error);
+
+  /// No description provided for @remoteSendConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'RemoteSend config'**
+  String get remoteSendConfig;
+
+  /// No description provided for @pendingUploadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending upload'**
+  String get pendingUploadTitle;
+
+  /// No description provided for @selectedFilesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected files'**
+  String get selectedFilesLabel;
+
+  /// No description provided for @fileCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Files: {count}'**
+  String fileCountLabel(Object count);
+
+  /// No description provided for @totalSizeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Size: {size}'**
+  String totalSizeLabel(Object size);
+
+  /// No description provided for @selectServerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select server'**
+  String get selectServerLabel;
+
+  /// No description provided for @dropFilesToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop files to start'**
+  String get dropFilesToStart;
+
+  /// No description provided for @currentServerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current server'**
+  String get currentServerLabel;
+
+  /// No description provided for @expandText.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand ↓'**
+  String get expandText;
+
+  /// No description provided for @collapseText.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse ↑'**
+  String get collapseText;
+
+  /// No description provided for @openLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openLink;
+
+  /// No description provided for @storageUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Used space'**
+  String get storageUsed;
+
+  /// No description provided for @clearStorageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm deletion'**
+  String get clearStorageTitle;
+
+  /// No description provided for @clearStorageConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This will delete {description}. This cannot be undone.'**
+  String clearStorageConfirm(Object description);
+
+  /// No description provided for @deleteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteLabel;
+
+  /// No description provided for @deleteFailedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed, please retry'**
+  String get deleteFailedRetry;
+
+  /// No description provided for @portableConfigPathFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'config.json next to app'**
+  String get portableConfigPathFallback;
+
+  /// No description provided for @emojiHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one emoji (Win+.)'**
+  String get emojiHint;
+
+  /// No description provided for @clearAllFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'All files on {name}'**
+  String clearAllFiles(Object name);
+
+  /// No description provided for @clearAllTexts.
+  ///
+  /// In en, this message translates to:
+  /// **'All texts on {name}'**
+  String clearAllTexts(Object name);
+
+  /// No description provided for @countdownSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'s'**
+  String get countdownSeconds;
 }
 
 class _AppLocalizationsDelegate

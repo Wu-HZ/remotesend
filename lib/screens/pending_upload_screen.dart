@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/server_config.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/config_provider.dart';
 import '../providers/pending_upload_provider.dart';
 import '../providers/upload_queue_provider.dart';
@@ -20,10 +21,11 @@ class PendingUploadScreen extends ConsumerWidget {
     final enabledServers = ref.watch(enabledServersProvider);
     final activeServer = ref.watch(activeFilesServerProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('待传页面'),
+        title: Text(l10n.pendingUploadTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -48,17 +50,17 @@ class PendingUploadScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Text('已选文件',
+                        Text(l10n.selectedFilesLabel,
                             style: Theme.of(context).textTheme.titleMedium),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('文件：${pending.filePaths.length}'),
+                    Text(l10n.fileCountLabel(pending.filePaths.length)),
                     FutureBuilder<int>(
                       future: _totalSize(pending.filePaths),
                       builder: (ctx, snap) {
                         final bytes = snap.data ?? 0;
-                        return Text('大小：${_formatSize(bytes)}',
+                        return Text(l10n.totalSizeLabel(_formatSize(bytes)),
                             style: TextStyle(
                                 fontSize: 13,
                                 color: colorScheme.outline));
@@ -96,7 +98,7 @@ class PendingUploadScreen extends ConsumerWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '选择服务器',
+                  l10n.selectServerLabel,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -112,7 +114,7 @@ class PendingUploadScreen extends ConsumerWidget {
                         Icon(Icons.cloud_upload_outlined,
                             size: 48, color: colorScheme.outline),
                         const SizedBox(height: 12),
-                        Text('拖入文件开始',
+                        Text(l10n.dropFilesToStart,
                             style: TextStyle(color: colorScheme.outline)),
                       ],
                     ),
@@ -154,7 +156,7 @@ class PendingUploadScreen extends ConsumerWidget {
                                 Padding(
                                   padding:
                                       const EdgeInsets.only(right: 4),
-                                  child: Text('当前服务器',
+                                  child: Text(l10n.currentServerLabel,
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: colorScheme.primary)),

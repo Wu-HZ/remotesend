@@ -683,4 +683,146 @@ class AppLocalizationsZh extends AppLocalizations {
   String addedFolders(Object count) {
     return '已添加 $count 个文件夹到上传队列';
   }
+
+  @override
+  String get sectionTransferSetting => '传输';
+
+  @override
+  String get sectionDataSetting => '数据';
+
+  @override
+  String get dragModeLabel => '拖拽上传模式';
+
+  @override
+  String get dragModeInstant => '直接上传';
+
+  @override
+  String get dragModeInstantDesc => '拖入文件后立即传输到当前服务器';
+
+  @override
+  String get dragModePending => '待传页面';
+
+  @override
+  String get dragModePendingDesc => '拖入后选择服务器再传输';
+
+  @override
+  String get importConfig => '导入配置';
+
+  @override
+  String get exportConfig2 => '导出配置';
+
+  @override
+  String get selectFile => '选择文件';
+
+  @override
+  String get exportButton => '导出';
+
+  @override
+  String get exportConfigTitle => '导出配置';
+
+  @override
+  String get exportConfigWarning => '配置文件包含服务器密码（明文），请妥善保管。';
+
+  @override
+  String get continueExport => '继续导出';
+
+  @override
+  String get configExported => '配置已导出';
+
+  @override
+  String configExportFailed(Object error) {
+    return '导出失败：$error';
+  }
+
+  @override
+  String get configFileExported => '配置文件已导出';
+
+  @override
+  String get invalidConfigFile => '文件格式不对';
+
+  @override
+  String get noServersFoundInConfig => '没有找到服务器数据（URL 重复检查）';
+
+  @override
+  String importedServers(Object count) {
+    return '已导入 $count 个服务器';
+  }
+
+  @override
+  String importFailed(Object error) {
+    return '导入失败：$error';
+  }
+
+  @override
+  String get remoteSendConfig => 'RemoteSend 配置';
+
+  @override
+  String get pendingUploadTitle => '待传页面';
+
+  @override
+  String get selectedFilesLabel => '已选文件';
+
+  @override
+  String fileCountLabel(Object count) {
+    return '文件：$count';
+  }
+
+  @override
+  String totalSizeLabel(Object size) {
+    return '大小：$size';
+  }
+
+  @override
+  String get selectServerLabel => '选择服务器';
+
+  @override
+  String get dropFilesToStart => '拖入文件开始';
+
+  @override
+  String get currentServerLabel => '当前服务器';
+
+  @override
+  String get expandText => '展开 ↓';
+
+  @override
+  String get collapseText => '收起 ↑';
+
+  @override
+  String get openLink => '打开';
+
+  @override
+  String get storageUsed => '已用空间';
+
+  @override
+  String get clearStorageTitle => '确认删除';
+
+  @override
+  String clearStorageConfirm(Object description) {
+    return '此操作将删除 $description，不可恢复。';
+  }
+
+  @override
+  String get deleteLabel => '删除';
+
+  @override
+  String get deleteFailedRetry => '删除失败，请重试';
+
+  @override
+  String get portableConfigPathFallback => '软件目录/config.json';
+
+  @override
+  String get emojiHint => '仅支持一个表情 (Win+.)';
+
+  @override
+  String clearAllFiles(Object name) {
+    return '$name上的所有文件';
+  }
+
+  @override
+  String clearAllTexts(Object name) {
+    return '$name上的所有文本';
+  }
+
+  @override
+  String get countdownSeconds => '秒';
 }

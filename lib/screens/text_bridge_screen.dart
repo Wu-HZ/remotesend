@@ -134,7 +134,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             if (canSync) StorageUsageWidget(
               provider: textStorageUsageProvider,
               clearDescription:
-                  '${activeServer?.name ?? ''}上的所有文本',
+                  l10n.clearAllTexts(activeServer?.name ?? ''),
               onClear: () async {
                 final service = ref.read(webDavTextServiceProvider);
                 final result = await service.clearAllMessages();
@@ -624,7 +624,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                             child: Row(
                               children: [
                                 Text(
-                                  '展开 ↓',
+                                  l10n.expandText,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: linkColor,
@@ -646,7 +646,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                           child: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              '收起 ↑',
+                              l10n.collapseText,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: linkColor,
@@ -739,7 +739,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               ),
             ),
             child: Text(
-              '打开',
+              l10n.openLink,
               style: TextStyle(
                 color: linkColor,
                 fontWeight: FontWeight.bold,

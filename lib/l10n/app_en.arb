@@ -402,5 +402,88 @@
     "placeholders": {
       "count": {}
     }
-  }
+  },
+
+  "sectionTransferSetting": "Transfer",
+  "sectionDataSetting": "Data",
+  "dragModeLabel": "Drag & drop mode",
+  "dragModeInstant": "Instant upload",
+  "dragModeInstantDesc": "Upload files immediately to current server",
+  "dragModePending": "Pending page",
+  "dragModePendingDesc": "Select a server after dropping files",
+  "importConfig": "Import config",
+  "exportConfig2": "Export config",
+  "selectFile": "Select file",
+  "exportButton": "Export",
+  "exportConfigTitle": "Export configuration",
+  "exportConfigWarning": "The exported file contains server passwords (plain text). Keep it safe.",
+  "continueExport": "Continue export",
+  "configExported": "Config exported",
+  "configExportFailed": "Export failed: {error}",
+  "@configExportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "configFileExported": "Config file exported",
+  "invalidConfigFile": "Invalid config file",
+  "noServersFoundInConfig": "No servers found (duplicate URL check)",
+  "importedServers": "Imported {count} servers",
+  "@importedServers": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "remoteSendConfig": "RemoteSend config",
+  "pendingUploadTitle": "Pending upload",
+  "selectedFilesLabel": "Selected files",
+  "fileCountLabel": "Files: {count}",
+  "@fileCountLabel": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "totalSizeLabel": "Size: {size}",
+  "@totalSizeLabel": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "selectServerLabel": "Select server",
+  "dropFilesToStart": "Drop files to start",
+  "currentServerLabel": "Current server",
+  "expandText": "Expand \u2193",
+  "collapseText": "Collapse \u2191",
+  "openLink": "Open",
+  "storageUsed": "Used space",
+  "clearStorageTitle": "Confirm deletion",
+  "clearStorageConfirm": "This will delete {description}. This cannot be undone.",
+  "@clearStorageConfirm": {
+    "placeholders": {
+      "description": {}
+    }
+  },
+  "deleteLabel": "Delete",
+  "deleteFailedRetry": "Delete failed, please retry",
+  "portableConfigPathFallback": "config.json next to app",
+  "emojiHint": "Only one emoji (Win+.)",
+  "clearAllFiles": "All files on {name}",
+  "@clearAllFiles": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "clearAllTexts": "All texts on {name}",
+  "@clearAllTexts": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "countdownSeconds": "s"
 }

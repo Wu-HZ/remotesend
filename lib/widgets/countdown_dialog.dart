@@ -8,6 +8,8 @@ Future<bool> showCountdownConfirmDialog({
   required String title,
   required String message,
   required String confirmLabel,
+  String cancelLabel = 'Cancel',
+  String countdownSuffix = 's',
   int countdownSeconds = 10,
 }) async {
   final completer = Completer<bool>();
@@ -38,7 +40,7 @@ Future<bool> showCountdownConfirmDialog({
                 Navigator.pop(ctx);
                 completer.complete(false);
               },
-              child: const Text('取消'),
+              child: Text(cancelLabel),
             ),
             TextButton(
               onPressed: remaining > 0
@@ -50,7 +52,7 @@ Future<bool> showCountdownConfirmDialog({
                       completer.complete(true);
                     },
               child: Text(
-                remaining > 0 ? '$confirmLabel ($remaining 秒)' : confirmLabel,
+                remaining > 0 ? '$confirmLabel ($remaining $countdownSuffix)' : confirmLabel,
               ),
             ),
           ],

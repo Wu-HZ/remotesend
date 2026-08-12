@@ -662,12 +662,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final dragMode = config?.dragMode ?? 'instant';
 
     return _SettingsSection(
-      title: '传输',
+      title: l10n.sectionTransferSetting,
       icon: Icons.swap_horiz,
       children: [
         _ButtonEntry(
-          label: '拖拽上传模式',
-          buttonLabel: dragMode == 'instant' ? '直接上传' : '待传页面',
+          label: l10n.dragModeLabel,
+          buttonLabel: dragMode == 'instant' ? l10n.dragModeInstant : l10n.dragModePending,
           onTap: () => _showDragModeDialog(l10n, dragMode),
         ),
       ],
@@ -678,11 +678,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('拖拽上传模式'),
+        title: Text(l10n.dragModeLabel),
         children: [
           RadioListTile<String>(
-            title: const Text('直接上传'),
-            subtitle: const Text('拖入文件后立即传输到当前服务器'),
+            title: Text(l10n.dragModeInstant),
+            subtitle: Text(l10n.dragModeInstantDesc),
             value: 'instant',
             groupValue: currentMode,
             onChanged: (v) {
@@ -691,8 +691,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
           RadioListTile<String>(
-            title: const Text('待传页面'),
-            subtitle: const Text('拖入后选择服务器再传输'),
+            title: Text(l10n.dragModePending),
+            subtitle: Text(l10n.dragModePendingDesc),
             value: 'pending',
             groupValue: currentMode,
             onChanged: (v) {
@@ -722,17 +722,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ==================== Data Section ====================
   Widget _buildDataSection(AppLocalizations l10n) {
     return _SettingsSection(
-      title: '数据',
+      title: l10n.sectionDataSetting,
       icon: Icons.folder_open,
       children: [
         _ButtonEntry(
-          label: '导入配置',
-          buttonLabel: '选择文件',
+          label: l10n.importConfig,
+          buttonLabel: l10n.selectFile,
           onTap: () => _importConfig(l10n),
         ),
         _ButtonEntry(
-          label: '导出配置',
-          buttonLabel: '导出',
+          label: l10n.exportConfig2,
+          buttonLabel: l10n.exportButton,
           onTap: () => _exportConfig(l10n),
         ),
       ],
@@ -764,20 +764,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (!mounted) return;
       if (count == -1) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('文件格式错误'),
+          SnackBar(
+              content: Text(l10n.invalidConfigFile),
               backgroundColor: Colors.red),
         );
       } else if (count == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('没有新服务器可导入（URL 重复）'),
+          SnackBar(
+              content: Text(l10n.noServersFoundInConfig),
               backgroundColor: Colors.orange),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('已导入 $count 个服务器'),
+              content: Text(l10n.importedServers(count)),
               backgroundColor: Colors.green),
         );
       }
@@ -785,7 +785,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('导入失败: $e'),
+              content: Text(l10n.importFailed(e)),
               backgroundColor: Colors.red),
         );
       }
@@ -800,16 +800,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('导出配置'),
-        content: const Text('配置文件包含服务器密码（明文），请妥善保管。'),
+        title: Text(l10n.exportConfigTitle),
+        content: Text(l10n.exportConfigWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('继续导出'),
+            child: Text(l10n.continueExport),
           ),
         ],
       ),
@@ -824,12 +824,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await file.writeAsString(jsonStr);
         await Share.shareXFiles(
           [XFile(file.path)],
-          subject: 'RemoteSend 配置',
+          subject: l10n.remoteSendConfig,
         );
       } else {
         // Desktop: save to chosen location
         final result = await FilePicker.platform.saveFile(
-          dialogTitle: '保存配置文件',
+          dialogTitle: l10n.configFileExported,
           fileName: 'remotesend_config.json',
           type: FileType.custom,
           allowedExtensions: ['json'],
@@ -838,8 +838,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           await File(result).writeAsString(jsonStr);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('配置已导出'),
+              SnackBar(
+                  content: Text(l10n.configExported),
                   backgroundColor: Colors.green),
             );
           }
@@ -849,7 +849,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('导出失败: $e'),
+              content: Text(l10n.configExportFailed(e)),
               backgroundColor: Colors.red),
         );
       }
@@ -1135,7 +1135,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           RadioListTile<bool>(
             title: Text(l10n.dataLocationPortable),
-            subtitle: Text(portablePath.isNotEmpty ? portablePath : '软件目录/config.json'),
+            subtitle: Text(portablePath.isNotEmpty ? portablePath : l10n.portableConfigPathFallback),
             value: true,
             groupValue: isPortable,
             onChanged: (v) {
@@ -1468,11 +1468,11 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                 // Emoji icon
                 TextFormField(
                   controller: _emojiController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Emoji',
                     prefixIcon: Icon(Icons.emoji_emotions),
                     border: OutlineInputBorder(),
-                    helperText: '仅支持一个表情 (Win+.)',
+                    helperText: l10n.emojiHint,
                     helperMaxLines: 1,
                   ),
                   maxLength: 2,

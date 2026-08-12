@@ -697,4 +697,148 @@ class AppLocalizationsEn extends AppLocalizations {
   String addedFolders(Object count) {
     return 'Added $count folder(s) to upload queue';
   }
+
+  @override
+  String get sectionTransferSetting => 'Transfer';
+
+  @override
+  String get sectionDataSetting => 'Data';
+
+  @override
+  String get dragModeLabel => 'Drag & drop mode';
+
+  @override
+  String get dragModeInstant => 'Instant upload';
+
+  @override
+  String get dragModeInstantDesc =>
+      'Upload files immediately to current server';
+
+  @override
+  String get dragModePending => 'Pending page';
+
+  @override
+  String get dragModePendingDesc => 'Select a server after dropping files';
+
+  @override
+  String get importConfig => 'Import config';
+
+  @override
+  String get exportConfig2 => 'Export config';
+
+  @override
+  String get selectFile => 'Select file';
+
+  @override
+  String get exportButton => 'Export';
+
+  @override
+  String get exportConfigTitle => 'Export configuration';
+
+  @override
+  String get exportConfigWarning =>
+      'The exported file contains server passwords (plain text). Keep it safe.';
+
+  @override
+  String get continueExport => 'Continue export';
+
+  @override
+  String get configExported => 'Config exported';
+
+  @override
+  String configExportFailed(Object error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String get configFileExported => 'Config file exported';
+
+  @override
+  String get invalidConfigFile => 'Invalid config file';
+
+  @override
+  String get noServersFoundInConfig => 'No servers found (duplicate URL check)';
+
+  @override
+  String importedServers(Object count) {
+    return 'Imported $count servers';
+  }
+
+  @override
+  String importFailed(Object error) {
+    return 'Import failed: $error';
+  }
+
+  @override
+  String get remoteSendConfig => 'RemoteSend config';
+
+  @override
+  String get pendingUploadTitle => 'Pending upload';
+
+  @override
+  String get selectedFilesLabel => 'Selected files';
+
+  @override
+  String fileCountLabel(Object count) {
+    return 'Files: $count';
+  }
+
+  @override
+  String totalSizeLabel(Object size) {
+    return 'Size: $size';
+  }
+
+  @override
+  String get selectServerLabel => 'Select server';
+
+  @override
+  String get dropFilesToStart => 'Drop files to start';
+
+  @override
+  String get currentServerLabel => 'Current server';
+
+  @override
+  String get expandText => 'Expand ↓';
+
+  @override
+  String get collapseText => 'Collapse ↑';
+
+  @override
+  String get openLink => 'Open';
+
+  @override
+  String get storageUsed => 'Used space';
+
+  @override
+  String get clearStorageTitle => 'Confirm deletion';
+
+  @override
+  String clearStorageConfirm(Object description) {
+    return 'This will delete $description. This cannot be undone.';
+  }
+
+  @override
+  String get deleteLabel => 'Delete';
+
+  @override
+  String get deleteFailedRetry => 'Delete failed, please retry';
+
+  @override
+  String get portableConfigPathFallback => 'config.json next to app';
+
+  @override
+  String get emojiHint => 'Only one emoji (Win+.)';
+
+  @override
+  String clearAllFiles(Object name) {
+    return 'All files on $name';
+  }
+
+  @override
+  String clearAllTexts(Object name) {
+    return 'All texts on $name';
+  }
+
+  @override
+  String get countdownSeconds => 's';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/webdav_provider.dart';
 import 'countdown_dialog.dart';
 
@@ -27,6 +28,7 @@ class StorageUsageWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(provider);
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -65,7 +67,7 @@ class StorageUsageWidget extends ConsumerWidget {
                     state.isLoading
                         ? '...'
                         : state.totalBytes == null
-                            ? '已用空间'
+                            ? l10n.storageUsed
                             : state.displaySize,
                     style: TextStyle(
                       fontSize: 12,
@@ -109,11 +111,14 @@ class StorageUsageWidget extends ConsumerWidget {
   }
 
   Future<void> _showClearDialog(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showCountdownConfirmDialog(
       context: context,
-      title: '确认删除',
-      message: '此操作将清空$clearDescription，不可恢复。',
-      confirmLabel: '删除',
+      title: l10n.clearStorageTitle,
+      message: l10n.clearStorageConfirm(clearDescription),
+      confirmLabel: l10n.deleteLabel,
+      cancelLabel: l10n.cancel,
+      countdownSuffix: l10n.countdownSeconds,
     );
 
     if (confirmed && context.mounted) {
@@ -122,7 +127,7 @@ class StorageUsageWidget extends ConsumerWidget {
         ref.read(provider.notifier).refresh();
         if (!success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('删除失败，请重试')),
+            SnackBar(content: Text(l10n.deleteFailedRetry)),
           );
         }
       }
