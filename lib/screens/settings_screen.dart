@@ -240,11 +240,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
 
         // Portable Mode (desktop only)
+        // Data Location (desktop only)
         if (isPortableAvailable) ...[
-          _BooleanEntry(
-            label: l10n.portableMode,
-            value: isPortableMode,
-            onChanged: _isSaving ? (_) {} : (value) => _togglePortableMode(l10n, value),
+          _ButtonEntry(
+            label: l10n.dataLocation,
+            buttonLabel: isPortableMode ? l10n.dataLocationPortable : l10n.dataLocationSystem,
+            onTap: () => _showDataLocationDialog(l10n, isPortableMode),
           ),
         ],
 
@@ -1113,12 +1114,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _togglePortableMode(AppLocalizations l10n, bool enable) async {
+  void _showDataLocationDialog(AppLocalizations l10n, bool isPortable) {
+    final configService = ref.read(configServiceProvider);
+    final portablePath = configService.portableConfigPath;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.dataLocation),
+        children: [
+          RadioListTile<bool>(
+            title: Text(l10n.dataLocationSystem),
+            subtitle: const Text('Windows: %LOCALAPPDATA%\\com.remotesend.remote_send\\shared_prefs.json'),
+            value: false,
+            groupValue: isPortable,
+            onChanged: (v) {
+              Navigator.pop(ctx);
+              if (v != isPortable) _saveDataLocation(l10n, v!);
+            },
+          ),
+          RadioListTile<bool>(
+            title: Text(l10n.dataLocationPortable),
+            subtitle: Text(portablePath.isNotEmpty ? portablePath : '软件目录/config.json'),
+            value: true,
+            groupValue: isPortable,
+            onChanged: (v) {
+              Navigator.pop(ctx);
+              if (v != isPortable) _saveDataLocation(l10n, v!);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveDataLocation(AppLocalizations l10n, bool portable) async {
     setState(() => _isSaving = true);
 
     try {
       final notifier = ref.read(configProvider.notifier);
-      final success = enable
+      final success = portable
           ? await notifier.enablePortableMode()
           : await notifier.disablePortableMode();
 
@@ -1127,7 +1162,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SnackBar(
             content: Text(
               success
-                  ? (enable ? l10n.portableModeEnabled : l10n.portableModeDisabled)
+                  ? (portable ? l10n.portableModeEnabled : l10n.portableModeDisabled)
                   : l10n.failedToChangePortableMode,
             ),
             backgroundColor: success ? Colors.green : Colors.red,

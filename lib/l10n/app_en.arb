@@ -276,6 +276,11 @@
   },
   "portableModeEnabled": "Portable mode enabled",
   "portableModeDisabled": "Portable mode disabled",
+  "portableModeDisableConfirm": "Disabling portable mode will store config in system directories instead.\n\nIt is recommended to keep it enabled (config stays next to the app).",
+
+  "dataLocation": "Data location",
+  "dataLocationSystem": "System directory",
+  "dataLocationPortable": "Portable",
   "failedToChangePortableMode": "Failed to change portable mode",
 
   "refreshInterval": "Sync interval",

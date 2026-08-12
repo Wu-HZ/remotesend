@@ -435,6 +435,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get portableModeDisabled => '便携模式已禁用';
 
   @override
+  String get portableModeDisableConfirm =>
+      '关闭便携模式后，配置将保存到系统目录。\n\n建议保持开启（配置文件放在软件目录下）。';
+
+  @override
+  String get dataLocation => '数据位置';
+
+  @override
+  String get dataLocationSystem => '系统目录';
+
+  @override
+  String get dataLocationPortable => '便携模式';
+
+  @override
   String get failedToChangePortableMode => '更改便携模式失败';
 
   @override

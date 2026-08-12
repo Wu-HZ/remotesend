@@ -443,6 +443,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get portableModeDisabled => 'Portable mode disabled';
 
   @override
+  String get portableModeDisableConfirm =>
+      'Disabling portable mode will store config in system directories instead.\n\nIt is recommended to keep it enabled (config stays next to the app).';
+
+  @override
+  String get dataLocation => 'Data location';
+
+  @override
+  String get dataLocationSystem => 'System directory';
+
+  @override
+  String get dataLocationPortable => 'Portable';
+
+  @override
   String get failedToChangePortableMode => 'Failed to change portable mode';
 
   @override

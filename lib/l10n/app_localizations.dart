@@ -858,6 +858,30 @@ abstract class AppLocalizations {
   /// **'Portable mode disabled'**
   String get portableModeDisabled;
 
+  /// No description provided for @portableModeDisableConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabling portable mode will store config in system directories instead.\n\nIt is recommended to keep it enabled (config stays next to the app).'**
+  String get portableModeDisableConfirm;
+
+  /// No description provided for @dataLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Data location'**
+  String get dataLocation;
+
+  /// No description provided for @dataLocationSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System directory'**
+  String get dataLocationSystem;
+
+  /// No description provided for @dataLocationPortable.
+  ///
+  /// In en, this message translates to:
+  /// **'Portable'**
+  String get dataLocationPortable;
+
   /// No description provided for @failedToChangePortableMode.
   ///
   /// In en, this message translates to:

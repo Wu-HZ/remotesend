@@ -158,6 +158,11 @@
   "portableModeConfig": "配置：{path}",
   "portableModeEnabled": "便携模式已启用",
   "portableModeDisabled": "便携模式已禁用",
+  "portableModeDisableConfirm": "关闭便携模式后，配置将保存到系统目录。\n\n建议保持开启（配置文件放在软件目录下）。",
+
+  "dataLocation": "数据位置",
+  "dataLocationSystem": "系统目录",
+  "dataLocationPortable": "便携模式",
   "failedToChangePortableMode": "更改便携模式失败",
 
   "refreshInterval": "同步间隔",

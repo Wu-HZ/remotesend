@@ -50,6 +50,7 @@ class ConfigService {
   /// Priority:
   /// 1. If portable config.json exists, load from there
   /// 2. Otherwise, load from SharedPreferences
+  /// 3. On desktop with no existing config, default to portable mode
   Future<AppConfig> loadConfig() async {
     // Try portable config first (desktop platforms)
     if (_portableConfigFile != null && _portableConfigFile!.existsSync()) {
@@ -67,8 +68,20 @@ class ConfigService {
       }
     }
 
-    // Fall back to SharedPreferences
-    return _loadFromPrefs();
+    // Try SharedPreferences
+    final prefsConfig = _loadFromPrefs();
+
+    // On desktop, if no config exists at all, default to portable
+    // so new users don't leave traces in system directories
+    if (_portableConfigFile != null &&
+        prefsConfig.servers.isEmpty &&
+        !_portableConfigFile!.existsSync()) {
+      final defaultConfig = AppConfig(portableMode: true);
+      await _saveToPortableFile(defaultConfig);
+      return defaultConfig;
+    }
+
+    return prefsConfig;
   }
 
   /// Save configuration to storage.
