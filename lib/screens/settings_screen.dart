@@ -111,11 +111,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildOthersSection(l10n),
           const SizedBox(height: 32),
 
-          // Footer
+          // Footer: Logo + App Name
+          const SizedBox(height: 24),
+          Center(
+            child: ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.primary,
+                BlendMode.srcIn,
+              ),
+              child: Image.asset(
+                'assets/logo_tint.png',
+                width: 160,
+                height: 160,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Center(
             child: Text(
               'RemoteSend',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -129,7 +147,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           Center(
             child: Text(
-              '\u00a9 ${DateTime.now().year}',
+              '© ${DateTime.now().year} Wu-HZ',
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),

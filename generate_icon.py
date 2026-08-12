@@ -92,6 +92,20 @@ def main():
     render_svg_icon(192).save('web/icons/Icon-192.png','PNG')
     render_svg_icon(512).save('web/icons/Icon-512.png','PNG')
     render_svg_icon(512).save('icon_preview.png','PNG')
+
+    # Logo for settings page — white background + blue elements
+    logo = render_svg_icon(256)
+    logo.save('assets/logo.png','PNG')
+    # Tintable variant: remove white, keep blue elements on transparent
+    logo_tint = logo.copy()
+    px = logo_tint.load()
+    for y in range(logo_tint.height):
+        for x in range(logo_tint.width):
+            r, g, b, a = px[x, y]
+            if r > 240 and g > 240 and b > 240:
+                px[x, y] = (r, g, b, 0)
+    logo_tint.save('assets/logo_tint.png','PNG')
+
     print('Done!')
 
 if __name__ == '__main__':
