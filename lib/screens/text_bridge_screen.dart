@@ -50,6 +50,13 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     await ref.read(messageHistoryProvider.notifier).initialize();
     _scrollToBottom();
+
+    // Start auto-sync if enabled in config
+    final config = ref.read(configProvider).valueOrNull;
+    if (config?.autoSyncEnabled == true) {
+      final interval = config!.refreshIntervalSeconds;
+      ref.read(autoPullProvider.notifier).enable(interval);
+    }
   }
 
   void _onTextChanged() {
@@ -319,7 +326,14 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   void _toggleAutoSync() {
     final config = ref.read(configProvider).valueOrNull;
     final refreshInterval = config?.refreshIntervalSeconds ?? 3;
-    ref.read(autoPullProvider.notifier).toggle(refreshInterval);
+    final notifier = ref.read(autoPullProvider.notifier);
+    notifier.toggle(refreshInterval);
+    // Persist new state
+    final newEnabled = ref.read(autoPullProvider).isEnabled;
+    if (config != null && config.autoSyncEnabled != newEnabled) {
+      ref.read(configProvider.notifier)
+          .updateConfig(config.copyWith(autoSyncEnabled: newEnabled));
+    }
   }
 
   Future<void> _manualRefresh() async {

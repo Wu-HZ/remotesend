@@ -582,6 +582,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final primaryColor = config?.primaryColor ?? 0xFF009688;
     final useDynamicColor = config?.useDynamicColor ?? true;
     final chatOwnLeft = config?.chatOwnMessageLeft ?? false;
+    final autoSyncEnabled = config?.autoSyncEnabled ?? false;
 
     String themeModeText;
     switch (themeMode) {
@@ -622,6 +623,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           label: l10n.chatOwnMessageLeftLabel,
           value: chatOwnLeft,
           onChanged: (value) => _saveChatOwnMessageLeft(l10n, value),
+        ),
+        _BooleanEntry(
+          label: l10n.autoSyncEnabledLabel,
+          value: autoSyncEnabled,
+          onChanged: (value) => _saveAutoSyncEnabled(l10n, value),
         ),
       ],
     );
@@ -717,6 +723,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (currentConfig == null) return;
     final newConfig = currentConfig.copyWith(chatOwnMessageLeft: value);
     await ref.read(configProvider.notifier).updateConfig(newConfig);
+  }
+
+  Future<void> _saveAutoSyncEnabled(AppLocalizations l10n, bool value) async {
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null) return;
+    final newConfig = currentConfig.copyWith(autoSyncEnabled: value);
+    await ref.read(configProvider.notifier).updateConfig(newConfig);
+    // Also start/stop auto-pull immediately
+    if (value) {
+      final interval = currentConfig.refreshIntervalSeconds;
+      ref.read(autoPullProvider.notifier).enable(interval);
+    } else {
+      ref.read(autoPullProvider.notifier).disable();
+    }
   }
 
   // ==================== Data Section ====================

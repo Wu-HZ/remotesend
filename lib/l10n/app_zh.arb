@@ -249,6 +249,8 @@
   "dropFilesToUpload": "拖放文件到此处上传",
   "chatOwnMessageLeftLabel": "自己消息显示在左侧",
   "chatOwnMessageLeftDescription": "将自己的消息也放在左侧，与远程消息对齐",
+  "autoSyncEnabledLabel": "自动同步文本",
+  "autoSyncEnabledDescription": "启动时自动拉取新消息",
   "connectToWebDavFirst": "请先连接WebDAV",
   "goToSettingsToConfigureConnection": "前往设置配置连接",
   "connectToWebDavFirstToUploadFiles": "请先连接WebDAV以上传文件",

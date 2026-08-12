@@ -387,6 +387,8 @@
   "dropFilesToUpload": "Drop files here to upload",
   "chatOwnMessageLeftLabel": "Show own messages on left",
   "chatOwnMessageLeftDescription": "Place your own messages on the left side like remote messages",
+  "autoSyncEnabledLabel": "Auto-sync text",
+  "autoSyncEnabledDescription": "Automatically pull new messages on launch",
   "connectToWebDavFirst": "Connect to WebDAV first",
   "goToSettingsToConfigureConnection": "Go to Settings to configure connection",
   "connectToWebDavFirstToUploadFiles": "Connect to WebDAV first to upload files",

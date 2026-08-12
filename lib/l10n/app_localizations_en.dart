@@ -678,6 +678,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Place your own messages on the left side like remote messages';
 
   @override
+  String get autoSyncEnabledLabel => 'Auto-sync text';
+
+  @override
+  String get autoSyncEnabledDescription =>
+      'Automatically pull new messages on launch';
+
+  @override
   String get connectToWebDavFirst => 'Connect to WebDAV first';
 
   @override

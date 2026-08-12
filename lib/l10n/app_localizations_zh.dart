@@ -666,6 +666,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatOwnMessageLeftDescription => '将自己的消息也放在左侧，与远程消息对齐';
 
   @override
+  String get autoSyncEnabledLabel => '自动同步文本';
+
+  @override
+  String get autoSyncEnabledDescription => '启动时自动拉取新消息';
+
+  @override
   String get connectToWebDavFirst => '请先连接WebDAV';
 
   @override

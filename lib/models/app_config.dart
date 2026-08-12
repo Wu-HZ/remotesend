@@ -46,6 +46,7 @@ class AppConfig {
   final String locale; // 'system', 'en', 'zh'
   final String dragMode; // 'instant' or 'pending'
   final bool chatOwnMessageLeft; // show own messages on left side too
+  final bool autoSyncEnabled; // auto-sync text messages on launch
 
   AppConfig({
     this.version = currentVersion,
@@ -62,6 +63,7 @@ class AppConfig {
     this.locale = 'system',
     this.dragMode = 'instant',
     this.chatOwnMessageLeft = false,
+    this.autoSyncEnabled = false,
   }) : localName = localName ?? _generateRandomName();
 
   /// Get the active server for Text Bridge.
@@ -121,6 +123,7 @@ class AppConfig {
     String? locale,
     String? dragMode,
     bool? chatOwnMessageLeft,
+    bool? autoSyncEnabled,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -137,6 +140,7 @@ class AppConfig {
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
+      autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
     );
   }
 
@@ -154,6 +158,7 @@ class AppConfig {
     String? locale,
     String? dragMode,
     bool? chatOwnMessageLeft,
+    bool? autoSyncEnabled,
     bool clearText = false,
     bool clearFiles = false,
   }) {
@@ -172,6 +177,7 @@ class AppConfig {
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
+      autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
     );
   }
 
@@ -192,6 +198,7 @@ class AppConfig {
       'locale': locale,
       'dragMode': dragMode,
       'chatOwnMessageLeft': chatOwnMessageLeft,
+      'autoSyncEnabled': autoSyncEnabled,
     };
   }
 
@@ -229,6 +236,7 @@ class AppConfig {
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
+      autoSyncEnabled: json['autoSyncEnabled'] as bool? ?? false,
     );
   }
 
@@ -278,6 +286,7 @@ class AppConfig {
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
+      autoSyncEnabled: json['autoSyncEnabled'] as bool? ?? false,
     );
   }
 
@@ -304,6 +313,7 @@ class AppConfig {
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
+      autoSyncEnabled: json['autoSyncEnabled'] as bool? ?? false,
     );
   }
 
@@ -333,6 +343,7 @@ class AppConfig {
         other.locale != locale ||
         other.dragMode != dragMode ||
         other.chatOwnMessageLeft != chatOwnMessageLeft ||
+        other.autoSyncEnabled != autoSyncEnabled ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -359,6 +370,7 @@ class AppConfig {
       locale,
       dragMode,
       chatOwnMessageLeft,
+      autoSyncEnabled,
     );
   }
 

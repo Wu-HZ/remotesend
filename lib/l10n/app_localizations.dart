@@ -1302,6 +1302,18 @@ abstract class AppLocalizations {
   /// **'Place your own messages on the left side like remote messages'**
   String get chatOwnMessageLeftDescription;
 
+  /// No description provided for @autoSyncEnabledLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync text'**
+  String get autoSyncEnabledLabel;
+
+  /// No description provided for @autoSyncEnabledDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically pull new messages on launch'**
+  String get autoSyncEnabledDescription;
+
   /// No description provided for @connectToWebDavFirst.
   ///
   /// In en, this message translates to:
