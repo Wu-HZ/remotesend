@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
@@ -971,7 +972,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _ButtonEntry(
           label: l10n.sourceCode,
           buttonLabel: l10n.open,
-          onTap: () => _showComingSoon(l10n, l10n.openGitHub),
+          onTap: () => launchUrl(Uri.parse('https://${l10n.sourceCodeUrl}')),
         ),
         _ButtonEntry(
           label: l10n.donation,
