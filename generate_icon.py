@@ -59,8 +59,9 @@ def main():
         'mipmap-xxhdpi': 144, 'mipmap-xxxhdpi': 192,
     }
     for folder, size in android_sizes.items():
+        # Scale up artwork — dots overflow canvas edge, launcher mask clips them
         icon = create_icon(size, dot_color, trans_color, draw_ring=True,
-                           custom_radii=(int(size*0.10), int(size*0.18), int(size*0.28)))
+                           custom_radii=(int(size*0.14), int(size*0.28), int(size*0.42)))
         path = f'android/app/src/main/res/{folder}/ic_launcher.png'
         icon.save(path, 'PNG')
         print(f'Generated: {path}')
