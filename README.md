@@ -133,4 +133,4 @@ flutter build apk --release --target-platform android-arm64
 
 ## 开源协议
 
-MIT License
+Apache License 2.0
