@@ -1,0 +1,44 @@
+Categories:
+  - Internet
+License: Apache-2.0
+SourceCode: https://github.com/Wu-HZ/remotesend
+IssueTracker: https://github.com/Wu-HZ/remotesend/issues
+Changelog: https://github.com/Wu-HZ/remotesend/releases
+
+AutoName: RemoteSend
+Summary: WebDAV-based text & file transfer between devices
+Description: |
+  RemoteSend transfers text messages and files between your devices
+  through any standard WebDAV server (Nextcloud, Alist, Synology NAS,
+  etc.). No proprietary backend, no same-LAN requirement.
+
+  Features:
+  * Chat-style text bridge with auto-sync
+  * File depot with folder navigation
+  * Multi-server support
+  * Config import/export
+  * Portable mode on desktop
+
+RepoType: git
+Repo: https://github.com/Wu-HZ/remotesend
+
+Builds:
+  - versionName: '1.1.0'
+    versionCode: 2
+    commit: v1.1.0
+    subdir: .
+    output: build/app/outputs/flutter-apk/app-release.apk
+    sudo:
+      - apt-get update
+      - apt-get install -y python3-pil
+    prebuild:
+      - flutter pub get
+      - flutter gen-l10n
+      - python3 generate_icon.py
+    build:
+      - flutter build apk --release --target-platform android-arm64
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags v\d+\.\d+\.\d+
+CurrentVersion: 1.1.0
+CurrentVersionCode: 2
