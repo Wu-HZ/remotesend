@@ -33,6 +33,42 @@ class PendingUploadScreen extends ConsumerWidget {
             onClose();
           },
         ),
+        actions: [
+          if (activeServer != null)
+            Tooltip(
+              message: l10n.currentServerLabel,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (activeServer.emoji.isNotEmpty)
+                      Text(
+                        activeServer.emoji,
+                        style: const TextStyle(fontSize: 18),
+                      )
+                    else
+                      Icon(Icons.cloud, size: 20, color: colorScheme.primary),
+                    const SizedBox(width: 4),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 120),
+                      child: Text(
+                        activeServer.name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          IconButton(
+            onPressed: pending.filePaths.isEmpty || activeServer == null
+                ? null
+                : () => _uploadToServer(ref, activeServer),
+            icon: Icon(Icons.send, color: colorScheme.primary),
+            tooltip: l10n.uploadToServer,
+          ),
+        ],
       ),
       body: Center(
         child: ConstrainedBox(
