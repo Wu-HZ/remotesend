@@ -576,6 +576,18 @@ abstract class AppLocalizations {
   /// **'Downloaded: {name}'**
   String downloaded(Object name);
 
+  /// No description provided for @downloadedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get downloadedStatus;
+
+  /// No description provided for @alreadyDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Already downloaded: {name}'**
+  String alreadyDownloaded(Object name);
+
   /// No description provided for @openFolder.
   ///
   /// In en, this message translates to:

@@ -97,6 +97,8 @@
   "addedFolderToQueue": "已添加文件夹 {name} 到上传队列",
 
   "downloaded": "已下载：{name}",
+  "downloadedStatus": "已下载",
+  "alreadyDownloaded": "已下载：{name}",
   "openFolder": "打开文件夹",
   "downloadFailed": "下载失败",
   "downloadedFolderWithCount": "已下载文件夹 {name}（{count}个文件）",

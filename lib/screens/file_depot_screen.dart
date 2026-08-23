@@ -11,6 +11,7 @@ import '../models/server_config.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/upload_queue_provider.dart';
+import '../providers/download_cache_provider.dart';
 import '../providers/download_state_provider.dart';
 import '../providers/pending_upload_provider.dart';
 import '../services/webdav_service.dart';
@@ -766,6 +767,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       );
     }
 
+    final downloadCache = ref.watch(downloadCacheProvider);
     final showClearSelection = _selectedFileKeys.length > 1;
     final selectionRowCount = showClearSelection ? 1 : 0;
     final parentRowCount = fileListState.isAtRoot ? 0 : 1;
@@ -806,7 +808,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               ? contentIndex
               : contentIndex - 1;
           final file = fileListState.files[fileIndex];
-          return _buildFileItem(l10n, file);
+          return _buildFileItem(l10n, file, downloadCache);
         },
       ),
     );
@@ -886,7 +888,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildFileItem(AppLocalizations l10n, RemoteFile file) {
+  Widget _buildFileItem(
+    AppLocalizations l10n,
+    RemoteFile file,
+    DownloadCacheState downloadCache,
+  ) {
     final isDirectory = file.isDirectory;
 
     final item = GestureDetector(
@@ -936,7 +942,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         ),
         title: Text(file.name, overflow: TextOverflow.ellipsis),
         subtitle: Text(
-          _buildSubtitle(l10n, file),
+          _buildSubtitle(l10n, file, downloadCache),
           style: TextStyle(
             color: Theme.of(context).colorScheme.outline,
             fontSize: 12,
@@ -1202,7 +1208,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     });
   }
 
-  String _buildSubtitle(AppLocalizations l10n, RemoteFile file) {
+  String _buildSubtitle(
+    AppLocalizations l10n,
+    RemoteFile file,
+    DownloadCacheState downloadCache,
+  ) {
     final parts = <String>[];
     if (file.isDirectory) {
       parts.add(l10n.folder);
@@ -1211,6 +1221,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
     if (file.modifiedTime != null) {
       parts.add(_formatDateTime(l10n, file.modifiedTime!));
+    }
+
+    final serverId = ref.read(activeFilesServerProvider)?.id;
+    if (serverId != null &&
+        downloadCache.isDownloaded(serverId: serverId, file: file)) {
+      parts.add(l10n.downloadedStatus);
     }
     return parts.join(' • ');
   }
@@ -1493,8 +1509,36 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
+  void _showAlreadyDownloaded(AppLocalizations l10n, String fileName) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.alreadyDownloaded(fileName)),
+        action: SnackBarAction(
+          label: l10n.openFolder,
+          onPressed: _openDownloadLocation,
+        ),
+      ),
+    );
+  }
+
   Future<void> _downloadFile(AppLocalizations l10n, RemoteFile file) async {
     try {
+      final fileListState = ref.read(fileListProvider);
+      final remoteName = fileListState.currentPath.isEmpty
+          ? file.name
+          : '${fileListState.currentPath}/${file.name}';
+      final serverId = ref.read(activeFilesServerProvider)?.id;
+
+      if (serverId != null &&
+          ref
+                  .read(downloadCacheProvider)
+                  .localPathFor(serverId: serverId, file: file) !=
+              null) {
+        _showAlreadyDownloaded(l10n, file.name);
+        return;
+      }
+
       // Use configured download location or system default
       String? downloadPath;
 
@@ -1519,12 +1563,6 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
       if (downloadPath == null) return;
 
-      // Get the current path to build the full remote path
-      final fileListState = ref.read(fileListProvider);
-      final remoteName = fileListState.currentPath.isEmpty
-          ? file.name
-          : '${fileListState.currentPath}/${file.name}';
-
       // Use the download provider
       final success = await ref
           .read(downloadStateProvider.notifier)
@@ -1533,6 +1571,16 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             localPath: downloadPath,
             fileSize: file.size,
           );
+
+      if (success && serverId != null) {
+        await ref
+            .read(downloadCacheProvider.notifier)
+            .markDownloaded(
+              serverId: serverId,
+              file: file,
+              localPath: downloadPath,
+            );
+      }
 
       if (mounted) {
         // Skip if state was cleared by user during download
@@ -1592,6 +1640,17 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final dlState = ref.read(downloadStateProvider);
     if (dlState.isDownloading) return;
 
+    final fileListState = ref.read(fileListProvider);
+    final serverId = ref.read(activeFilesServerProvider)?.id;
+    if (serverId != null &&
+        ref
+                .read(downloadCacheProvider)
+                .localPathFor(serverId: serverId, file: folder) !=
+            null) {
+      _showAlreadyDownloaded(l10n, folder.name);
+      return;
+    }
+
     try {
       // Use configured download location or system default
       String? downloadBasePath;
@@ -1617,7 +1676,6 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       final localFolderPath = p.join(downloadBasePath, folder.name);
 
       // Get the current path to build the full remote path
-      final fileListState = ref.read(fileListProvider);
       final remoteFolderName = fileListState.currentPath.isEmpty
           ? folder.name
           : '${fileListState.currentPath}/${folder.name}';
@@ -1629,6 +1687,16 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             remoteFolderName: remoteFolderName,
             localFolderPath: localFolderPath,
           );
+
+      if (downloadResult.isSuccess && serverId != null) {
+        await ref
+            .read(downloadCacheProvider.notifier)
+            .markDownloaded(
+              serverId: serverId,
+              file: folder,
+              localPath: localFolderPath,
+            );
+      }
 
       if (mounted) {
         if (downloadResult.isSuccess) {

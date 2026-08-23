@@ -286,6 +286,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get downloadedStatus => 'Downloaded';
+
+  @override
+  String alreadyDownloaded(Object name) {
+    return 'Already downloaded: $name';
+  }
+
+  @override
   String get openFolder => 'Open folder';
 
   @override

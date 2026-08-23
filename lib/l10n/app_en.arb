@@ -183,6 +183,13 @@
       "name": {}
     }
   },
+  "downloadedStatus": "Downloaded",
+  "alreadyDownloaded": "Already downloaded: {name}",
+  "@alreadyDownloaded": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "openFolder": "Open folder",
   "downloadFailed": "Download failed",
   "downloadedFolderWithCount": "Downloaded folder \"{name}\" ({count} files)",

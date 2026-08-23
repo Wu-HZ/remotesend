@@ -282,6 +282,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get downloadedStatus => '已下载';
+
+  @override
+  String alreadyDownloaded(Object name) {
+    return '已下载：$name';
+  }
+
+  @override
   String get openFolder => '打开文件夹';
 
   @override
