@@ -8,6 +8,7 @@ import '../models/text_message.dart';
 import '../providers/config_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/message_history_provider.dart';
+import '../widgets/server_list_panel.dart';
 import '../widgets/storage_usage_widget.dart';
 
 /// Text Bridge screen with chat-like interface.
@@ -100,10 +101,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   List<String> _extractUrls(String text) {
-    return _urlRegex
-        .allMatches(text.trim())
-        .map((m) => m.group(0)!)
-        .toList();
+    return _urlRegex.allMatches(text.trim()).map((m) => m.group(0)!).toList();
   }
 
   @override
@@ -116,7 +114,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final selectedDate = ref.watch(selectedDateProvider);
     final activeServer = ref.watch(activeTextServerProvider);
     final servers = ref.watch(enabledServersProvider);
-    final ownOnLeft = ref.watch(configProvider).valueOrNull?.chatOwnMessageLeft ?? false;
+    final ownOnLeft =
+        ref.watch(configProvider).valueOrNull?.chatOwnMessageLeft ?? false;
     final l10n = AppLocalizations.of(context)!;
 
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
@@ -125,140 +124,194 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       }
     });
 
-    if (!_initialized && connectionStatus.state == WebDavConnectionState.connected) {
+    if (!_initialized &&
+        connectionStatus.state == WebDavConnectionState.connected) {
       Future.microtask(_initialize);
     }
 
-    final isConnected = connectionStatus.state == WebDavConnectionState.connected;
+    final isConnected =
+        connectionStatus.state == WebDavConnectionState.connected;
     final canSync = isConfigured && isConnected;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          children: [
-            if (canSync) StorageUsageWidget(
-              provider: textStorageUsageProvider,
-              clearDescription:
-                  l10n.clearAllTexts(activeServer?.name ?? ''),
-              onClear: () async {
-                final service = ref.read(webDavTextServiceProvider);
-                final result = await service.clearAllMessages();
-                if (result.isSuccess) {
-                  ref.read(messageHistoryProvider.notifier).refresh();
-                }
-                return result.isSuccess;
-              },
-            ),
-            const Spacer(),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: canSync
-                    ? () => _showDatePicker(historyState.availableDates, l10n)
-                    : null,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_formatDateForTitle(selectedDate, l10n)),
-                      if (canSync) ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_drop_down, size: 20),
-                      ],
-                    ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showServerList =
+            servers.length > 1 && constraints.maxWidth >= 650;
+
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+            surfaceTintColor: Colors.transparent,
+            title: Row(
+              children: [
+                if (canSync)
+                  StorageUsageWidget(
+                    provider: textStorageUsageProvider,
+                    clearDescription: l10n.clearAllTexts(
+                      activeServer?.name ?? '',
+                    ),
+                    onClear: () async {
+                      final service = ref.read(webDavTextServiceProvider);
+                      final result = await service.clearAllMessages();
+                      if (result.isSuccess) {
+                        ref.read(messageHistoryProvider.notifier).refresh();
+                      }
+                      return result.isSuccess;
+                    },
                   ),
-                ),
-              ),
-            ),
-            const Spacer(),
-          ],
-        ),
-        actions: [
-          if (servers.isNotEmpty)
-            _buildServerSelector(activeServer, servers, l10n),
-          if (canSync)
-            IconButton(
-              onPressed: () => _toggleAutoSync(),
-              icon: Icon(
-                autoPullState.isEnabled ? Icons.sync : Icons.sync_disabled,
-                color: autoPullState.isEnabled
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
-              ),
-              tooltip: autoPullState.isEnabled ? l10n.autoSyncOn : l10n.autoSyncOff,
-            ),
-          if (canSync)
-            IconButton(
-              onPressed: historyState.isLoading ? null : _manualRefresh,
-              icon: historyState.isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.refresh),
-              tooltip: l10n.refresh,
-            ),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
-          child: Column(
-            children: [
-              if (!canSync) _buildWarningBanner(isConfigured, isConnected, l10n),
-
-          Expanded(
-            child: historyState.isLoading && historyState.messages.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : historyState.messages.isEmpty
-                    ? _buildEmptyState(selectedDate, l10n)
-                    : _buildMessageList(historyState.messages, localName, l10n, ownOnLeft),
-          ),
-
-          if (historyState.error != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.red.withAlpha(20),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      historyState.error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 14),
+                const Spacer(),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: canSync
+                        ? () =>
+                              _showDatePicker(historyState.availableDates, l10n)
+                        : null,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_formatDateForTitle(selectedDate, l10n)),
+                          if (canSync) ...[
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_drop_down, size: 20),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 16),
-                    onPressed: () => ref.read(messageHistoryProvider.notifier).clearError(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                ),
+                const Spacer(),
+              ],
+            ),
+            actions: [
+              if (servers.isNotEmpty)
+                _buildServerSelector(activeServer, servers, l10n),
+              if (canSync)
+                IconButton(
+                  onPressed: () => _toggleAutoSync(),
+                  icon: Icon(
+                    autoPullState.isEnabled ? Icons.sync : Icons.sync_disabled,
+                    color: autoPullState.isEnabled
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
+                  tooltip: autoPullState.isEnabled
+                      ? l10n.autoSyncOn
+                      : l10n.autoSyncOff,
+                ),
+              if (canSync)
+                IconButton(
+                  onPressed: historyState.isLoading ? null : _manualRefresh,
+                  icon: historyState.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                  tooltip: l10n.refresh,
+                ),
+            ],
+          ),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: showServerList ? 846 : 630),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (showServerList)
+                    ServerListPanel(
+                      l10n: l10n,
+                      servers: servers,
+                      activeServer: activeServer,
+                      onServerSelected: _switchTextServer,
+                    ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        if (!canSync)
+                          _buildWarningBanner(isConfigured, isConnected, l10n),
+                        Expanded(
+                          child:
+                              historyState.isLoading &&
+                                  historyState.messages.isEmpty
+                              ? const Center(child: CircularProgressIndicator())
+                              : historyState.messages.isEmpty
+                              ? _buildEmptyState(selectedDate, l10n)
+                              : _buildMessageList(
+                                  historyState.messages,
+                                  localName,
+                                  l10n,
+                                  ownOnLeft,
+                                ),
+                        ),
+                        if (historyState.error != null)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            color: Colors.red.withAlpha(20),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    historyState.error!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 16),
+                                  onPressed: () => ref
+                                      .read(messageHistoryProvider.notifier)
+                                      .clearError(),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (_isToday(selectedDate))
+                          _buildInputArea(
+                            canSync,
+                            historyState.isSending,
+                            l10n,
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-
-          if (_isToday(selectedDate))
-            _buildInputArea(canSync, historyState.isSending, l10n),
-            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   String _formatDateForTitle(String date, AppLocalizations l10n) {
     final now = DateTime.now();
-    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final todayStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final yesterday = now.subtract(const Duration(days: 1));
-    final yesterdayStr = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+    final yesterdayStr =
+        '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
 
     if (date == todayStr) {
       return l10n.today;
@@ -271,7 +324,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   bool _isToday(String date) {
     final now = DateTime.now();
-    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final todayStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return date == todayStr;
   }
 
@@ -331,7 +385,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     // Persist new state
     final newEnabled = ref.read(autoPullProvider).isEnabled;
     if (config != null && config.autoSyncEnabled != newEnabled) {
-      ref.read(configProvider.notifier)
+      ref
+          .read(configProvider.notifier)
           .updateConfig(config.copyWith(autoSyncEnabled: newEnabled));
     }
   }
@@ -345,7 +400,20 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     }
   }
 
-  Widget _buildServerSelector(ServerConfig? activeServer, List<ServerConfig> servers, AppLocalizations l10n) {
+  Future<void> _switchTextServer(ServerConfig server) async {
+    if (server.id == ref.read(activeTextServerProvider)?.id) return;
+
+    await ref.read(configProvider.notifier).switchTextServer(server.id);
+    if (!mounted) return;
+    await ref.read(textConnectionStatusProvider.notifier).testConnection();
+    ref.read(messageHistoryProvider.notifier).refresh();
+  }
+
+  Widget _buildServerSelector(
+    ServerConfig? activeServer,
+    List<ServerConfig> servers,
+    AppLocalizations l10n,
+  ) {
     return PopupMenuButton<String>(
       tooltip: l10n.switchServer,
       icon: Row(
@@ -357,16 +425,17 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             Icon(
               Icons.cloud,
               size: 18,
-              color: activeServer != null ? Theme.of(context).colorScheme.primary : Colors.grey,
+              color: activeServer != null
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
             ),
           const SizedBox(width: 2),
           const Icon(Icons.arrow_drop_down, size: 16),
         ],
       ),
-      onSelected: (serverId) async {
-        ref.read(configProvider.notifier).switchTextServer(serverId);
-        await ref.read(textConnectionStatusProvider.notifier).testConnection();
-        ref.read(messageHistoryProvider.notifier).refresh();
+      onSelected: (serverId) {
+        final server = servers.firstWhere((server) => server.id == serverId);
+        _switchTextServer(server);
       },
       itemBuilder: (context) => servers.map((server) {
         final isActive = server.id == activeServer?.id;
@@ -383,12 +452,16 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               SizedBox(
                 width: 24,
                 child: server.emoji.isNotEmpty
-                    ? Text(server.emoji,
+                    ? Text(
+                        server.emoji,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16))
-                    : Icon(Icons.cloud,
+                        style: const TextStyle(fontSize: 16),
+                      )
+                    : Icon(
+                        Icons.cloud,
                         size: 18,
-                        color: Theme.of(context).colorScheme.primary),
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
               ),
               const SizedBox(width: 4),
               Expanded(
@@ -406,7 +479,11 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildWarningBanner(bool isConfigured, bool isConnected, AppLocalizations l10n) {
+  Widget _buildWarningBanner(
+    bool isConfigured,
+    bool isConnected,
+    AppLocalizations l10n,
+  ) {
     String message;
     IconData icon;
 
@@ -429,10 +506,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           Icon(icon, color: Colors.orange, size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Colors.orange),
-            ),
+            child: Text(message, style: const TextStyle(color: Colors.orange)),
           ),
         ],
       ),
@@ -474,28 +548,46 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     );
   }
 
-  Widget _buildMessageList(List<TextMessage> messages, String localName, AppLocalizations l10n, bool ownOnLeft) {
+  Widget _buildMessageList(
+    List<TextMessage> messages,
+    String localName,
+    AppLocalizations l10n,
+    bool ownOnLeft,
+  ) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
-        return _buildMessageBubble(message, localName, l10n, ownOnLeft,
-            key: ValueKey(message.id));
+        return _buildMessageBubble(
+          message,
+          localName,
+          l10n,
+          ownOnLeft,
+          key: ValueKey(message.id),
+        );
       },
     );
   }
 
-  Widget _buildMessageBubble(TextMessage message, String localName, AppLocalizations l10n, bool ownOnLeft, {Key? key}) {
+  Widget _buildMessageBubble(
+    TextMessage message,
+    String localName,
+    AppLocalizations l10n,
+    bool ownOnLeft, {
+    Key? key,
+  }) {
     final isLocal = message.isLocal;
     final showRight = isLocal && !ownOnLeft; // own messages on right side
-    final showLeft = !isLocal || (isLocal && ownOnLeft); // all left-side messages
+    final showLeft =
+        !isLocal || (isLocal && ownOnLeft); // all left-side messages
     final colorScheme = Theme.of(context).colorScheme;
     final urls = _extractUrls(message.content);
     final isDeleting = _deletingMessages.contains(message.id);
     final isExpanded = _expandedMessages.contains(message.id);
-    final needsExpand = message.content.split('\n').length > 6 || message.content.length > 300;
+    final needsExpand =
+        message.content.split('\n').length > 6 || message.content.length > 300;
 
     final displayContent = (needsExpand && !isExpanded)
         ? _truncateContent(message.content)
@@ -509,12 +601,18 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         ? Colors.white.withAlpha(230)
         : colorScheme.primary;
     final senderName = message.senderName.trim();
-    final senderInitial = senderName.isNotEmpty ? senderName[0].toUpperCase() : '?';
+    final senderInitial = senderName.isNotEmpty
+        ? senderName[0].toUpperCase()
+        : '?';
 
     // Measure if time fits on the same line as the text
-    final bubbleMaxWidth = MediaQuery.of(context).size.width * 0.75 - 24; // padding
+    final bubbleMaxWidth =
+        MediaQuery.of(context).size.width * 0.75 - 24; // padding
     final painter = TextPainter(
-      text: TextSpan(text: displayContent, style: const TextStyle(fontSize: 14)),
+      text: TextSpan(
+        text: displayContent,
+        style: const TextStyle(fontSize: 14),
+      ),
       maxLines: 1,
       textDirection: TextDirection.ltr,
     )..layout();
@@ -526,13 +624,17 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
       child: Opacity(
         opacity: isDeleting ? 0.4 : 1.0,
         child: Row(
-          mainAxisAlignment: showRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: showRight
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (showLeft) ...[
               CircleAvatar(
                 radius: 14,
-                backgroundColor: isLocal ? colorScheme.primary : colorScheme.secondary,
+                backgroundColor: isLocal
+                    ? colorScheme.primary
+                    : colorScheme.secondary,
                 child: Text(
                   senderInitial,
                   style: const TextStyle(fontSize: 12, color: Colors.white),
@@ -548,7 +650,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * 0.75,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: isLocal
                         ? colorScheme.primary
@@ -574,7 +679,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                   Flexible(
                                     child: RichText(
                                       text: TextSpan(
-                                        style: TextStyle(fontSize: 14, color: textColor),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: textColor,
+                                        ),
                                         children: urls.isNotEmpty
                                             ? _buildInlineSpans(
                                                 displayContent,
@@ -592,7 +700,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                   const SizedBox(width: 6),
                                   Text(
                                     message.formattedTime,
-                                    style: TextStyle(fontSize: 10, color: timeColor),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: timeColor,
+                                    ),
                                   ),
                                 ],
                               )
@@ -602,7 +713,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                 children: [
                                   RichText(
                                     text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: textColor),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: textColor,
+                                      ),
                                       children: urls.isNotEmpty
                                           ? _buildInlineSpans(
                                               displayContent,
@@ -620,7 +734,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                     alignment: Alignment.centerRight,
                                     child: Text(
                                       message.formattedTime,
-                                      style: TextStyle(fontSize: 10, color: timeColor),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: timeColor,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -634,7 +751,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: GestureDetector(
-                            onTap: () => setState(() => _expandedMessages.add(message.id)),
+                            onTap: () => setState(
+                              () => _expandedMessages.add(message.id),
+                            ),
                             child: Row(
                               children: [
                                 Text(
@@ -648,7 +767,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                 const Spacer(),
                                 Text(
                                   message.formattedTime,
-                                  style: TextStyle(fontSize: 10, color: timeColor),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: timeColor,
+                                  ),
                                 ),
                               ],
                             ),
@@ -656,7 +778,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                         ),
                       if (needsExpand && isExpanded)
                         GestureDetector(
-                          onTap: () => setState(() => _expandedMessages.remove(message.id)),
+                          onTap: () => setState(
+                            () => _expandedMessages.remove(message.id),
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
@@ -722,57 +846,68 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
       // Text before this URL
       if (urlIndex > searchStart) {
-        spans.add(TextSpan(
-          text: content.substring(searchStart, urlIndex),
-          style: TextStyle(color: textColor),
-        ));
+        spans.add(
+          TextSpan(
+            text: content.substring(searchStart, urlIndex),
+            style: TextStyle(color: textColor),
+          ),
+        );
       }
 
       // URL text
-      spans.add(TextSpan(
-        text: url,
-        style: TextStyle(color: linkColor, decoration: TextDecoration.underline),
-      ));
+      spans.add(
+        TextSpan(
+          text: url,
+          style: TextStyle(
+            color: linkColor,
+            decoration: TextDecoration.underline,
+          ),
+        ),
+      );
 
       // Open button
-      spans.add(WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: TextButton(
-            onPressed: () => _openUrl(url, l10n),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              backgroundColor: isLocal
-                  ? Colors.white.withAlpha(30)
-                  : colorScheme.primary.withAlpha(20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: TextButton(
+              onPressed: () => _openUrl(url, l10n),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: isLocal
+                    ? Colors.white.withAlpha(30)
+                    : colorScheme.primary.withAlpha(20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
-            ),
-            child: Text(
-              l10n.openLink,
-              style: TextStyle(
-                color: linkColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
+              child: Text(
+                l10n.openLink,
+                style: TextStyle(
+                  color: linkColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
               ),
             ),
           ),
         ),
-      ));
+      );
 
       searchStart = urlIndex + url.length;
     }
 
     // Remaining text after last URL
     if (searchStart < content.length) {
-      spans.add(TextSpan(
-        text: content.substring(searchStart),
-        style: TextStyle(color: textColor),
-      ));
+      spans.add(
+        TextSpan(
+          text: content.substring(searchStart),
+          style: TextStyle(color: textColor),
+        ),
+      );
     }
 
     return spans;
@@ -793,25 +928,29 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     final cachedContent = message.content;
 
-    ref.read(messageHistoryProvider.notifier).deleteMessages({message.id}).then((success) {
-      if (mounted && success) {
-        setState(() => _deletingMessages.remove(message.id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.messageMarkedForDeletion),
-            duration: const Duration(seconds: 2),
-            action: SnackBarAction(
-              label: l10n.undo,
-              onPressed: () {
-                ref.read(messageHistoryProvider.notifier).sendMessage(cachedContent);
-              },
+    ref.read(messageHistoryProvider.notifier).deleteMessages({message.id}).then(
+      (success) {
+        if (mounted && success) {
+          setState(() => _deletingMessages.remove(message.id));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.messageMarkedForDeletion),
+              duration: const Duration(seconds: 2),
+              action: SnackBarAction(
+                label: l10n.undo,
+                onPressed: () {
+                  ref
+                      .read(messageHistoryProvider.notifier)
+                      .sendMessage(cachedContent);
+                },
+              ),
             ),
-          ),
-        );
-      } else if (mounted) {
-        setState(() => _deletingMessages.remove(message.id));
-      }
-    });
+          );
+        } else if (mounted) {
+          setState(() => _deletingMessages.remove(message.id));
+        }
+      },
+    );
   }
 
   Future<void> _openUrl(String url, AppLocalizations l10n) async {
@@ -872,10 +1011,18 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
-              onSubmitted: canSync && !isSending && _textController.text.trim().isNotEmpty
+              onSubmitted:
+                  canSync &&
+                      !isSending &&
+                      _textController.text.trim().isNotEmpty
                   ? (_) => _sendMessage()
                   : null,
             ),
@@ -891,7 +1038,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             width: 44,
             height: 44,
             child: IconButton(
-              onPressed: canSync &&
+              onPressed:
+                  canSync &&
                       !isSending &&
                       _textController.text.trim().isNotEmpty
                   ? _sendMessage

@@ -14,6 +14,7 @@ import '../providers/upload_queue_provider.dart';
 import '../providers/download_state_provider.dart';
 import '../providers/pending_upload_provider.dart';
 import '../services/webdav_service.dart';
+import '../widgets/server_list_panel.dart';
 import '../widgets/storage_usage_widget.dart';
 import 'pending_upload_screen.dart';
 import 'transfer_queue_screen.dart';
@@ -230,155 +231,196 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          children: [
-            if (canOperate)
-              StorageUsageWidget(
-                provider: filesStorageUsageProvider,
-                clearDescription: l10n.clearAllFiles(activeServer?.name ?? ''),
-                onClear: () async {
-                  final service = ref.read(webDavFilesServiceProvider);
-                  final result = await service.clearAllFiles();
-                  if (result.isSuccess) {
-                    ref.read(fileListProvider.notifier).refresh();
-                  }
-                  return result.isSuccess;
-                },
-              ),
-            const Spacer(),
-            Column(
-              mainAxisSize: MainAxisSize.min,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showServerList =
+            servers.length > 1 && constraints.maxWidth >= 650;
+
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+            surfaceTintColor: Colors.transparent,
+            title: Row(
               children: [
-                Text(l10n.fileDepot),
-                if (!fileListState.isAtRoot)
-                  Text(
-                    fileListState.currentPathDisplay,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                if (canOperate)
+                  StorageUsageWidget(
+                    provider: filesStorageUsageProvider,
+                    clearDescription: l10n.clearAllFiles(
+                      activeServer?.name ?? '',
                     ),
+                    onClear: () async {
+                      final service = ref.read(webDavFilesServiceProvider);
+                      final result = await service.clearAllFiles();
+                      if (result.isSuccess) {
+                        ref.read(fileListProvider.notifier).refresh();
+                      }
+                      return result.isSuccess;
+                    },
                   ),
-                if (_selectedFileKeys.isNotEmpty)
-                  Text(
-                    l10n.selectedItems(_selectedFileKeys.length),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-              ],
-            ),
-            const Spacer(),
-          ],
-        ),
-        actions: [
-          // Server selector
-          if (servers.isNotEmpty)
-            _buildServerSelector(l10n, activeServer, servers),
-          if (_selectedFileKeys.isNotEmpty)
-            IconButton(
-              onPressed: _clearFileSelection,
-              icon: const Icon(Icons.deselect),
-              tooltip: l10n.clearSelection,
-            ),
-          // Open download folder button
-          if (_currentDownloadLocation != null)
-            IconButton(
-              onPressed: _openDownloadLocation,
-              icon: const Icon(Icons.folder_open),
-              tooltip: l10n.openDownloadFolder,
-            ),
-          IconButton(
-            onPressed: canOperate && !fileListState.isLoading
-                ? () => ref.read(fileListProvider.notifier).refresh()
-                : null,
-            icon: fileListState.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh),
-            tooltip: l10n.refresh,
-          ),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
-          child: Column(
-            children: [
-              // Connection warning banner
-              if (!canOperate)
-                _buildWarningBanner(l10n, isConfigured, connectionStatus.state),
-
-              // Status indicator (always visible)
-              _buildStatusIndicator(l10n),
-
-              // Error message
-              if (fileListState.error != null)
-                _buildErrorCard(fileListState.error!),
-
-              // File list
-              Expanded(child: _buildFileList(l10n, fileListState, canOperate)),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: canOperate
-          ? IgnorePointer(
-              ignoring: !_fabVisible,
-              child: AnimatedSlide(
-                offset: _fabVisible ? Offset.zero : const Offset(0, 1.5),
-                duration: const Duration(milliseconds: 200),
-                child: Row(
+                const Spacer(),
+                Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Tooltip(
-                      message: l10n.createFolder,
-                      preferBelow: false,
-                      verticalOffset: 36,
-                      child: FloatingActionButton(
-                        heroTag: 'create-folder',
-                        tooltip: null,
-                        onPressed: () => _createFolder(l10n),
-                        child: const Icon(Icons.create_new_folder),
+                    Text(l10n.fileDepot),
+                    if (!fileListState.isAtRoot)
+                      Text(
+                        fileListState.currentPathDisplay,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Tooltip(
-                      message: l10n.folder,
-                      preferBelow: false,
-                      verticalOffset: 36,
-                      child: FloatingActionButton(
-                        heroTag: 'folder',
-                        tooltip: null,
-                        onPressed: _pickAndUploadFolder,
-                        child: const Icon(Icons.folder),
+                    if (_selectedFileKeys.isNotEmpty)
+                      Text(
+                        l10n.selectedItems(_selectedFileKeys.length),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Tooltip(
-                      message: l10n.file,
-                      preferBelow: false,
-                      verticalOffset: 36,
-                      child: FloatingActionButton(
-                        heroTag: 'file',
-                        tooltip: null,
-                        onPressed: _pickAndUploadFiles,
-                        child: const Icon(Icons.insert_drive_file),
-                      ),
-                    ),
                   ],
                 ),
+                const Spacer(),
+              ],
+            ),
+            actions: [
+              // Server selector
+              if (servers.isNotEmpty)
+                _buildServerSelector(l10n, activeServer, servers),
+              if (_selectedFileKeys.isNotEmpty)
+                IconButton(
+                  onPressed: _clearFileSelection,
+                  icon: const Icon(Icons.deselect),
+                  tooltip: l10n.clearSelection,
+                ),
+              // Open download folder button
+              if (_currentDownloadLocation != null)
+                IconButton(
+                  onPressed: _openDownloadLocation,
+                  icon: const Icon(Icons.folder_open),
+                  tooltip: l10n.openDownloadFolder,
+                ),
+              IconButton(
+                onPressed: canOperate && !fileListState.isLoading
+                    ? () => ref.read(fileListProvider.notifier).refresh()
+                    : null,
+                icon: fileListState.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                tooltip: l10n.refresh,
               ),
-            )
-          : null,
+            ],
+          ),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: showServerList ? 846 : 630),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (showServerList)
+                    ServerListPanel(
+                      l10n: l10n,
+                      servers: servers,
+                      activeServer: activeServer,
+                      onServerSelected: _switchFilesServer,
+                    ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // Connection warning banner
+                        if (!canOperate)
+                          _buildWarningBanner(
+                            l10n,
+                            isConfigured,
+                            connectionStatus.state,
+                          ),
+
+                        // Status indicator (always visible)
+                        _buildStatusIndicator(l10n),
+
+                        // Error message
+                        if (fileListState.error != null)
+                          _buildErrorCard(fileListState.error!),
+
+                        // File list
+                        Expanded(
+                          child: _buildFileList(
+                            l10n,
+                            fileListState,
+                            canOperate,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          floatingActionButton: canOperate
+              ? IgnorePointer(
+                  ignoring: !_fabVisible,
+                  child: AnimatedSlide(
+                    offset: _fabVisible ? Offset.zero : const Offset(0, 1.5),
+                    duration: const Duration(milliseconds: 200),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Tooltip(
+                          message: l10n.createFolder,
+                          preferBelow: false,
+                          verticalOffset: 36,
+                          child: FloatingActionButton(
+                            heroTag: 'create-folder',
+                            tooltip: null,
+                            onPressed: () => _createFolder(l10n),
+                            child: const Icon(Icons.create_new_folder),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Tooltip(
+                          message: l10n.folder,
+                          preferBelow: false,
+                          verticalOffset: 36,
+                          child: FloatingActionButton(
+                            heroTag: 'folder',
+                            tooltip: null,
+                            onPressed: _pickAndUploadFolder,
+                            child: const Icon(Icons.folder),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Tooltip(
+                          message: l10n.file,
+                          preferBelow: false,
+                          verticalOffset: 36,
+                          child: FloatingActionButton(
+                            heroTag: 'file',
+                            tooltip: null,
+                            onPressed: _pickAndUploadFiles,
+                            child: const Icon(Icons.insert_drive_file),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : null,
+        );
+      },
     );
+  }
+
+  Future<void> _switchFilesServer(ServerConfig server) async {
+    if (server.id == ref.read(activeFilesServerProvider)?.id) return;
+
+    await ref.read(configProvider.notifier).switchFilesServer(server.id);
+    if (!mounted) return;
+    await ref.read(filesConnectionStatusProvider.notifier).testConnection();
   }
 
   Widget _buildServerSelector(
@@ -405,9 +447,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           const Icon(Icons.arrow_drop_down, size: 16),
         ],
       ),
-      onSelected: (serverId) async {
-        ref.read(configProvider.notifier).switchFilesServer(serverId);
-        await ref.read(filesConnectionStatusProvider.notifier).testConnection();
+      onSelected: (serverId) {
+        final server = servers.firstWhere((server) => server.id == serverId);
+        _switchFilesServer(server);
       },
       itemBuilder: (context) => servers.map((server) {
         final isActive = server.id == activeServer?.id;
