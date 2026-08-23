@@ -33,6 +33,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
+  String get rename => 'Rename';
+
+  @override
   String get edit => 'Edit';
 
   @override
@@ -70,6 +73,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refresh => 'Refresh';
+
+  @override
+  String get clearSelection => 'Clear selection';
+
+  @override
+  String get selectAll => 'Select all';
+
+  @override
+  String selectedItems(Object count) {
+    return '$count selected';
+  }
 
   @override
   String get switchServer => 'Switch server';
@@ -191,6 +205,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadFolder => 'Download Folder';
 
   @override
+  String get moveToFolder => 'Move to Folder';
+
+  @override
+  String get moveHere => 'Move Here';
+
+  @override
+  String get filesRoot => 'Files';
+
+  @override
+  String get noSubfolders => 'No subfolders';
+
+  @override
+  String moved(Object name) {
+    return 'Moved: $name';
+  }
+
+  @override
+  String get failedToMoveFile => 'Failed to move item';
+
+  @override
+  String draggingItemsSuffix(Object count) {
+    return 'and $count items';
+  }
+
+  @override
+  String movedItems(Object count) {
+    return 'Moved $count items';
+  }
+
+  @override
+  String get createFolder => 'Create Folder';
+
+  @override
+  String get folderNameHint => 'Enter a folder name';
+
+  @override
+  String get folderNameRequired => 'Please enter a folder name';
+
+  @override
+  String get folderNameInvalid => 'Folder name cannot contain path separators';
+
+  @override
+  String folderCreated(Object name) {
+    return 'Folder created: $name';
+  }
+
+  @override
+  String get failedToCreateFolder => 'Failed to create folder';
+
+  @override
   String todayTime(Object time) {
     return 'Today $time';
   }
@@ -247,6 +311,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToDeleteFile => 'Failed to delete file';
+
+  @override
+  String get renameFile => 'Rename File';
+
+  @override
+  String get renameFileHint => 'Enter a new name';
+
+  @override
+  String get renameFileNameRequired => 'Please enter a name';
+
+  @override
+  String get renameFileNameInvalid => 'Name cannot contain path separators';
+
+  @override
+  String renamed(Object name) {
+    return 'Renamed: $name';
+  }
+
+  @override
+  String get failedToRenameFile => 'Failed to rename file';
 
   @override
   String get transferQueue => 'Transfer Queue';

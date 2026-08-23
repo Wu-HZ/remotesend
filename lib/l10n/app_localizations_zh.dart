@@ -33,6 +33,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get delete => '删除';
 
   @override
+  String get rename => '重命名';
+
+  @override
   String get edit => '编辑';
 
   @override
@@ -70,6 +73,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get refresh => '刷新';
+
+  @override
+  String get clearSelection => '清除选择';
+
+  @override
+  String get selectAll => '全选';
+
+  @override
+  String selectedItems(Object count) {
+    return '已选择 $count 项';
+  }
 
   @override
   String get switchServer => '切换服务器';
@@ -187,6 +201,56 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadFolder => '下载文件夹';
 
   @override
+  String get moveToFolder => '移动到文件夹';
+
+  @override
+  String get moveHere => '移动到此处';
+
+  @override
+  String get filesRoot => '文件根目录';
+
+  @override
+  String get noSubfolders => '没有子文件夹';
+
+  @override
+  String moved(Object name) {
+    return '已移动：$name';
+  }
+
+  @override
+  String get failedToMoveFile => '移动失败';
+
+  @override
+  String draggingItemsSuffix(Object count) {
+    return '等$count个文件';
+  }
+
+  @override
+  String movedItems(Object count) {
+    return '已移动 $count 项';
+  }
+
+  @override
+  String get createFolder => '新建文件夹';
+
+  @override
+  String get folderNameHint => '输入文件夹名称';
+
+  @override
+  String get folderNameRequired => '请输入文件夹名称';
+
+  @override
+  String get folderNameInvalid => '文件夹名称不能包含路径分隔符';
+
+  @override
+  String folderCreated(Object name) {
+    return '文件夹已创建：$name';
+  }
+
+  @override
+  String get failedToCreateFolder => '创建文件夹失败';
+
+  @override
   String todayTime(Object time) {
     return '今天 $time';
   }
@@ -243,6 +307,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get failedToDeleteFile => '删除文件失败';
+
+  @override
+  String get renameFile => '重命名文件';
+
+  @override
+  String get renameFileHint => '输入新的名称';
+
+  @override
+  String get renameFileNameRequired => '请输入名称';
+
+  @override
+  String get renameFileNameInvalid => '名称不能包含路径分隔符';
+
+  @override
+  String renamed(Object name) {
+    return '已重命名：$name';
+  }
+
+  @override
+  String get failedToRenameFile => '重命名文件失败';
 
   @override
   String get transferQueue => '传输队列';

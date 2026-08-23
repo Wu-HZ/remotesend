@@ -146,6 +146,12 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
   /// No description provided for @edit.
   ///
   /// In en, this message translates to:
@@ -223,6 +229,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refresh'**
   String get refresh;
+
+  /// No description provided for @clearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get clearSelection;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAll;
+
+  /// No description provided for @selectedItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedItems(Object count);
 
   /// No description provided for @switchServer.
   ///
@@ -426,6 +450,90 @@ abstract class AppLocalizations {
   /// **'Download Folder'**
   String get downloadFolder;
 
+  /// No description provided for @moveToFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to Folder'**
+  String get moveToFolder;
+
+  /// No description provided for @moveHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Move Here'**
+  String get moveHere;
+
+  /// No description provided for @filesRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get filesRoot;
+
+  /// No description provided for @noSubfolders.
+  ///
+  /// In en, this message translates to:
+  /// **'No subfolders'**
+  String get noSubfolders;
+
+  /// No description provided for @moved.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved: {name}'**
+  String moved(Object name);
+
+  /// No description provided for @failedToMoveFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to move item'**
+  String get failedToMoveFile;
+
+  /// No description provided for @draggingItemsSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'and {count} items'**
+  String draggingItemsSuffix(Object count);
+
+  /// No description provided for @movedItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved {count} items'**
+  String movedItems(Object count);
+
+  /// No description provided for @createFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Folder'**
+  String get createFolder;
+
+  /// No description provided for @folderNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a folder name'**
+  String get folderNameHint;
+
+  /// No description provided for @folderNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a folder name'**
+  String get folderNameRequired;
+
+  /// No description provided for @folderNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder name cannot contain path separators'**
+  String get folderNameInvalid;
+
+  /// No description provided for @folderCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder created: {name}'**
+  String folderCreated(Object name);
+
+  /// No description provided for @failedToCreateFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create folder'**
+  String get failedToCreateFolder;
+
   /// No description provided for @todayTime.
   ///
   /// In en, this message translates to:
@@ -509,6 +617,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to delete file'**
   String get failedToDeleteFile;
+
+  /// No description provided for @renameFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename File'**
+  String get renameFile;
+
+  /// No description provided for @renameFileHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a new name'**
+  String get renameFileHint;
+
+  /// No description provided for @renameFileNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a name'**
+  String get renameFileNameRequired;
+
+  /// No description provided for @renameFileNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Name cannot contain path separators'**
+  String get renameFileNameInvalid;
+
+  /// No description provided for @renamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed: {name}'**
+  String renamed(Object name);
+
+  /// No description provided for @failedToRenameFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to rename file'**
+  String get failedToRenameFile;
 
   /// No description provided for @transferQueue.
   ///

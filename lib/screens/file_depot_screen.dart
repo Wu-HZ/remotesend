@@ -29,6 +29,7 @@ class FileDepotScreen extends ConsumerStatefulWidget {
 class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   String? _currentDownloadLocation;
   final _scrollController = ScrollController();
+  final Set<String> _selectedFileKeys = <String>{};
   bool _fabVisible = true;
 
   @override
@@ -73,6 +74,47 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     super.dispose();
   }
 
+  String _remotePathForFile(RemoteFile file) {
+    final currentPath = ref.read(fileListProvider).currentPath;
+    return currentPath.isEmpty ? file.name : '$currentPath/${file.name}';
+  }
+
+  String _fileSelectionKey(RemoteFile file) => _remotePathForFile(file);
+
+  List<RemoteFile> _itemsForMove(RemoteFile file) {
+    final files = ref.read(fileListProvider).files;
+    if (_isFileSelected(file)) {
+      final selected = files.where(_isFileSelected).toList();
+      if (selected.isNotEmpty) return selected;
+    }
+    return [file];
+  }
+
+  bool _isFileSelected(RemoteFile file) {
+    return _selectedFileKeys.contains(_fileSelectionKey(file));
+  }
+
+  void _toggleFileSelection(RemoteFile file, bool selected) {
+    final key = _fileSelectionKey(file);
+    setState(() {
+      if (selected) {
+        _selectedFileKeys.add(key);
+      } else {
+        _selectedFileKeys.remove(key);
+      }
+    });
+  }
+
+  void _clearFileSelection() {
+    if (_selectedFileKeys.isEmpty) return;
+    setState(() => _selectedFileKeys.clear());
+  }
+
+  void _selectAllFiles(List<RemoteFile> files) {
+    final keys = files.map(_fileSelectionKey).toSet();
+    setState(() => _selectedFileKeys.addAll(keys));
+  }
+
   Future<String?> _getSystemDownloadDirectory() async {
     if (Platform.isWindows) {
       // Windows: Use user's Downloads folder
@@ -110,7 +152,10 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     } else {
       contentUri = 'content://$authority/root$path';
     }
-    await launchUrl(Uri.parse(contentUri), mode: LaunchMode.externalApplication);
+    await launchUrl(
+      Uri.parse(contentUri),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   Future<void> _openDownloadLocation() async {
@@ -136,7 +181,10 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.failedToOpenFolder(e.toString())), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.failedToOpenFolder(e.toString())),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -163,13 +211,16 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       final configLocation = config.downloadLocation.isNotEmpty
           ? config.downloadLocation
           : null;
-      if (configLocation != null && configLocation != _currentDownloadLocation) {
+      if (configLocation != null &&
+          configLocation != _currentDownloadLocation) {
         _currentDownloadLocation = configLocation;
       }
     }
 
-    final isConnected = connectionStatus.state == WebDavConnectionState.connected;
-    final isConnecting = connectionStatus.state == WebDavConnectionState.connecting;
+    final isConnected =
+        connectionStatus.state == WebDavConnectionState.connected;
+    final isConnecting =
+        connectionStatus.state == WebDavConnectionState.connecting;
     final canOperate = isConfigured && (isConnected || isConnecting);
 
     ref.listen(filesConnectionStatusProvider, (prev, next) {
@@ -185,19 +236,19 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            if (canOperate) StorageUsageWidget(
-              provider: filesStorageUsageProvider,
-              clearDescription:
-                  l10n.clearAllFiles(activeServer?.name ?? ''),
-              onClear: () async {
-                final service = ref.read(webDavFilesServiceProvider);
-                final result = await service.clearAllFiles();
-                if (result.isSuccess) {
-                  ref.read(fileListProvider.notifier).refresh();
-                }
-                return result.isSuccess;
-              },
-            ),
+            if (canOperate)
+              StorageUsageWidget(
+                provider: filesStorageUsageProvider,
+                clearDescription: l10n.clearAllFiles(activeServer?.name ?? ''),
+                onClear: () async {
+                  final service = ref.read(webDavFilesServiceProvider);
+                  final result = await service.clearAllFiles();
+                  if (result.isSuccess) {
+                    ref.read(fileListProvider.notifier).refresh();
+                  }
+                  return result.isSuccess;
+                },
+              ),
             const Spacer(),
             Column(
               mainAxisSize: MainAxisSize.min,
@@ -211,6 +262,14 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
+                if (_selectedFileKeys.isNotEmpty)
+                  Text(
+                    l10n.selectedItems(_selectedFileKeys.length),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
               ],
             ),
             const Spacer(),
@@ -220,6 +279,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           // Server selector
           if (servers.isNotEmpty)
             _buildServerSelector(l10n, activeServer, servers),
+          if (_selectedFileKeys.isNotEmpty)
+            IconButton(
+              onPressed: _clearFileSelection,
+              icon: const Icon(Icons.deselect),
+              tooltip: l10n.clearSelection,
+            ),
           // Open download folder button
           if (_currentDownloadLocation != null)
             IconButton(
@@ -248,18 +313,18 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           child: Column(
             children: [
               // Connection warning banner
-              if (!canOperate) _buildWarningBanner(l10n, isConfigured, connectionStatus.state),
+              if (!canOperate)
+                _buildWarningBanner(l10n, isConfigured, connectionStatus.state),
 
-          // Status indicator (always visible)
-          _buildStatusIndicator(l10n),
+              // Status indicator (always visible)
+              _buildStatusIndicator(l10n),
 
-          // Error message
-          if (fileListState.error != null) _buildErrorCard(fileListState.error!),
+              // Error message
+              if (fileListState.error != null)
+                _buildErrorCard(fileListState.error!),
 
-          // File list
-          Expanded(
-            child: _buildFileList(l10n, fileListState, canOperate),
-          ),
+              // File list
+              Expanded(child: _buildFileList(l10n, fileListState, canOperate)),
             ],
           ),
         ),
@@ -271,30 +336,56 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                 offset: _fabVisible ? Offset.zero : const Offset(0, 1.5),
                 duration: const Duration(milliseconds: 200),
                 child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FloatingActionButton.extended(
-                  heroTag: 'folder',
-                  onPressed: _pickAndUploadFolder,
-                  icon: const Icon(Icons.folder),
-                  label: Text(l10n.folder),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Tooltip(
+                      message: l10n.createFolder,
+                      preferBelow: false,
+                      verticalOffset: 36,
+                      child: FloatingActionButton(
+                        heroTag: 'create-folder',
+                        tooltip: null,
+                        onPressed: () => _createFolder(l10n),
+                        child: const Icon(Icons.create_new_folder),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Tooltip(
+                      message: l10n.folder,
+                      preferBelow: false,
+                      verticalOffset: 36,
+                      child: FloatingActionButton(
+                        heroTag: 'folder',
+                        tooltip: null,
+                        onPressed: _pickAndUploadFolder,
+                        child: const Icon(Icons.folder),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Tooltip(
+                      message: l10n.file,
+                      preferBelow: false,
+                      verticalOffset: 36,
+                      child: FloatingActionButton(
+                        heroTag: 'file',
+                        tooltip: null,
+                        onPressed: _pickAndUploadFiles,
+                        child: const Icon(Icons.insert_drive_file),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                FloatingActionButton.extended(
-                  heroTag: 'file',
-                  onPressed: _pickAndUploadFiles,
-                  icon: const Icon(Icons.insert_drive_file),
-                  label: Text(l10n.file),
-                ),
-              ],
-            ),
-          ),
-        )
+              ),
+            )
           : null,
     );
   }
 
-  Widget _buildServerSelector(AppLocalizations l10n, ServerConfig? activeServer, List<ServerConfig> servers) {
+  Widget _buildServerSelector(
+    AppLocalizations l10n,
+    ServerConfig? activeServer,
+    List<ServerConfig> servers,
+  ) {
     return PopupMenuButton<String>(
       tooltip: l10n.switchServer,
       icon: Row(
@@ -306,7 +397,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             Icon(
               Icons.cloud,
               size: 18,
-              color: activeServer != null ? Theme.of(context).colorScheme.primary : Colors.grey,
+              color: activeServer != null
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
             ),
           const SizedBox(width: 2),
           const Icon(Icons.arrow_drop_down, size: 16),
@@ -331,12 +424,16 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               SizedBox(
                 width: 24,
                 child: server.emoji.isNotEmpty
-                    ? Text(server.emoji,
+                    ? Text(
+                        server.emoji,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16))
-                    : Icon(Icons.cloud,
+                        style: const TextStyle(fontSize: 16),
+                      )
+                    : Icon(
+                        Icons.cloud,
                         size: 18,
-                        color: Theme.of(context).colorScheme.primary),
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
               ),
               const SizedBox(width: 4),
               Expanded(
@@ -362,8 +459,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildWarningBanner(AppLocalizations l10n, bool isConfigured,
-      WebDavConnectionState connectionState) {
+  Widget _buildWarningBanner(
+    AppLocalizations l10n,
+    bool isConfigured,
+    WebDavConnectionState connectionState,
+  ) {
     String message;
     IconData icon;
 
@@ -386,10 +486,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           Icon(icon, color: Colors.orange, size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Colors.orange),
-            ),
+            child: Text(message, style: const TextStyle(color: Colors.orange)),
           ),
         ],
       ),
@@ -411,7 +508,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
 
     if (isDownloading) {
       if (downloadState.isFolderDownload) {
-        statusText = l10n.downloadingFileWithProgress(downloadState.fileName ?? '', downloadState.currentFileIndex, downloadState.totalFiles);
+        statusText = l10n.downloadingFileWithProgress(
+          downloadState.fileName ?? '',
+          downloadState.currentFileIndex,
+          downloadState.totalFiles,
+        );
       } else {
         statusText = l10n.downloadingFile(downloadState.fileName ?? '');
       }
@@ -423,7 +524,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     } else if (isUploading) {
       final currentItem = queueState.currentItem;
       if (currentItem != null) {
-        statusText = l10n.uploadingFile(currentItem.fileName, queueState.completedCount + 1, queueState.items.length);
+        statusText = l10n.uploadingFile(
+          currentItem.fileName,
+          queueState.completedCount + 1,
+          queueState.items.length,
+        );
         progress = queueState.overallProgress;
       } else {
         statusText = l10n.uploadingEllipsis;
@@ -436,10 +541,14 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     } else if (queueState.items.isNotEmpty) {
       final fc = queueState.failedCount;
       if (fc > 0) {
-        statusText = '${l10n.filesUploaded(queueState.completedCount, queueState.items.length)} ($fc failed)';
+        statusText =
+            '${l10n.filesUploaded(queueState.completedCount, queueState.items.length)} ($fc failed)';
         statusIcon = Icons.warning_amber;
       } else {
-        statusText = l10n.filesUploaded(queueState.completedCount, queueState.items.length);
+        statusText = l10n.filesUploaded(
+          queueState.completedCount,
+          queueState.items.length,
+        );
         statusIcon = Icons.check_circle;
       }
       progress = 1.0;
@@ -449,7 +558,10 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         statusText = downloadState.error ?? l10n.downloadFailed;
         statusIcon = Icons.error;
       } else {
-        statusText = l10n.filesDownloaded(downloadState.completedCount, downloadState.items.length);
+        statusText = l10n.filesDownloaded(
+          downloadState.completedCount,
+          downloadState.items.length,
+        );
         statusIcon = Icons.check_circle;
       }
       progress = 1.0;
@@ -504,7 +616,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                       child: Text(
                         speedText,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                           fontSize: 12,
                         ),
                       ),
@@ -558,7 +672,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Widget _buildFileList(AppLocalizations l10n, FileListState fileListState, bool canOperate) {
+  Widget _buildFileList(
+    AppLocalizations l10n,
+    FileListState fileListState,
+    bool canOperate,
+  ) {
     if (!canOperate) {
       return Center(
         child: Column(
@@ -576,7 +694,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (fileListState.files.isEmpty) {
+    if (fileListState.files.isEmpty && fileListState.isAtRoot) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -599,31 +717,52 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               fileListState.isAtRoot
                   ? l10n.tapFileOrFolderToUpload
                   : l10n.thisFolderIsEmpty,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ],
         ),
       );
     }
 
+    final showClearSelection = _selectedFileKeys.length > 1;
+    final selectionRowCount = showClearSelection ? 1 : 0;
+    final parentRowCount = fileListState.isAtRoot ? 0 : 1;
+    final contentRowCount = fileListState.files.isEmpty
+        ? 1
+        : fileListState.files.length;
+
     return RefreshIndicator(
       onRefresh: () => ref.read(fileListProvider.notifier).refresh(),
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.only(bottom: 80),
-        itemCount:
-            fileListState.files.length + (fileListState.isAtRoot ? 0 : 1),
+        itemCount: selectionRowCount + parentRowCount + contentRowCount,
         itemBuilder: (context, index) {
-          if (!fileListState.isAtRoot && index == 0) {
-            return ListTile(
-              leading: const Icon(Icons.subdirectory_arrow_left),
-              title: Text('..', style: const TextStyle(fontWeight: FontWeight.bold)),
-              onTap: () => ref.read(fileListProvider.notifier).navigateUp(),
+          if (showClearSelection && index == 0) {
+            return _buildSelectionActionsItem(l10n, fileListState);
+          }
+
+          final contentIndex = index - selectionRowCount;
+          if (!fileListState.isAtRoot && contentIndex == 0) {
+            return _buildParentDirectoryItem(l10n, fileListState);
+          }
+          if (fileListState.files.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                child: Text(
+                  l10n.thisFolderIsEmpty,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+              ),
             );
           }
-          final fileIndex = fileListState.isAtRoot ? index : index - 1;
+
+          final fileIndex = fileListState.isAtRoot
+              ? contentIndex
+              : contentIndex - 1;
           final file = fileListState.files[fileIndex];
           return _buildFileItem(l10n, file);
         },
@@ -631,33 +770,129 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
+  Widget _buildSelectionActionsItem(
+    AppLocalizations l10n,
+    FileListState fileListState,
+  ) {
+    final allSelected =
+        fileListState.files.isNotEmpty &&
+        fileListState.files.every(_isFileSelected);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextButton.icon(
+              onPressed: allSelected
+                  ? null
+                  : () => _selectAllFiles(fileListState.files),
+              icon: const Icon(Icons.select_all),
+              label: Text(l10n.selectAll),
+            ),
+          ),
+          Expanded(
+            child: TextButton.icon(
+              onPressed: _clearFileSelection,
+              icon: const Icon(Icons.deselect),
+              label: Text(l10n.clearSelection),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParentDirectoryItem(
+    AppLocalizations l10n,
+    FileListState fileListState,
+  ) {
+    final parts = fileListState.currentPath.split('/');
+    parts.removeLast();
+    final parentPath = parts.join('/');
+    final item = ListTile(
+      leading: const Icon(Icons.subdirectory_arrow_left),
+      title: const Text('..', style: TextStyle(fontWeight: FontWeight.bold)),
+      onTap: () {
+        _clearFileSelection();
+        ref.read(fileListProvider.notifier).navigateUp();
+      },
+    );
+
+    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) {
+      return item;
+    }
+
+    return DragTarget<RemoteFile>(
+      onWillAcceptWithDetails: (details) => true,
+      onAcceptWithDetails: (details) =>
+          _moveItemsToFolder(l10n, details.data, parentPath),
+      builder: (context, candidateData, rejectedData) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: candidateData.isNotEmpty
+              ? BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withAlpha(180),
+                  borderRadius: BorderRadius.circular(8),
+                )
+              : null,
+          child: item,
+        );
+      },
+    );
+  }
+
   Widget _buildFileItem(AppLocalizations l10n, RemoteFile file) {
     final isDirectory = file.isDirectory;
 
-    return GestureDetector(
-      onSecondaryTapDown: (details) => _showContextMenu(l10n, details.globalPosition, file),
+    final item = GestureDetector(
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(l10n, details.globalPosition, file),
       child: ListTile(
         dense: true,
         visualDensity: VisualDensity.compact,
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isDirectory
-                ? Theme.of(context).colorScheme.primaryContainer
-                : Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            isDirectory ? Icons.folder : _getFileIcon(file.name),
-            color: isDirectory ? Theme.of(context).colorScheme.primary : null,
-            size: 22,
-          ),
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Checkbox(
+              value: _isFileSelected(file),
+              visualDensity: VisualDensity.compact,
+              fillColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Theme.of(context).colorScheme.primary;
+                }
+                return Theme.of(context).colorScheme.surfaceContainerLow;
+              }),
+              side: BorderSide(
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withAlpha(160),
+              ),
+              onChanged: (selected) =>
+                  _toggleFileSelection(file, selected ?? false),
+            ),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isDirectory
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isDirectory ? Icons.folder : _getFileIcon(file.name),
+                color: isDirectory
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+                size: 22,
+              ),
+            ),
+          ],
         ),
-        title: Text(
-          file.name,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(file.name, overflow: TextOverflow.ellipsis),
         subtitle: Text(
           _buildSubtitle(l10n, file),
           style: TextStyle(
@@ -665,43 +900,250 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             fontSize: 12,
           ),
         ),
-        trailing: isDirectory
-            ? const Icon(Icons.chevron_right)
-            : PopupMenuButton<String>(
-                onSelected: (value) => _handleFileAction(l10n, value, file),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'download',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.download),
-                        const SizedBox(width: 8),
-                        Text(l10n.download),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) => _handleFileAction(l10n, value, file),
+          itemBuilder: (context) => _buildFileMenuItems(l10n, file),
+        ),
         onTap: isDirectory
-            ? () => ref.read(fileListProvider.notifier).navigateToFolder(file.name)
+            ? () {
+                _clearFileSelection();
+                ref.read(fileListProvider.notifier).navigateToFolder(file.name);
+              }
             : () => _downloadFile(l10n, file),
+      ),
+    );
+
+    // Internal drag-and-drop is intended for desktop; mobile keeps the menu
+    // actions to avoid conflicting with scrolling gestures.
+    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) {
+      return item;
+    }
+
+    final draggable = Draggable<RemoteFile>(
+      data: file,
+      feedback: _buildDragFeedback(l10n, file),
+      childWhenDragging: Opacity(opacity: 0.35, child: item),
+      child: item,
+    );
+
+    if (!isDirectory) return draggable;
+
+    return DragTarget<RemoteFile>(
+      onWillAcceptWithDetails: (details) =>
+          !_itemsForMove(details.data).any((item) => item.name == file.name),
+      onAcceptWithDetails: (details) =>
+          _moveDraggedFileToFolder(l10n, details.data, file),
+      builder: (context, candidateData, rejectedData) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: candidateData.isNotEmpty
+              ? BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withAlpha(180),
+                  borderRadius: BorderRadius.circular(8),
+                )
+              : null,
+          child: draggable,
+        );
+      },
+    );
+  }
+
+  Widget _buildDragFeedback(AppLocalizations l10n, RemoteFile file) {
+    final itemCount = _itemsForMove(file).length;
+    final frontCard = _buildDragCard(
+      l10n,
+      file,
+      itemCount: itemCount > 1 ? itemCount : null,
+    );
+    if (itemCount <= 1) return frontCard;
+
+    // Stack cards behind the front card to make the selected batch look folded
+    // together while it is being dragged.
+    return SizedBox(
+      width: 230,
+      height: 68,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 10,
+            top: 10,
+            child: Opacity(opacity: 0.45, child: _buildDragCard(l10n, file)),
+          ),
+          Positioned(
+            left: 5,
+            top: 5,
+            child: Opacity(opacity: 0.7, child: _buildDragCard(l10n, file)),
+          ),
+          frontCard,
+        ],
       ),
     );
   }
 
-  void _showContextMenu(AppLocalizations l10n, Offset position, RemoteFile file) {
-    final isDirectory = file.isDirectory;
+  Widget _buildDragCard(
+    AppLocalizations l10n,
+    RemoteFile file, {
+    int? itemCount,
+  }) {
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(8),
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      child: SizedBox(
+        width: 220,
+        height: 48,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                file.isDirectory ? Icons.folder : _getFileIcon(file.name),
+                color: file.isDirectory
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  file.name,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              if (itemCount != null) ...[
+                const SizedBox(width: 4),
+                Text(
+                  l10n.draggingItemsSuffix(itemCount),
+                  maxLines: 1,
+                  softWrap: false,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
+  Future<void> _moveItemsToFolder(
+    AppLocalizations l10n,
+    RemoteFile source,
+    String destinationPath,
+  ) async {
+    final items = _itemsForMove(source);
+    final sourcePaths = items.map(_remotePathForFile).toList();
+    final directoryPaths = items
+        .where((item) => item.isDirectory)
+        .map(_remotePathForFile)
+        .toSet();
+
+    // Do not move a folder into itself or one of its descendants.
+    if (items.any((item) {
+      final sourcePath = _remotePathForFile(item);
+      return item.isDirectory &&
+          (destinationPath == sourcePath ||
+              destinationPath.startsWith('$sourcePath/'));
+    })) {
+      return;
+    }
+
+    final success = await ref
+        .read(fileListProvider.notifier)
+        .moveFiles(
+          sourcePaths,
+          destinationPath,
+          directoryPaths: directoryPaths,
+        );
+    if (mounted) {
+      if (success) {
+        setState(() => _selectedFileKeys.removeAll(sourcePaths));
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success && items.length > 1
+                ? l10n.movedItems(items.length)
+                : success
+                ? l10n.moved(source.name)
+                : l10n.failedToMoveFile,
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _moveDraggedFileToFolder(
+    AppLocalizations l10n,
+    RemoteFile source,
+    RemoteFile destination,
+  ) async {
+    final currentPath = ref.read(fileListProvider).currentPath;
+    final destinationPath = currentPath.isEmpty
+        ? destination.name
+        : '$currentPath/${destination.name}';
+    await _moveItemsToFolder(l10n, source, destinationPath);
+  }
+
+  List<PopupMenuEntry<String>> _buildFileMenuItems(
+    AppLocalizations l10n,
+    RemoteFile file,
+  ) {
+    return [
+      PopupMenuItem(
+        value: 'download',
+        child: Row(
+          children: [
+            const Icon(Icons.download),
+            const SizedBox(width: 8),
+            Text(file.isDirectory ? l10n.downloadFolder : l10n.download),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        value: 'rename',
+        child: Row(
+          children: [
+            const Icon(Icons.drive_file_rename_outline),
+            const SizedBox(width: 8),
+            Text(l10n.rename),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        value: 'move',
+        child: Row(
+          children: [
+            const Icon(Icons.drive_file_move),
+            const SizedBox(width: 8),
+            Text(l10n.moveToFolder),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        value: 'delete',
+        child: Row(
+          children: [
+            const Icon(Icons.delete, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  void _showContextMenu(
+    AppLocalizations l10n,
+    Offset position,
+    RemoteFile file,
+  ) {
     showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -710,28 +1152,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         position.dx,
         position.dy,
       ),
-      items: [
-        PopupMenuItem(
-          value: 'download',
-          child: Row(
-            children: [
-              const Icon(Icons.download),
-              const SizedBox(width: 8),
-              Text(isDirectory ? l10n.downloadFolder : l10n.download),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              const Icon(Icons.delete, color: Colors.red),
-              const SizedBox(width: 8),
-              Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-            ],
-          ),
-        ),
-      ],
+      items: _buildFileMenuItems(l10n, file),
     ).then((value) {
       if (value != null) {
         _handleFileAction(l10n, value, file);
@@ -757,7 +1178,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final diff = now.difference(dt);
 
     if (diff.inDays == 0) {
-      return l10n.todayTime('${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}');
+      return l10n.todayTime(
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
+      );
     } else if (diff.inDays == 1) {
       return l10n.yesterday;
     } else if (diff.inDays < 7) {
@@ -826,7 +1249,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  void _handleFileAction(AppLocalizations l10n, String action, RemoteFile file) {
+  void _handleFileAction(
+    AppLocalizations l10n,
+    String action,
+    RemoteFile file,
+  ) {
     switch (action) {
       case 'download':
         if (file.isDirectory) {
@@ -835,9 +1262,116 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           _downloadFile(l10n, file);
         }
         break;
+      case 'rename':
+        _renameFile(l10n, file);
+        break;
+      case 'move':
+        _moveToFolder(l10n, file);
+        break;
       case 'delete':
         _confirmDelete(l10n, file);
         break;
+    }
+  }
+
+  Future<void> _moveToFolder(AppLocalizations l10n, RemoteFile file) async {
+    final fileListState = ref.read(fileListProvider);
+    final items = _itemsForMove(file);
+    final excludedPaths = items
+        .where((item) => item.isDirectory)
+        .map(_remotePathForFile)
+        .toList();
+    final destinationPath = await showDialog<String>(
+      context: context,
+      builder: (context) => _FolderPickerDialog(
+        l10n: l10n,
+        service: ref.read(webDavFilesServiceProvider),
+        currentParentPath: fileListState.currentPath,
+        excludedPaths: excludedPaths,
+      ),
+    );
+
+    if (destinationPath == null ||
+        destinationPath == fileListState.currentPath) {
+      return;
+    }
+
+    await _moveItemsToFolder(l10n, file, destinationPath);
+  }
+
+  Future<void> _createFolder(AppLocalizations l10n) async {
+    final controller = TextEditingController();
+    try {
+      final folderName = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) {
+          String? validationError;
+
+          return StatefulBuilder(
+            builder: (context, setState) {
+              void submit() {
+                final value = controller.text.trim();
+                if (value.isEmpty) {
+                  setState(() => validationError = l10n.folderNameRequired);
+                  return;
+                }
+                if (value == '.' ||
+                    value == '..' ||
+                    value.contains('/') ||
+                    value.contains('\\')) {
+                  setState(() => validationError = l10n.folderNameInvalid);
+                  return;
+                }
+                Navigator.of(dialogContext).pop(value);
+              }
+
+              return AlertDialog(
+                title: Text(l10n.createFolder),
+                content: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => submit(),
+                  decoration: InputDecoration(
+                    hintText: l10n.folderNameHint,
+                    errorText: validationError,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text(l10n.cancel),
+                  ),
+                  FilledButton(
+                    onPressed: submit,
+                    child: Text(l10n.createFolder),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (folderName == null) return;
+
+      final success = await ref
+          .read(fileListProvider.notifier)
+          .createFolder(folderName);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? l10n.folderCreated(folderName)
+                  : l10n.failedToCreateFolder,
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -950,11 +1484,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           : '${fileListState.currentPath}/${file.name}';
 
       // Use the download provider
-      final success = await ref.read(downloadStateProvider.notifier).downloadFile(
-        remoteName: remoteName,
-        localPath: downloadPath,
-        fileSize: file.size,
-      );
+      final success = await ref
+          .read(downloadStateProvider.notifier)
+          .downloadFile(
+            remoteName: remoteName,
+            localPath: downloadPath,
+            fileSize: file.size,
+          );
 
       if (mounted) {
         // Skip if state was cleared by user during download
@@ -1045,10 +1581,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           : '${fileListState.currentPath}/${folder.name}';
 
       // Use the download provider
-      final downloadResult = await ref.read(downloadStateProvider.notifier).downloadFolder(
-        remoteFolderName: remoteFolderName,
-        localFolderPath: localFolderPath,
-      );
+      final downloadResult = await ref
+          .read(downloadStateProvider.notifier)
+          .downloadFolder(
+            remoteFolderName: remoteFolderName,
+            localFolderPath: localFolderPath,
+          );
 
       if (mounted) {
         if (downloadResult.isSuccess) {
@@ -1057,7 +1595,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             SnackBar(
               content: Row(
                 children: [
-                  Expanded(child: Text(l10n.downloadedFolderWithCount(folder.name, count))),
+                  Expanded(
+                    child: Text(
+                      l10n.downloadedFolderWithCount(folder.name, count),
+                    ),
+                  ),
                   GestureDetector(
                     onTap: _openDownloadLocation,
                     child: Padding(
@@ -1082,7 +1624,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(downloadResult.error?.userMessage ?? l10n.downloadFailed),
+              content: Text(
+                downloadResult.error?.userMessage ?? l10n.downloadFailed,
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -1100,6 +1644,87 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
+  Future<void> _renameFile(AppLocalizations l10n, RemoteFile file) async {
+    final controller = TextEditingController(text: file.name);
+    try {
+      final newName = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) {
+          String? validationError;
+
+          return StatefulBuilder(
+            builder: (context, setState) {
+              void submit() {
+                final value = controller.text.trim();
+                if (value.isEmpty) {
+                  setState(() => validationError = l10n.renameFileNameRequired);
+                  return;
+                }
+                if (value == '.' ||
+                    value == '..' ||
+                    value.contains('/') ||
+                    value.contains('\\')) {
+                  setState(() => validationError = l10n.renameFileNameInvalid);
+                  return;
+                }
+                Navigator.of(
+                  dialogContext,
+                ).pop(value == file.name ? null : value);
+              }
+
+              return AlertDialog(
+                title: Text(l10n.renameFile),
+                content: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => submit(),
+                  decoration: InputDecoration(
+                    hintText: l10n.renameFileHint,
+                    errorText: validationError,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text(l10n.cancel),
+                  ),
+                  FilledButton(onPressed: submit, child: Text(l10n.rename)),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (newName == null) return;
+
+      final fileListState = ref.read(fileListProvider);
+      final remotePath = fileListState.currentPath.isEmpty
+          ? file.name
+          : '${fileListState.currentPath}/${file.name}';
+      final success = await ref
+          .read(fileListProvider.notifier)
+          .renameFile(remotePath, newName, isDirectory: file.isDirectory);
+
+      if (mounted) {
+        if (success) {
+          setState(() => _selectedFileKeys.remove(remotePath));
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? l10n.renamed(newName) : l10n.failedToRenameFile,
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } finally {
+      controller.dispose();
+    }
+  }
+
   Future<void> _confirmDelete(AppLocalizations l10n, RemoteFile file) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1113,9 +1738,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: Text(l10n.delete),
           ),
         ],
@@ -1128,10 +1751,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       final remotePath = fileListState.currentPath.isEmpty
           ? file.name
           : '${fileListState.currentPath}/${file.name}';
-      final success = await ref.read(fileListProvider.notifier).deleteFile(remotePath);
+      final success = await ref
+          .read(fileListProvider.notifier)
+          .deleteFile(remotePath);
 
       if (mounted) {
         if (success) {
+          setState(() => _selectedFileKeys.remove(remotePath));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.deleted(file.name)),
@@ -1148,5 +1774,171 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         }
       }
     }
+  }
+}
+
+class _FolderPickerDialog extends StatefulWidget {
+  final AppLocalizations l10n;
+  final WebDavService service;
+  final String currentParentPath;
+  final List<String> excludedPaths;
+
+  const _FolderPickerDialog({
+    required this.l10n,
+    required this.service,
+    required this.currentParentPath,
+    this.excludedPaths = const [],
+  });
+
+  @override
+  State<_FolderPickerDialog> createState() => _FolderPickerDialogState();
+}
+
+class _FolderPickerDialogState extends State<_FolderPickerDialog> {
+  String _currentPath = '';
+  List<RemoteFile> _folders = const [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFolders();
+  }
+
+  Future<void> _loadFolders() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final result = await widget.service.listFiles(
+      _currentPath.isEmpty ? null : _currentPath,
+    );
+    if (!mounted) return;
+
+    if (result.isSuccess) {
+      final folders = (result.data ?? [])
+          .where((file) => file.isDirectory)
+          .where((folder) => !_isExcluded(_folderPath(folder.name)))
+          .toList();
+      setState(() {
+        _folders = folders;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+        _error = result.error?.userMessage;
+      });
+    }
+  }
+
+  String _folderPath(String folderName) {
+    return _currentPath.isEmpty ? folderName : '$_currentPath/$folderName';
+  }
+
+  bool _isExcluded(String path) {
+    return widget.excludedPaths.any(
+      (excludedPath) =>
+          path == excludedPath || path.startsWith('$excludedPath/'),
+    );
+  }
+
+  Future<void> _enterFolder(String folderName) async {
+    setState(() => _currentPath = _folderPath(folderName));
+    await _loadFolders();
+  }
+
+  Future<void> _navigateUp() async {
+    final parts = _currentPath.split('/');
+    parts.removeLast();
+    setState(() => _currentPath = parts.join('/'));
+    await _loadFolders();
+  }
+
+  Widget _buildFolderContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            TextButton(onPressed: _loadFolders, child: Text(widget.l10n.retry)),
+          ],
+        ),
+      );
+    }
+    if (_folders.isEmpty) {
+      return Center(child: Text(widget.l10n.noSubfolders));
+    }
+
+    return ListView.builder(
+      itemCount: _folders.length,
+      itemBuilder: (context, index) {
+        final folder = _folders[index];
+        final folderPath = _folderPath(folder.name);
+        return ListTile(
+          leading: const Icon(Icons.folder),
+          title: Text(folder.name),
+          trailing: IconButton(
+            tooltip: widget.l10n.moveHere,
+            icon: const Icon(Icons.check),
+            onPressed: () => Navigator.of(context).pop(folderPath),
+          ),
+          onTap: () => _enterFolder(folder.name),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canMoveHere = _currentPath != widget.currentParentPath;
+    return AlertDialog(
+      title: Text(widget.l10n.moveToFolder),
+      content: SizedBox(
+        width: 420,
+        height: 360,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  tooltip: widget.l10n.goBack,
+                  onPressed: _currentPath.isEmpty ? null : _navigateUp,
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                Expanded(
+                  child: Text(
+                    _currentPath.isEmpty ? widget.l10n.filesRoot : _currentPath,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 1),
+            Expanded(child: _buildFolderContent()),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(widget.l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: canMoveHere
+              ? () => Navigator.of(context).pop(_currentPath)
+              : null,
+          child: Text(widget.l10n.moveHere),
+        ),
+      ],
+    );
   }
 }

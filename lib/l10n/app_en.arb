@@ -11,6 +11,7 @@
   "cancel": "Cancel",
   "save": "Save",
   "delete": "Delete",
+  "rename": "Rename",
   "edit": "Edit",
   "add": "Add",
   "clear": "Clear",
@@ -27,6 +28,14 @@
   "autoSyncOn": "Auto-sync ON",
   "autoSyncOff": "Auto-sync OFF",
   "refresh": "Refresh",
+  "clearSelection": "Clear selection",
+  "selectAll": "Select all",
+  "selectedItems": "{count} selected",
+  "@selectedItems": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "switchServer": "Switch server",
 
   "configureWebDavToSync": "Configure WebDAV connection in Settings to sync",
@@ -105,6 +114,40 @@
 
   "download": "Download",
   "downloadFolder": "Download Folder",
+  "moveToFolder": "Move to Folder",
+  "moveHere": "Move Here",
+  "filesRoot": "Files",
+  "noSubfolders": "No subfolders",
+  "moved": "Moved: {name}",
+  "@moved": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "failedToMoveFile": "Failed to move item",
+  "draggingItemsSuffix": "and {count} items",
+  "@draggingItemsSuffix": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "movedItems": "Moved {count} items",
+  "@movedItems": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "createFolder": "Create Folder",
+  "folderNameHint": "Enter a folder name",
+  "folderNameRequired": "Please enter a folder name",
+  "folderNameInvalid": "Folder name cannot contain path separators",
+  "folderCreated": "Folder created: {name}",
+  "@folderCreated": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "failedToCreateFolder": "Failed to create folder",
 
   "todayTime": "Today {time}",
   "@todayTime": {
@@ -164,6 +207,17 @@
     }
   },
   "failedToDeleteFile": "Failed to delete file",
+  "renameFile": "Rename File",
+  "renameFileHint": "Enter a new name",
+  "renameFileNameRequired": "Please enter a name",
+  "renameFileNameInvalid": "Name cannot contain path separators",
+  "renamed": "Renamed: {name}",
+  "@renamed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "failedToRenameFile": "Failed to rename file",
 
   "transferQueue": "Transfer Queue",
   "retryFailed": "Retry failed",

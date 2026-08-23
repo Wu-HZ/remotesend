@@ -56,12 +56,7 @@ final webDavServiceProvider = Provider<WebDavService>((ref) {
 });
 
 /// Connection state for the WebDAV service.
-enum WebDavConnectionState {
-  disconnected,
-  connecting,
-  connected,
-  error,
-}
+enum WebDavConnectionState { disconnected, connecting, connected, error }
 
 /// State class for connection status.
 class ConnectionStatus {
@@ -76,9 +71,9 @@ class ConnectionStatus {
   });
 
   const ConnectionStatus.disconnected()
-      : state = WebDavConnectionState.disconnected,
-        errorMessage = null,
-        lastChecked = null;
+    : state = WebDavConnectionState.disconnected,
+      errorMessage = null,
+      lastChecked = null;
 
   ConnectionStatus copyWith({
     WebDavConnectionState? state,
@@ -97,7 +92,8 @@ class ConnectionStatus {
 class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
   final WebDavService _service;
 
-  ConnectionNotifier(this._service) : super(const ConnectionStatus.disconnected());
+  ConnectionNotifier(this._service)
+    : super(const ConnectionStatus.disconnected());
 
   /// Test the connection and update status.
   Future<bool> testConnection() async {
@@ -138,36 +134,38 @@ class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
 /// Provider for connection status management for Text Bridge.
 final textConnectionStatusProvider =
     StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
-  final service = ref.watch(webDavTextServiceProvider);
-  return ConnectionNotifier(service);
-});
+      final service = ref.watch(webDavTextServiceProvider);
+      return ConnectionNotifier(service);
+    });
 
 /// Provider for connection status management for File Depot.
 final filesConnectionStatusProvider =
     StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
-  final service = ref.watch(webDavFilesServiceProvider);
-  return ConnectionNotifier(service);
-});
+      final service = ref.watch(webDavFilesServiceProvider);
+      return ConnectionNotifier(service);
+    });
 
 /// Backward-compatible provider (uses text connection status).
 final connectionStatusProvider =
     StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
-  final service = ref.watch(webDavTextServiceProvider);
-  return ConnectionNotifier(service);
-});
+      final service = ref.watch(webDavTextServiceProvider);
+      return ConnectionNotifier(service);
+    });
 
 /// Provider for checking if text service is ready to use.
 final isTextServiceReadyProvider = Provider<bool>((ref) {
   final isConfigured = ref.watch(isTextConfiguredProvider);
   final connectionStatus = ref.watch(textConnectionStatusProvider);
-  return isConfigured && connectionStatus.state == WebDavConnectionState.connected;
+  return isConfigured &&
+      connectionStatus.state == WebDavConnectionState.connected;
 });
 
 /// Provider for checking if files service is ready to use.
 final isFilesServiceReadyProvider = Provider<bool>((ref) {
   final isConfigured = ref.watch(isFilesConfiguredProvider);
   final connectionStatus = ref.watch(filesConnectionStatusProvider);
-  return isConfigured && connectionStatus.state == WebDavConnectionState.connected;
+  return isConfigured &&
+      connectionStatus.state == WebDavConnectionState.connected;
 });
 
 /// Backward-compatible provider (checks text service).
@@ -221,10 +219,7 @@ class BufferNotifier extends StateNotifier<BufferState> {
     final result = await _service.readBuffer();
 
     if (result.isSuccess) {
-      state = BufferState(
-        content: result.data ?? '',
-        lastSync: DateTime.now(),
-      );
+      state = BufferState(content: result.data ?? '', lastSync: DateTime.now());
       return true;
     } else {
       state = state.copyWith(
@@ -242,16 +237,10 @@ class BufferNotifier extends StateNotifier<BufferState> {
     final result = await _service.writeBuffer(content);
 
     if (result.isSuccess) {
-      state = BufferState(
-        content: content,
-        lastSync: DateTime.now(),
-      );
+      state = BufferState(content: content, lastSync: DateTime.now());
       return true;
     } else {
-      state = state.copyWith(
-        isSaving: false,
-        error: result.error?.userMessage,
-      );
+      state = state.copyWith(isSaving: false, error: result.error?.userMessage);
       return false;
     }
   }
@@ -268,8 +257,9 @@ class BufferNotifier extends StateNotifier<BufferState> {
 }
 
 /// Provider for buffer state management.
-final bufferProvider =
-    StateNotifierProvider<BufferNotifier, BufferState>((ref) {
+final bufferProvider = StateNotifierProvider<BufferNotifier, BufferState>((
+  ref,
+) {
   final service = ref.watch(webDavServiceProvider);
   return BufferNotifier(service);
 });
@@ -280,7 +270,8 @@ class FileListState {
   final bool isLoading;
   final String? error;
   final DateTime? lastRefresh;
-  final String currentPath; // Current path relative to Files folder (empty = root)
+  final String
+  currentPath; // Current path relative to Files folder (empty = root)
 
   const FileListState({
     this.files = const [],
@@ -434,6 +425,92 @@ class FileListNotifier extends StateNotifier<FileListState> {
     return false;
   }
 
+  /// Move one or more files or folders into another folder.
+  Future<bool> moveFiles(
+    List<String> filePaths,
+    String destinationPath, {
+    Set<String> directoryPaths = const <String>{},
+  }) async {
+    var success = true;
+    for (final filePath in filePaths) {
+      final result = await _service.moveFile(
+        filePath,
+        destinationPath,
+        isDirectory: directoryPaths.contains(filePath),
+      );
+      if (result.isFailure) {
+        success = false;
+        break;
+      }
+    }
+
+    // Refresh even after a partial failure so the local list reflects moves
+    // that were already accepted by the server.
+    await refresh();
+    return success;
+  }
+
+  /// Move a file or folder into another folder.
+  Future<bool> moveFile(
+    String filePath,
+    String destinationPath, {
+    bool isDirectory = false,
+  }) {
+    return moveFiles(
+      [filePath],
+      destinationPath,
+      directoryPaths: isDirectory ? {filePath} : const <String>{},
+    );
+  }
+
+  /// Create a folder in the current directory.
+  Future<bool> createFolder(String folderName) async {
+    final remotePath = state.currentPath.isEmpty
+        ? folderName
+        : '${state.currentPath}/$folderName';
+    final result = await _service.createRemoteDirectory(
+      '${_service.filesFolderPath}/$remotePath',
+    );
+
+    if (result.isSuccess) {
+      // Refresh so the new folder appears with the server-provided metadata.
+      await refresh();
+      return true;
+    }
+    return false;
+  }
+
+  /// Rename a file or folder in the current directory.
+  Future<bool> renameFile(
+    String filePath,
+    String newName, {
+    bool isDirectory = false,
+  }) async {
+    final result = await _service.renameFile(
+      filePath,
+      newName,
+      isDirectory: isDirectory,
+    );
+
+    if (result.isSuccess) {
+      final oldName = filePath.split('/').last;
+      state = state.copyWith(
+        files: state.files.map((file) {
+          if (file.name != oldName) return file;
+          return RemoteFile(
+            name: newName,
+            path: file.path,
+            size: file.size,
+            modifiedTime: file.modifiedTime,
+            isDirectory: file.isDirectory,
+          );
+        }).toList(),
+      );
+      return true;
+    }
+    return false;
+  }
+
   /// Clear the file list.
   void clear() {
     state = const FileListState();
@@ -441,11 +518,12 @@ class FileListNotifier extends StateNotifier<FileListState> {
 }
 
 /// Provider for file list state management (uses Files service).
-final fileListProvider =
-    StateNotifierProvider<FileListNotifier, FileListState>((ref) {
-  final service = ref.watch(webDavFilesServiceProvider);
-  return FileListNotifier(service);
-});
+final fileListProvider = StateNotifierProvider<FileListNotifier, FileListState>(
+  (ref) {
+    final service = ref.watch(webDavFilesServiceProvider);
+    return FileListNotifier(service);
+  },
+);
 
 /// State for storage usage.
 class StorageUsageState {
@@ -524,16 +602,16 @@ class StorageUsageNotifier extends StateNotifier<StorageUsageState> {
 /// Provider for storage usage (uses Text service).
 final textStorageUsageProvider =
     StateNotifierProvider<StorageUsageNotifier, StorageUsageState>((ref) {
-  final service = ref.watch(webDavTextServiceProvider);
-  return StorageUsageNotifier(service);
-});
+      final service = ref.watch(webDavTextServiceProvider);
+      return StorageUsageNotifier(service);
+    });
 
 /// Provider for storage usage (uses Files service).
 final filesStorageUsageProvider =
     StateNotifierProvider<StorageUsageNotifier, StorageUsageState>((ref) {
-  final service = ref.watch(webDavFilesServiceProvider);
-  return StorageUsageNotifier(service);
-});
+      final service = ref.watch(webDavFilesServiceProvider);
+      return StorageUsageNotifier(service);
+    });
 
 /// State for auto-pull functionality.
 class AutoPullState {
@@ -689,8 +767,9 @@ class AutoPullNotifier extends StateNotifier<AutoPullState> {
 }
 
 /// Provider for auto-pull state management.
-final autoPullProvider =
-    StateNotifierProvider<AutoPullNotifier, AutoPullState>((ref) {
-  final service = ref.watch(webDavServiceProvider);
-  return AutoPullNotifier(service, ref);
-});
+final autoPullProvider = StateNotifierProvider<AutoPullNotifier, AutoPullState>(
+  (ref) {
+    final service = ref.watch(webDavServiceProvider);
+    return AutoPullNotifier(service, ref);
+  },
+);

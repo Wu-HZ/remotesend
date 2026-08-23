@@ -253,13 +253,15 @@ class WebDavService {
 
       final files = await _client!.readDir(targetPath);
       final result = files
-          .map((f) => RemoteFile(
-                name: f.name ?? 'Unknown',
-                path: f.path ?? '',
-                size: f.size,
-                modifiedTime: f.mTime,
-                isDirectory: f.isDir ?? false,
-              ))
+          .map(
+            (f) => RemoteFile(
+              name: f.name ?? 'Unknown',
+              path: f.path ?? '',
+              size: f.size,
+              modifiedTime: f.mTime,
+              isDirectory: f.isDir ?? false,
+            ),
+          )
           .toList();
 
       // Sort: directories first, then by modified time (newest first)
@@ -399,7 +401,8 @@ class WebDavService {
   /// Returns the number of files uploaded.
   Future<WebDavResult<int>> uploadFolder(
     String localFolderPath, {
-    void Function(String fileName, int current, int total, double fileProgress)? onProgress,
+    void Function(String fileName, int current, int total, double fileProgress)?
+    onProgress,
   }) async {
     if (_client == null) {
       return const WebDavResult.failure(
@@ -434,7 +437,10 @@ class WebDavService {
         } else if (entity is Directory) {
           // Create directory on server
           final relativePath = p.relative(entity.path, from: localFolderPath);
-          final remoteDir = '$remoteFolderPath/$relativePath'.replaceAll('\\', '/');
+          final remoteDir = '$remoteFolderPath/$relativePath'.replaceAll(
+            '\\',
+            '/',
+          );
           await createRemoteDirectory(remoteDir);
         }
       }
@@ -450,7 +456,12 @@ class WebDavService {
           file.path,
           remoteFilePath,
           onProgress: onProgress != null
-              ? (progress) => onProgress(p.basename(file.path), i + 1, files.length, progress)
+              ? (progress) => onProgress(
+                  p.basename(file.path),
+                  i + 1,
+                  files.length,
+                  progress,
+                )
               : null,
         );
 
@@ -522,6 +533,70 @@ class WebDavService {
     }
   }
 
+  /// Rename a file or folder in the Files folder.
+  ///
+  /// [remoteName] is relative to the Files folder. [newName] is the new
+  /// name within the same parent folder.
+  Future<WebDavResult<bool>> renameFile(
+    String remoteName,
+    String newName, {
+    bool isDirectory = false,
+  }) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final parentPath = p.posix.dirname(remoteName);
+      final newRemoteName = parentPath == '.'
+          ? newName
+          : '$parentPath/$newName';
+      final remotePath = '$_filesFolder/$remoteName';
+      final newRemotePath = '$_filesFolder/$newRemoteName';
+      final sourcePath = isDirectory ? '$remotePath/' : remotePath;
+      final destinationPath = isDirectory ? '$newRemotePath/' : newRemotePath;
+
+      await _client!.rename(sourcePath, destinationPath, false);
+      return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
+  /// Move a file or folder into another folder in the Files folder.
+  ///
+  /// Both paths are relative to the Files folder. [destinationPath] is the
+  /// destination folder, while [remoteName] is the item being moved.
+  Future<WebDavResult<bool>> moveFile(
+    String remoteName,
+    String destinationPath, {
+    bool isDirectory = false,
+  }) async {
+    if (_client == null) {
+      return const WebDavResult.failure(
+        WebDavConfigException(message: 'Client not initialized'),
+      );
+    }
+
+    try {
+      final fileName = p.posix.basename(remoteName);
+      final newRemoteName = destinationPath.isEmpty
+          ? fileName
+          : '$destinationPath/$fileName';
+      final remotePath = '$_filesFolder/$remoteName';
+      final newRemotePath = '$_filesFolder/$newRemoteName';
+      final sourcePath = isDirectory ? '$remotePath/' : remotePath;
+      final destination = isDirectory ? '$newRemotePath/' : newRemotePath;
+
+      await _client!.rename(sourcePath, destination, false);
+      return const WebDavResult.success(true);
+    } catch (e) {
+      return WebDavResult.failure(_mapException(e));
+    }
+  }
+
   // ==================== Messages Folder Operations ====================
 
   /// Read messages file for a specific date.
@@ -555,7 +630,10 @@ class WebDavService {
   ///
   /// [date] - Date string in format 'yyyy-MM-dd'.
   /// [content] - JSON content to write.
-  Future<WebDavResult<bool>> writeMessagesFile(String date, String content) async {
+  Future<WebDavResult<bool>> writeMessagesFile(
+    String date,
+    String content,
+  ) async {
     if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
@@ -644,11 +722,7 @@ class WebDavService {
     }
 
     try {
-      await _client!.read2File(
-        remotePath,
-        localPath,
-        onProgress: onProgress,
-      );
+      await _client!.read2File(remotePath, localPath, onProgress: onProgress);
 
       return const WebDavResult.success(true);
     } catch (e) {
@@ -667,7 +741,14 @@ class WebDavService {
     String remoteFolderName,
     String localFolderPath, {
     void Function(List<RemoteFileInfo> files)? onFilesCollected,
-    void Function(String fileName, int current, int total, int downloadedBytes, int totalBytes)? onProgress,
+    void Function(
+      String fileName,
+      int current,
+      int total,
+      int downloadedBytes,
+      int totalBytes,
+    )?
+    onProgress,
   }) async {
     if (_client == null) {
       return const WebDavResult.failure(
@@ -707,7 +788,13 @@ class WebDavService {
           fileInfo.remotePath,
           localFilePath,
           onProgress: onProgress != null
-              ? (downloaded, total) => onProgress(fileInfo.fileName, i + 1, filesToDownload.length, downloaded, total)
+              ? (downloaded, total) => onProgress(
+                  fileInfo.fileName,
+                  i + 1,
+                  filesToDownload.length,
+                  downloaded,
+                  total,
+                )
               : null,
         );
 
@@ -733,19 +820,23 @@ class WebDavService {
     for (final item in items) {
       final itemName = item.name ?? '';
       final itemPath = item.path ?? '$remotePath/$itemName';
-      final itemRelativePath = relativePath.isEmpty ? itemName : '$relativePath/$itemName';
+      final itemRelativePath = relativePath.isEmpty
+          ? itemName
+          : '$relativePath/$itemName';
 
       if (item.isDir == true) {
         // Recursively collect files from subdirectory
         await _collectFilesRecursively(itemPath, itemRelativePath, files);
       } else {
         // Add file to list
-        files.add(RemoteFileInfo(
-          remotePath: itemPath,
-          relativePath: itemRelativePath,
-          fileName: itemName,
-          fileSize: item.size ?? 0,
-        ));
+        files.add(
+          RemoteFileInfo(
+            remotePath: itemPath,
+            relativePath: itemRelativePath,
+            fileName: itemName,
+            fileSize: item.size ?? 0,
+          ),
+        );
       }
     }
   }
@@ -796,8 +887,7 @@ class WebDavService {
     }
 
     // Include www-authenticate header if present (digest info)
-    final authHeader =
-        e.response?.headers.value('www-authenticate');
+    final authHeader = e.response?.headers.value('www-authenticate');
     if (authHeader != null) {
       buf.writeln('Auth: $authHeader');
     }
@@ -805,8 +895,7 @@ class WebDavService {
     // Include response body snippet
     final body = e.response?.data?.toString() ?? '';
     if (body.isNotEmpty) {
-      final preview =
-          body.length > 400 ? '${body.substring(0, 400)}...' : body;
+      final preview = body.length > 400 ? '${body.substring(0, 400)}...' : body;
       buf.write(preview);
     }
     return buf.toString().trim();
@@ -823,19 +912,34 @@ class WebDavService {
         switch (statusCode) {
           case 401:
             return WebDavAuthException(
-                message: message, originalError: error, userMessage: detail);
+              message: message,
+              originalError: error,
+              userMessage: detail,
+            );
           case 403:
             return WebDavPermissionException(
-                message: message, originalError: error, userMessage: detail);
+              message: message,
+              originalError: error,
+              userMessage: detail,
+            );
           case 404:
             return WebDavNotFoundException(
-                message: message, originalError: error, userMessage: detail);
+              message: message,
+              originalError: error,
+              userMessage: detail,
+            );
           case >= 500 && < 600:
             return WebDavServerException(
-                message: message, originalError: error, userMessage: detail);
+              message: message,
+              originalError: error,
+              userMessage: detail,
+            );
           default:
             return WebDavServerException(
-                message: message, originalError: error, userMessage: detail);
+              message: message,
+              originalError: error,
+              userMessage: detail,
+            );
         }
       }
 
@@ -844,20 +948,25 @@ class WebDavService {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
-          return WebDavTimeoutException(
-              message: message, originalError: error);
+          return WebDavTimeoutException(message: message, originalError: error);
         case DioExceptionType.connectionError:
           return WebDavConnectionException(
-              message: message, originalError: error);
+            message: message,
+            originalError: error,
+          );
         case DioExceptionType.badResponse:
           if (statusCode == 401) {
             return WebDavAuthException(
-                message: message, originalError: error,
-                userMessage: _buildUserMessage(error, message));
+              message: message,
+              originalError: error,
+              userMessage: _buildUserMessage(error, message),
+            );
           }
           return WebDavServerException(
-              message: message, originalError: error,
-              userMessage: _buildUserMessage(error, message));
+            message: message,
+            originalError: error,
+            userMessage: _buildUserMessage(error, message),
+          );
         default:
           return WebDavUnknownException(message: message, originalError: error);
       }
@@ -948,9 +1057,9 @@ class WebDavService {
         if (!block.contains('<D:status>HTTP/1.1 200 OK</D:status>')) continue;
         if (block.contains('<D:collection')) continue;
         hasFiles = true;
-        final sizeMatch =
-            RegExp(r'<D:getcontentlength>(\d+)</D:getcontentlength>')
-                .firstMatch(block);
+        final sizeMatch = RegExp(
+          r'<D:getcontentlength>(\d+)</D:getcontentlength>',
+        ).firstMatch(block);
         if (sizeMatch != null) {
           totalSize += int.parse(sizeMatch.group(1)!);
         }
