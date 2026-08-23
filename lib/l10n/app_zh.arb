@@ -73,6 +73,12 @@
 
   "download": "下载",
   "downloadFolder": "下载文件夹",
+  "uploadToServer": "上传到服务器",
+  "selectTargetServer": "选择目标服务器",
+  "uploadingToServer": "正在将{name}上传到{server}",
+  "uploadedToServer": "已将{name}上传到{server}",
+  "uploadedItemsToServer": "已将{count}个项目上传到{server}",
+  "uploadToServerFailed": "无法上传到{server}",
   "moveToFolder": "移动到文件夹",
   "moveHere": "移动到此处",
   "filesRoot": "文件根目录",

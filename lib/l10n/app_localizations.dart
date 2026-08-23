@@ -450,6 +450,42 @@ abstract class AppLocalizations {
   /// **'Download Folder'**
   String get downloadFolder;
 
+  /// No description provided for @uploadToServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload to Server'**
+  String get uploadToServer;
+
+  /// No description provided for @selectTargetServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Select target server'**
+  String get selectTargetServer;
+
+  /// No description provided for @uploadingToServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {name} to {server}'**
+  String uploadingToServer(Object name, Object server);
+
+  /// No description provided for @uploadedToServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded {name} to {server}'**
+  String uploadedToServer(Object name, Object server);
+
+  /// No description provided for @uploadedItemsToServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded {count} items to {server}'**
+  String uploadedItemsToServer(Object count, Object server);
+
+  /// No description provided for @uploadToServerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not upload to {server}'**
+  String uploadToServerFailed(Object server);
+
   /// No description provided for @moveToFolder.
   ///
   /// In en, this message translates to:

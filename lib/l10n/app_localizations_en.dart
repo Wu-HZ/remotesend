@@ -205,6 +205,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadFolder => 'Download Folder';
 
   @override
+  String get uploadToServer => 'Upload to Server';
+
+  @override
+  String get selectTargetServer => 'Select target server';
+
+  @override
+  String uploadingToServer(Object name, Object server) {
+    return 'Uploading $name to $server';
+  }
+
+  @override
+  String uploadedToServer(Object name, Object server) {
+    return 'Uploaded $name to $server';
+  }
+
+  @override
+  String uploadedItemsToServer(Object count, Object server) {
+    return 'Uploaded $count items to $server';
+  }
+
+  @override
+  String uploadToServerFailed(Object server) {
+    return 'Could not upload to $server';
+  }
+
+  @override
   String get moveToFolder => 'Move to Folder';
 
   @override

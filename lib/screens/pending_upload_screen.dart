@@ -39,138 +39,159 @@ class PendingUploadScreen extends ConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 700),
           child: Column(
             children: [
-          // File selection card (matching LocalSend style)
-          if (pending.filePaths.isNotEmpty)
-            Card(
-              margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              // File selection card (matching LocalSend style)
+              if (pending.filePaths.isNotEmpty)
+                Card(
+                  margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(l10n.selectedFilesLabel,
-                            style: Theme.of(context).textTheme.titleMedium),
+                        Row(
+                          children: [
+                            Text(
+                              l10n.selectedFilesLabel,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(l10n.fileCountLabel(pending.filePaths.length)),
+                        FutureBuilder<int>(
+                          future: _totalSize(pending.filePaths),
+                          builder: (ctx, snap) {
+                            final bytes = snap.data ?? 0;
+                            return Text(
+                              l10n.totalSizeLabel(_formatSize(bytes)),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: colorScheme.outline,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 54,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: pending.filePaths.length,
+                            itemBuilder: (context, index) {
+                              final path = pending.filePaths[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _SimpleThumbnail(
+                                  path: path,
+                                  onRemove: () => ref
+                                      .read(pendingUploadProvider.notifier)
+                                      .removeFile(path),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(l10n.fileCountLabel(pending.filePaths.length)),
-                    FutureBuilder<int>(
-                      future: _totalSize(pending.filePaths),
-                      builder: (ctx, snap) {
-                        final bytes = snap.data ?? 0;
-                        return Text(l10n.totalSizeLabel(_formatSize(bytes)),
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: colorScheme.outline));
-                      },
+                  ),
+                ),
+
+              // Server list header
+              if (enabledServers.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l10n.selectServerLabel,
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 54,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: pending.filePaths.length,
+                  ),
+                ),
+
+              // Server list
+              Expanded(
+                child: pending.filePaths.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.cloud_upload_outlined,
+                              size: 48,
+                              color: colorScheme.outline,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.dropFilesToStart,
+                              style: TextStyle(color: colorScheme.outline),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        itemCount: enabledServers.length,
                         itemBuilder: (context, index) {
-                          final path = pending.filePaths[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _SimpleThumbnail(
-                              path: path,
-                              onRemove: () => ref
-                                  .read(pendingUploadProvider.notifier)
-                                  .removeFile(path),
+                          final server = enabledServers[index];
+                          final isActive = server.id == activeServer?.id;
+                          return Card(
+                            color: isActive
+                                ? colorScheme.primaryContainer
+                                : null,
+                            child: ListTile(
+                              leading: SizedBox(
+                                width: 24,
+                                child: server.emoji.isNotEmpty
+                                    ? Text(
+                                        server.emoji,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 18),
+                                      )
+                                    : Icon(
+                                        Icons.cloud,
+                                        size: 20,
+                                        color: colorScheme.primary,
+                                      ),
+                              ),
+                              title: Text(
+                                server.name,
+                                style: TextStyle(
+                                  fontWeight: isActive
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              subtitle: Text(
+                                server.serverUrl,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.outline,
+                                ),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isActive)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 4),
+                                      child: Text(
+                                        l10n.currentServerLabel,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  Icon(Icons.send, color: colorScheme.primary),
+                                ],
+                              ),
+                              onTap: () => _uploadToServer(ref, server),
                             ),
                           );
                         },
                       ),
-                    ),
-                  ],
-                ),
               ),
-            ),
-
-          // Server list header
-          if (enabledServers.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  l10n.selectServerLabel,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-            ),
-
-          // Server list
-          Expanded(
-            child: pending.filePaths.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.cloud_upload_outlined,
-                            size: 48, color: colorScheme.outline),
-                        const SizedBox(height: 12),
-                        Text(l10n.dropFilesToStart,
-                            style: TextStyle(color: colorScheme.outline)),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: enabledServers.length,
-                    itemBuilder: (context, index) {
-                      final server = enabledServers[index];
-                      final isActive = server.id == activeServer?.id;
-                      return Card(
-                        color: isActive
-                            ? colorScheme.primaryContainer
-                            : null,
-                        child: ListTile(
-                          leading: SizedBox(
-                            width: 24,
-                            child: server.emoji.isNotEmpty
-                                ? Text(server.emoji,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 18))
-                                : Icon(Icons.cloud,
-                                    size: 20,
-                                    color: colorScheme.primary),
-                          ),
-                          title: Text(server.name,
-                              style: TextStyle(
-                                  fontWeight: isActive
-                                      ? FontWeight.bold
-                                      : FontWeight.normal)),
-                          subtitle: Text(server.serverUrl,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: colorScheme.outline)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (isActive)
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(right: 4),
-                                  child: Text(l10n.currentServerLabel,
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          color: colorScheme.primary)),
-                                ),
-                              Icon(Icons.send,
-                                  color: colorScheme.primary),
-                            ],
-                          ),
-                          onTap: () => _uploadToServer(ref, server),
-                        ),
-                      );
-                    },
-                  ),
-          ),
             ],
           ),
         ),
@@ -182,7 +203,14 @@ class PendingUploadScreen extends ConsumerWidget {
     int total = 0;
     for (final path in paths) {
       try {
-        total += await File(path).length();
+        final entityType = await FileSystemEntity.type(path);
+        if (entityType == FileSystemEntityType.file) {
+          total += await File(path).length();
+        } else if (entityType == FileSystemEntityType.directory) {
+          await for (final entity in Directory(path).list(recursive: true)) {
+            if (entity is File) total += await entity.length();
+          }
+        }
       } catch (_) {}
     }
     return total;
@@ -197,21 +225,38 @@ class PendingUploadScreen extends ConsumerWidget {
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 
-  Future<void> _uploadToServer(
-      WidgetRef ref, ServerConfig server) async {
-    final paths =
-        List<String>.from(ref.read(pendingUploadProvider).filePaths);
+  Future<void> _uploadToServer(WidgetRef ref, ServerConfig server) async {
+    final paths = List<String>.from(ref.read(pendingUploadProvider).filePaths);
     if (paths.isEmpty) return;
 
     // Switch to target server if not current
-    final currentFilesId =
-        ref.read(configProvider).valueOrNull?.activeFilesServerId;
+    final currentFilesId = ref
+        .read(configProvider)
+        .valueOrNull
+        ?.activeFilesServerId;
     if (currentFilesId != server.id) {
       await ref.read(configProvider.notifier).switchFilesServer(server.id);
     }
 
-    // Add to upload queue
-    await ref.read(uploadQueueProvider.notifier).addFiles(paths);
+    // Add files and folders to the upload queue.
+    final files = <String>[];
+    final folders = <String>[];
+    for (final path in paths) {
+      final entityType = await FileSystemEntity.type(path);
+      if (entityType == FileSystemEntityType.directory) {
+        folders.add(path);
+      } else if (entityType == FileSystemEntityType.file) {
+        files.add(path);
+      }
+    }
+
+    if (files.isNotEmpty) {
+      await ref.read(uploadQueueProvider.notifier).addFiles(files);
+    }
+    for (final folder in folders) {
+      await ref.read(uploadQueueProvider.notifier).addFolder(folder);
+    }
+
     ref.read(pendingUploadProvider.notifier).clear();
     onClose();
   }
@@ -226,6 +271,7 @@ class _SimpleThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ext = p.extension(path).toLowerCase();
+    final isDirectory = Directory(path).existsSync();
     final colorScheme = Theme.of(context).colorScheme;
 
     return Stack(
@@ -239,7 +285,7 @@ class _SimpleThumbnail extends StatelessWidget {
             child: ColoredBox(
               color: colorScheme.surfaceContainerHighest,
               child: Icon(
-                _iconForExtension(ext),
+                isDirectory ? Icons.folder : _iconForExtension(ext),
                 size: 28,
                 color: colorScheme.primary,
               ),
@@ -261,9 +307,7 @@ class _SimpleThumbnail extends StatelessWidget {
                   color: colorScheme.surface,
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withAlpha(30),
-                        blurRadius: 2),
+                    BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 2),
                   ],
                 ),
                 child: Icon(Icons.close, size: 12, color: colorScheme.error),

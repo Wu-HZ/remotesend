@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../providers/ui_state_provider.dart';
+import '../services/webdav_service.dart';
 
 /// A vertical server switcher for wide content layouts.
 class ServerListPanel extends ConsumerWidget {
@@ -12,12 +13,14 @@ class ServerListPanel extends ConsumerWidget {
     required this.servers,
     required this.activeServer,
     required this.onServerSelected,
+    this.onFileDropped,
   });
 
   final AppLocalizations l10n;
   final List<ServerConfig> servers;
   final ServerConfig? activeServer;
   final ValueChanged<ServerConfig> onServerSelected;
+  final Future<void> Function(ServerConfig, RemoteFile)? onFileDropped;
 
   static const _expandedWidth = 180.0;
   static const _collapsedWidth = 64.0;
@@ -69,7 +72,7 @@ class ServerListPanel extends ConsumerWidget {
   ) {
     final isActive = server.id == activeServer?.id;
 
-    return Tooltip(
+    final item = Tooltip(
       message: server.name,
       child: Material(
         color: isActive ? colorScheme.secondaryContainer : Colors.transparent,
@@ -129,6 +132,22 @@ class ServerListPanel extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    if (onFileDropped == null) return item;
+
+    return DragTarget<RemoteFile>(
+      onWillAcceptWithDetails: (details) => !isActive,
+      onAcceptWithDetails: (details) {
+        onFileDropped!(server, details.data);
+      },
+      builder: (context, candidateData, rejectedData) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          color: candidateData.isNotEmpty ? colorScheme.primaryContainer : null,
+          child: item,
+        );
+      },
     );
   }
 }

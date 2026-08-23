@@ -201,6 +201,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadFolder => '下载文件夹';
 
   @override
+  String get uploadToServer => '上传到服务器';
+
+  @override
+  String get selectTargetServer => '选择目标服务器';
+
+  @override
+  String uploadingToServer(Object name, Object server) {
+    return '正在将$name上传到$server';
+  }
+
+  @override
+  String uploadedToServer(Object name, Object server) {
+    return '已将$name上传到$server';
+  }
+
+  @override
+  String uploadedItemsToServer(Object count, Object server) {
+    return '已将$count个项目上传到$server';
+  }
+
+  @override
+  String uploadToServerFailed(Object server) {
+    return '无法上传到$server';
+  }
+
+  @override
   String get moveToFolder => '移动到文件夹';
 
   @override

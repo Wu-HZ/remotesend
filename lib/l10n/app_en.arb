@@ -114,6 +114,35 @@
 
   "download": "Download",
   "downloadFolder": "Download Folder",
+  "uploadToServer": "Upload to Server",
+  "selectTargetServer": "Select target server",
+  "uploadingToServer": "Uploading {name} to {server}",
+  "@uploadingToServer": {
+    "placeholders": {
+      "name": {},
+      "server": {}
+    }
+  },
+  "uploadedToServer": "Uploaded {name} to {server}",
+  "@uploadedToServer": {
+    "placeholders": {
+      "name": {},
+      "server": {}
+    }
+  },
+  "uploadedItemsToServer": "Uploaded {count} items to {server}",
+  "@uploadedItemsToServer": {
+    "placeholders": {
+      "count": {},
+      "server": {}
+    }
+  },
+  "uploadToServerFailed": "Could not upload to {server}",
+  "@uploadToServerFailed": {
+    "placeholders": {
+      "server": {}
+    }
+  },
   "moveToFolder": "Move to Folder",
   "moveHere": "Move Here",
   "filesRoot": "Files",

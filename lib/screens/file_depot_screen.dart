@@ -328,6 +328,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                       servers: servers,
                       activeServer: activeServer,
                       onServerSelected: _switchFilesServer,
+                      onFileDropped: _uploadDroppedItemsToServer,
                     ),
                   Expanded(
                     child: Column(
@@ -1143,6 +1144,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     AppLocalizations l10n,
     RemoteFile file,
   ) {
+    final activeServerId = ref.read(activeFilesServerProvider)?.id;
+    final hasOtherServer = ref
+        .read(enabledServersProvider)
+        .any((server) => server.id != activeServerId);
+
     return [
       PopupMenuItem(
         value: 'download',
@@ -1154,6 +1160,17 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           ],
         ),
       ),
+      if (hasOtherServer)
+        PopupMenuItem(
+          value: 'uploadToServer',
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_upload),
+              const SizedBox(width: 8),
+              Text(l10n.uploadToServer),
+            ],
+          ),
+        ),
       PopupMenuItem(
         value: 'rename',
         child: Row(
@@ -1320,6 +1337,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           _downloadFile(l10n, file);
         }
         break;
+      case 'uploadToServer':
+        _prepareItemsForPendingUpload(l10n, file);
+        break;
       case 'rename':
         _renameFile(l10n, file);
         break;
@@ -1330,6 +1350,81 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
         _confirmDelete(l10n, file);
         break;
     }
+  }
+
+  Future<void> _prepareItemsForPendingUpload(
+    AppLocalizations l10n,
+    RemoteFile source,
+  ) async {
+    final paths = <String>[];
+    for (final item in _itemsForMove(source)) {
+      final localPath = await _ensureLocalCopy(l10n, item);
+      if (localPath != null) paths.add(localPath);
+    }
+
+    if (paths.isNotEmpty) {
+      ref.read(pendingUploadProvider.notifier).addFiles(paths);
+    }
+  }
+
+  Future<void> _uploadDroppedItemsToServer(
+    ServerConfig target,
+    RemoteFile source,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final paths = <String>[];
+    for (final item in _itemsForMove(source)) {
+      final localPath = await _ensureLocalCopy(l10n, item);
+      if (localPath != null) paths.add(localPath);
+    }
+    if (paths.isEmpty) return;
+
+    // Reuse the normal upload queue so the target upload has the same
+    // progress display, retry behavior, and completion handling.
+    await _switchFilesServer(target);
+    await _enqueueLocalPathsForUpload(paths);
+  }
+
+  Future<void> _enqueueLocalPathsForUpload(List<String> paths) async {
+    final files = <String>[];
+    final folders = <String>[];
+    for (final path in paths) {
+      final entityType = await FileSystemEntity.type(path);
+      if (entityType == FileSystemEntityType.directory) {
+        folders.add(path);
+      } else if (entityType == FileSystemEntityType.file) {
+        files.add(path);
+      }
+    }
+
+    for (final folder in folders) {
+      await ref.read(uploadQueueProvider.notifier).addFolder(folder);
+    }
+    if (files.isNotEmpty) {
+      await ref.read(uploadQueueProvider.notifier).addFiles(files);
+    }
+  }
+
+  Future<String?> _ensureLocalCopy(
+    AppLocalizations l10n,
+    RemoteFile file,
+  ) async {
+    final sourceServerId = ref.read(activeFilesServerProvider)?.id;
+    if (sourceServerId == null) return null;
+
+    final cache = ref.read(downloadCacheProvider);
+    final cachedPath = cache.localPathFor(serverId: sourceServerId, file: file);
+    if (cachedPath != null) return cachedPath;
+
+    if (file.isDirectory) {
+      await _downloadFolder(l10n, file);
+    } else {
+      await _downloadFile(l10n, file);
+    }
+
+    return ref
+        .read(downloadCacheProvider)
+        .localPathFor(serverId: sourceServerId, file: file);
   }
 
   Future<void> _moveToFolder(AppLocalizations l10n, RemoteFile file) async {
