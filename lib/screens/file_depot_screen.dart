@@ -474,7 +474,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                         style: const TextStyle(fontSize: 16),
                       )
                     : Icon(
-                        Icons.cloud,
+                        server.isS3 ? Icons.storage : Icons.cloud,
                         size: 18,
                         color: Theme.of(context).colorScheme.primary,
                       ),

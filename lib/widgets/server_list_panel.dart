@@ -97,7 +97,7 @@ class ServerListPanel extends ConsumerWidget {
                             style: const TextStyle(fontSize: 18),
                           )
                         : Icon(
-                            Icons.cloud,
+                            server.isS3 ? Icons.storage : Icons.cloud,
                             size: 20,
                             color: isActive
                                 ? colorScheme.primary

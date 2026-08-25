@@ -90,7 +90,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get configureWebDavToSync =>
-      'Configure WebDAV connection in Settings to sync';
+      'Configure a storage server in Settings to sync';
 
   @override
   String get notConnectedTestInSettings =>
@@ -98,7 +98,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get configureWebDavToUseFileDepot =>
-      'Configure WebDAV connection in Settings to use File Depot';
+      'Configure a storage server in Settings to use File Depot';
 
   @override
   String get noMessagesYet => 'No messages yet';
@@ -177,7 +177,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get idle => 'Idle';
 
   @override
-  String get connectToWebDavToViewFiles => 'Connect to WebDAV to view files';
+  String get connectToWebDavToViewFiles =>
+      'Connect to a storage server to view files';
 
   @override
   String get noFilesYet => 'No files yet';
@@ -711,7 +712,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutAppDescription =>
-      'A lightweight, portable app to transfer text and files between devices using WebDAV.';
+      'A lightweight, portable app to transfer text and files between devices using WebDAV or S3.';
 
   @override
   String get sourceCode => 'Source code';
@@ -872,6 +873,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordRequired => 'Please enter a password';
 
   @override
+  String get storageType => 'Storage type';
+
+  @override
+  String get webDavType => 'WebDAV';
+
+  @override
+  String get s3Type => 'S3 compatible';
+
+  @override
+  String get s3Endpoint => 'S3 endpoint';
+
+  @override
+  String get s3EndpointHint => 'https://s3.example.com';
+
+  @override
+  String get s3Bucket => 'Bucket';
+
+  @override
+  String get s3BucketRequired => 'Please enter a bucket name';
+
+  @override
+  String get s3Region => 'Region';
+
+  @override
+  String get s3RegionHint => 'e.g., us-east-1';
+
+  @override
+  String get s3RegionRequired => 'Please enter a region';
+
+  @override
+  String get s3AccessKey => 'Access key ID';
+
+  @override
+  String get s3AccessKeyRequired => 'Please enter an access key ID';
+
+  @override
+  String get s3SecretKey => 'Secret access key';
+
+  @override
+  String get s3SecretKeyRequired => 'Please enter a secret access key';
+
+  @override
+  String get s3SessionToken => 'Session token (optional)';
+
+  @override
+  String get s3PathStyle => 'Use path-style access';
+
+  @override
+  String get s3PathStyleHelp =>
+      'Enable for MinIO and most self-hosted S3 services. Disable for AWS virtual-hosted buckets.';
+
+  @override
+  String get s3PermissionHint =>
+      'Requires ListBucket plus GetObject, PutObject and DeleteObject permissions.';
+
+  @override
   String get testConnection => 'Test Connection';
 
   @override
@@ -905,7 +962,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically pull new messages on launch';
 
   @override
-  String get connectToWebDavFirst => 'Connect to WebDAV first';
+  String get connectToWebDavFirst => 'Connect to a storage server first';
 
   @override
   String get goToSettingsToConfigureConnection =>
@@ -913,7 +970,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectToWebDavFirstToUploadFiles =>
-      'Connect to WebDAV first to upload files';
+      'Connect to a storage server first to upload files';
 
   @override
   String addedFilesAndFolders(Object files, Object folders) {
@@ -984,7 +1041,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidConfigFile => 'Invalid config file';
 
   @override
-  String get noServersFoundInConfig => 'No servers found (duplicate URL check)';
+  String get noServersFoundInConfig =>
+      'No servers found (duplicate storage check)';
 
   @override
   String importedServers(Object count) {

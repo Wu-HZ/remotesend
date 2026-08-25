@@ -79,101 +79,103 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             constraints: const BoxConstraints(maxWidth: 700),
             child: ListView(
               padding: const EdgeInsets.all(16),
-          children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Text(
-                l10n.settings,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-          ),
-          // Connection Section
-          _buildConnectionSection(l10n),
-          const SizedBox(height: 24),
-
-          // General Section
-          _buildGeneralSection(l10n),
-          const SizedBox(height: 24),
-
-          // Download Section
-          _buildDownloadSection(l10n),
-          const SizedBox(height: 24),
-
-          // Transfer Section
-          _buildTransferSection(l10n),
-          const SizedBox(height: 24),
-
-          // Data Section
-          _buildDataSection(l10n),
-          const SizedBox(height: 24),
-
-          // Others Section
-          _buildOthersSection(l10n),
-          const SizedBox(height: 32),
-
-          // Footer: Logo + App Name
-          const SizedBox(height: 24),
-          Center(
-            child: ColorFiltered(
-              colorFilter: ColorFilter.mode(
-                Theme.of(context).colorScheme.primary,
-                BlendMode.srcIn,
-              ),
-              child: Image.asset(
-                'assets/logo_tint.png',
-                width: 160,
-                height: 160,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              'RemoteSend',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+              children: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      l10n.settings,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                   ),
-              textAlign: TextAlign.center,
+                ),
+                // Connection Section
+                _buildConnectionSection(l10n),
+                const SizedBox(height: 24),
+
+                // General Section
+                _buildGeneralSection(l10n),
+                const SizedBox(height: 24),
+
+                // Download Section
+                _buildDownloadSection(l10n),
+                const SizedBox(height: 24),
+
+                // Transfer Section
+                _buildTransferSection(l10n),
+                const SizedBox(height: 24),
+
+                // Data Section
+                _buildDataSection(l10n),
+                const SizedBox(height: 24),
+
+                // Others Section
+                _buildOthersSection(l10n),
+                const SizedBox(height: 32),
+
+                // Footer: Logo + App Name
+                const SizedBox(height: 24),
+                Center(
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      Theme.of(context).colorScheme.primary,
+                      BlendMode.srcIn,
+                    ),
+                    child: Image.asset(
+                      'assets/logo_tint.png',
+                      width: 160,
+                      height: 160,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    'RemoteSend',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: Text(
+                    'Version: 1.1.0',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    '© ${DateTime.now().year} Wu-HZ',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Center(
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ChangelogPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.history, size: 16),
+                    label: Text(l10n.changelog),
+                  ),
+                ),
+                const SizedBox(height: 80),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Center(
-            child: Text(
-              'Version: 1.1.0',
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Center(
-            child: Text(
-              '© ${DateTime.now().year} Wu-HZ',
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Center(
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.onSurface,
-              ),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ChangelogPage()),
-                );
-              },
-              icon: const Icon(Icons.history, size: 16),
-              label: Text(l10n.changelog),
-            ),
-          ),
-          const SizedBox(height: 80),
-            ],
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -194,7 +196,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       icon: Icons.cloud,
       children: [
         // Connection Status Card
-        _buildConnectionStatusCard(l10n, textConnectionStatus, filesConnectionStatus, textServer, filesServer),
+        _buildConnectionStatusCard(
+          l10n,
+          textConnectionStatus,
+          filesConnectionStatus,
+          textServer,
+          filesServer,
+        ),
         const SizedBox(height: 16),
 
         // Configured Servers Section
@@ -202,17 +210,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             Text(
               l10n.configuredServers,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             Text(
               l10n.longPressToEditDelete,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                    fontSize: 11,
-                  ),
+                color: Theme.of(context).colorScheme.outline,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -268,7 +276,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (isPortableAvailable) ...[
           _ButtonEntry(
             label: l10n.dataLocation,
-            buttonLabel: isPortableMode ? l10n.dataLocationPortable : l10n.dataLocationSystem,
+            buttonLabel: isPortableMode
+                ? l10n.dataLocationPortable
+                : l10n.dataLocationSystem,
             onTap: () => _showDataLocationDialog(l10n, isPortableMode),
           ),
         ],
@@ -276,7 +286,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildServerTile(AppLocalizations l10n, ServerConfig server, ServerConfig? activeServer) {
+  Widget _buildServerTile(
+    AppLocalizations l10n,
+    ServerConfig server,
+    ServerConfig? activeServer,
+  ) {
     final config = ref.watch(configProvider).valueOrNull;
     final isTextServer = config?.activeTextServerId == server.id;
     final isFilesServer = config?.activeFilesServerId == server.id;
@@ -301,14 +315,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         SizedBox(
                           width: 24,
                           child: server.emoji.isNotEmpty
-                              ? Text(server.emoji,
+                              ? Text(
+                                  server.emoji,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 18))
-                              : Icon(Icons.cloud,
+                                  style: const TextStyle(fontSize: 18),
+                                )
+                              : Icon(
+                                  server.isS3 ? Icons.storage : Icons.cloud,
                                   size: 18,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary),
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -323,12 +339,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      server.serverUrl,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
                           ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            server.isS3 ? 'S3' : 'WebDAV',
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            server.displayAddress,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -337,8 +377,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildFeatureToggle(
                 label: server.enabled ? l10n.enabledLabel : l10n.disabledLabel,
                 isSelected: server.enabled,
-                onTap: () =>
-                    ref.read(configProvider.notifier).toggleServerEnabled(server.id),
+                onTap: () => ref
+                    .read(configProvider.notifier)
+                    .toggleServerEnabled(server.id),
               ),
               const SizedBox(width: 4),
               // Text/Files toggle buttons
@@ -383,18 +424,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: effectiveSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+            color: effectiveSelected
+                ? colorScheme.primary
+                : colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: effectiveSelected ? colorScheme.primary : colorScheme.outline.withAlpha(50),
+              color: effectiveSelected
+                  ? colorScheme.primary
+                  : colorScheme.outline.withAlpha(50),
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: effectiveSelected ? FontWeight.w600 : FontWeight.normal,
-              color: effectiveSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+              fontWeight: effectiveSelected
+                  ? FontWeight.w600
+                  : FontWeight.normal,
+              color: effectiveSelected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurface,
             ),
           ),
         ),
@@ -419,7 +468,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+              title: Text(
+                l10n.delete,
+                style: const TextStyle(color: Colors.red),
+              ),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _confirmDeleteServer(l10n, server);
@@ -431,15 +483,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _setServerForFeature(String serverId, {bool forText = false, bool forFiles = false}) async {
+  Future<void> _setServerForFeature(
+    String serverId, {
+    bool forText = false,
+    bool forFiles = false,
+  }) async {
     setState(() => _isSaving = true);
 
     try {
-      final success = await ref.read(configProvider.notifier).setServerForFeature(
-            serverId,
-            forText: forText,
-            forFiles: forFiles,
-          );
+      final success = await ref
+          .read(configProvider.notifier)
+          .setServerForFeature(serverId, forText: forText, forFiles: forFiles);
 
       if (success && mounted) {
         // Test connection for the updated service
@@ -455,17 +509,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Widget _buildConnectionStatusCard(AppLocalizations l10n, ConnectionStatus textStatus, ConnectionStatus filesStatus, ServerConfig? textServer, ServerConfig? filesServer) {
+  Widget _buildConnectionStatusCard(
+    AppLocalizations l10n,
+    ConnectionStatus textStatus,
+    ConnectionStatus filesStatus,
+    ServerConfig? textServer,
+    ServerConfig? filesServer,
+  ) {
     return Column(
       children: [
-        _buildSingleConnectionStatus(l10n, l10n.textLabel, textStatus, textServer),
+        _buildSingleConnectionStatus(
+          l10n,
+          l10n.textLabel,
+          textStatus,
+          textServer,
+        ),
         const SizedBox(height: 8),
-        _buildSingleConnectionStatus(l10n, l10n.filesLabel, filesStatus, filesServer),
+        _buildSingleConnectionStatus(
+          l10n,
+          l10n.filesLabel,
+          filesStatus,
+          filesServer,
+        ),
       ],
     );
   }
 
-  Widget _buildSingleConnectionStatus(AppLocalizations l10n, String label, ConnectionStatus status, ServerConfig? server) {
+  Widget _buildSingleConnectionStatus(
+    AppLocalizations l10n,
+    String label,
+    ConnectionStatus status,
+    ServerConfig? server,
+  ) {
     Color color;
     IconData icon;
     String text;
@@ -542,8 +617,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Text(
               l10n.localNameDescription,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
+                color: Theme.of(context).colorScheme.outline,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -572,12 +647,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               final config = ref.read(configProvider).valueOrNull;
               if (config != null) {
                 final newConfig = config.copyWith(localName: newName);
-                final success = await ref.read(configProvider.notifier).updateConfig(newConfig);
+                final success = await ref
+                    .read(configProvider.notifier)
+                    .updateConfig(newConfig);
 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(success ? l10n.nameUpdated : l10n.failedToSave),
+                      content: Text(
+                        success ? l10n.nameUpdated : l10n.failedToSave,
+                      ),
                       backgroundColor: success ? Colors.green : Colors.red,
                       duration: const Duration(seconds: 2),
                     ),
@@ -626,7 +705,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         _ButtonEntry(
           label: l10n.color,
-          buttonLabel: useDynamicColor ? l10n.usingSystemColor : _getColorName(l10n, primaryColor),
+          buttonLabel: useDynamicColor
+              ? l10n.usingSystemColor
+              : _getColorName(l10n, primaryColor),
           enabled: !useDynamicColor,
           onTap: () => _showColorPicker(l10n),
         ),
@@ -685,7 +766,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         _ButtonEntry(
           label: l10n.dragModeLabel,
-          buttonLabel: dragMode == 'instant' ? l10n.dragModeInstant : l10n.dragModePending,
+          buttonLabel: dragMode == 'instant'
+              ? l10n.dragModeInstant
+              : l10n.dragModePending,
           onTap: () => _showDragModeDialog(l10n, dragMode),
         ),
         _ButtonEntry(
@@ -740,7 +823,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
-  Future<void> _saveChatOwnMessageLeft(AppLocalizations l10n, bool value) async {
+  Future<void> _saveChatOwnMessageLeft(
+    AppLocalizations l10n,
+    bool value,
+  ) async {
     final currentConfig = ref.read(configProvider).valueOrNull;
     if (currentConfig == null) return;
     final newConfig = currentConfig.copyWith(chatOwnMessageLeft: value);
@@ -800,35 +886,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
 
       if (!mounted) return;
-      final count =
-          ref.read(configProvider.notifier).importFromString(content);
+      final count = ref.read(configProvider.notifier).importFromString(content);
 
       if (!mounted) return;
       if (count == -1) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(l10n.invalidConfigFile),
-              backgroundColor: Colors.red),
+            content: Text(l10n.invalidConfigFile),
+            backgroundColor: Colors.red,
+          ),
         );
       } else if (count == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(l10n.noServersFoundInConfig),
-              backgroundColor: Colors.orange),
+            content: Text(l10n.noServersFoundInConfig),
+            backgroundColor: Colors.orange,
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(l10n.importedServers(count)),
-              backgroundColor: Colors.green),
+            content: Text(l10n.importedServers(count)),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(l10n.importFailed(e)),
-              backgroundColor: Colors.red),
+            content: Text(l10n.importFailed(e)),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -864,10 +953,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/remotesend_config.json');
         await file.writeAsString(jsonStr);
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          subject: l10n.remoteSendConfig,
-        );
+        await Share.shareXFiles([
+          XFile(file.path),
+        ], subject: l10n.remoteSendConfig);
       } else {
         // Desktop: save to chosen location
         final result = await FilePicker.platform.saveFile(
@@ -881,8 +969,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text(l10n.configExported),
-                  backgroundColor: Colors.green),
+                content: Text(l10n.configExported),
+                backgroundColor: Colors.green,
+              ),
             );
           }
         }
@@ -891,8 +980,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(l10n.configExportFailed(e)),
-              backgroundColor: Colors.red),
+            content: Text(l10n.configExportFailed(e)),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -950,12 +1040,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (currentConfig == null) return;
 
     final newConfig = currentConfig.copyWith(downloadLocation: path);
-    final success = await ref.read(configProvider.notifier).updateConfig(newConfig);
+    final success = await ref
+        .read(configProvider.notifier)
+        .updateConfig(newConfig);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? l10n.downloadLocationUpdated : l10n.failedToSave),
+          content: Text(
+            success ? l10n.downloadLocationUpdated : l10n.failedToSave,
+          ),
           backgroundColor: success ? Colors.green : Colors.red,
           duration: const Duration(seconds: 2),
         ),
@@ -1003,9 +1097,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         onSave: (newServer) async {
           bool success;
           if (server == null) {
-            success = await ref.read(configProvider.notifier).addServer(newServer);
+            success = await ref
+                .read(configProvider.notifier)
+                .addServer(newServer);
           } else {
-            success = await ref.read(configProvider.notifier).updateServer(newServer);
+            success = await ref
+                .read(configProvider.notifier)
+                .updateServer(newServer);
           }
 
           if (success && mounted) {
@@ -1013,10 +1111,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             final config = ref.read(configProvider).valueOrNull;
             if (config != null) {
               if (config.activeTextServerId == newServer.id) {
-                ref.read(textConnectionStatusProvider.notifier).testConnection();
+                ref
+                    .read(textConnectionStatusProvider.notifier)
+                    .testConnection();
               }
               if (config.activeFilesServerId == newServer.id) {
-                ref.read(filesConnectionStatusProvider.notifier).testConnection();
+                ref
+                    .read(filesConnectionStatusProvider.notifier)
+                    .testConnection();
               }
             }
           }
@@ -1024,9 +1126,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(success
-                    ? (server == null ? l10n.serverAdded : l10n.serverUpdated)
-                    : l10n.failedToSaveServer),
+                content: Text(
+                  success
+                      ? (server == null ? l10n.serverAdded : l10n.serverUpdated)
+                      : l10n.failedToSaveServer,
+                ),
                 backgroundColor: success ? Colors.green : Colors.red,
                 duration: const Duration(seconds: 2),
               ),
@@ -1051,13 +1155,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              final success = await ref.read(configProvider.notifier).deleteServer(server.id);
+              final success = await ref
+                  .read(configProvider.notifier)
+                  .deleteServer(server.id);
 
               if (!mounted) return;
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(success ? l10n.serverDeleted : l10n.failedToDelete),
+                  content: Text(
+                    success ? l10n.serverDeleted : l10n.failedToDelete,
+                  ),
                   backgroundColor: success ? Colors.green : Colors.red,
                   duration: const Duration(seconds: 2),
                 ),
@@ -1068,10 +1176,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 final config = ref.read(configProvider).valueOrNull;
                 if (config != null) {
                   if (config.activeTextServer != null) {
-                    ref.read(textConnectionStatusProvider.notifier).testConnection();
+                    ref
+                        .read(textConnectionStatusProvider.notifier)
+                        .testConnection();
                   }
                   if (config.activeFilesServer != null) {
-                    ref.read(filesConnectionStatusProvider.notifier).testConnection();
+                    ref
+                        .read(filesConnectionStatusProvider.notifier)
+                        .testConnection();
                   }
                 }
               }
@@ -1099,8 +1211,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Text(
                 l10n.refreshIntervalDescription,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
               const SizedBox(height: 16),
               Row(
@@ -1148,7 +1260,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (currentConfig == null) return;
 
     final newConfig = currentConfig.copyWith(refreshIntervalSeconds: seconds);
-    final success = await ref.read(configProvider.notifier).updateConfig(newConfig);
+    final success = await ref
+        .read(configProvider.notifier)
+        .updateConfig(newConfig);
 
     if (success) {
       // Update auto-pull interval if it's running
@@ -1167,7 +1281,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: [
           RadioListTile<bool>(
             title: Text(l10n.dataLocationSystem),
-            subtitle: const Text('Windows: %LOCALAPPDATA%\\com.remotesend.remote_send\\shared_prefs.json'),
+            subtitle: const Text(
+              'Windows: %LOCALAPPDATA%\\com.remotesend.remote_send\\shared_prefs.json',
+            ),
             value: false,
             groupValue: isPortable,
             onChanged: (v) {
@@ -1177,7 +1293,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           RadioListTile<bool>(
             title: Text(l10n.dataLocationPortable),
-            subtitle: Text(portablePath.isNotEmpty ? portablePath : l10n.portableConfigPathFallback),
+            subtitle: Text(
+              portablePath.isNotEmpty
+                  ? portablePath
+                  : l10n.portableConfigPathFallback,
+            ),
             value: true,
             groupValue: isPortable,
             onChanged: (v) {
@@ -1204,7 +1324,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SnackBar(
             content: Text(
               success
-                  ? (portable ? l10n.portableModeEnabled : l10n.portableModeDisabled)
+                  ? (portable
+                        ? l10n.portableModeEnabled
+                        : l10n.portableModeDisabled)
                   : l10n.failedToChangePortableMode,
             ),
             backgroundColor: success ? Colors.green : Colors.red,
@@ -1425,10 +1547,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       applicationName: 'RemoteSend',
       applicationVersion: '1.1.0',
       applicationLegalese: '© ${DateTime.now().year} Wu-HZ',
-      children: [
-        const SizedBox(height: 16),
-        Text(l10n.aboutAppDescription),
-      ],
+      children: [const SizedBox(height: 16), Text(l10n.aboutAppDescription)],
     );
   }
 
@@ -1464,10 +1583,19 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
   final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _s3BucketController = TextEditingController();
+  final _s3RegionController = TextEditingController(text: 'us-east-1');
+  final _s3AccessKeyController = TextEditingController();
+  final _s3SecretKeyController = TextEditingController();
+  final _s3SessionTokenController = TextEditingController();
   final _emojiController = TextEditingController();
+  StorageType _storageType = StorageType.webDav;
+  bool _s3UsePathStyle = true;
   bool _obscurePassword = true;
+  bool _obscureS3Secret = true;
   bool _isTesting = false;
   bool _isSaving = false;
+  bool _testSucceeded = false;
   String? _testResult;
 
   @override
@@ -1475,9 +1603,16 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
     super.initState();
     if (widget.server != null) {
       _nameController.text = widget.server!.name;
+      _storageType = widget.server!.storageType;
       _urlController.text = widget.server!.serverUrl;
       _usernameController.text = widget.server!.username;
       _passwordController.text = widget.server!.password;
+      _s3BucketController.text = widget.server!.s3Bucket;
+      _s3RegionController.text = widget.server!.s3Region;
+      _s3AccessKeyController.text = widget.server!.s3AccessKey;
+      _s3SecretKeyController.text = widget.server!.s3SecretKey;
+      _s3SessionTokenController.text = widget.server!.s3SessionToken;
+      _s3UsePathStyle = widget.server!.s3UsePathStyle;
       _emojiController.text = widget.server!.emoji;
     }
   }
@@ -1488,6 +1623,11 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
     _urlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _s3BucketController.dispose();
+    _s3RegionController.dispose();
+    _s3AccessKeyController.dispose();
+    _s3SecretKeyController.dispose();
+    _s3SessionTokenController.dispose();
     _emojiController.dispose();
     super.dispose();
   }
@@ -1538,11 +1678,42 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                   },
                 ),
                 const SizedBox(height: 16),
+                DropdownButtonFormField<StorageType>(
+                  initialValue: _storageType,
+                  decoration: InputDecoration(
+                    labelText: l10n.storageType,
+                    prefixIcon: const Icon(Icons.storage),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: StorageType.webDav,
+                      child: Text(l10n.webDavType),
+                    ),
+                    DropdownMenuItem(
+                      value: StorageType.s3,
+                      child: Text(l10n.s3Type),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _storageType = value;
+                      _testResult = null;
+                      _testSucceeded = false;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _urlController,
                   decoration: InputDecoration(
-                    labelText: l10n.serverUrl,
-                    hintText: l10n.serverUrlHint,
+                    labelText: _storageType == StorageType.s3
+                        ? l10n.s3Endpoint
+                        : l10n.serverUrl,
+                    hintText: _storageType == StorageType.s3
+                        ? l10n.s3EndpointHint
+                        : l10n.serverUrlHint,
                     prefixIcon: const Icon(Icons.link),
                     border: const OutlineInputBorder(),
                   ),
@@ -1552,48 +1723,146 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                       return l10n.serverUrlRequired;
                     }
                     final uri = Uri.tryParse(value.trim());
-                    if (uri == null || !uri.hasScheme) {
+                    if (uri == null ||
+                        !uri.hasScheme ||
+                        !uri.hasAuthority ||
+                        (uri.scheme != 'http' && uri.scheme != 'https')) {
                       return l10n.serverUrlInvalid;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.username,
-                    prefixIcon: const Icon(Icons.person),
-                    border: const OutlineInputBorder(),
+                if (_storageType == StorageType.s3) ...[
+                  TextFormField(
+                    controller: _s3BucketController,
+                    decoration: InputDecoration(
+                      labelText: l10n.s3Bucket,
+                      prefixIcon: const Icon(Icons.inventory_2),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? l10n.s3BucketRequired
+                        : null,
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return l10n.usernameRequired;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: l10n.password,
-                    prefixIcon: const Icon(Icons.lock),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3RegionController,
+                    decoration: InputDecoration(
+                      labelText: l10n.s3Region,
+                      hintText: l10n.s3RegionHint,
+                      prefixIcon: const Icon(Icons.public),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? l10n.s3RegionRequired
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3AccessKeyController,
+                    decoration: InputDecoration(
+                      labelText: l10n.s3AccessKey,
+                      prefixIcon: const Icon(Icons.key),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? l10n.s3AccessKeyRequired
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3SecretKeyController,
+                    decoration: InputDecoration(
+                      labelText: l10n.s3SecretKey,
+                      prefixIcon: const Icon(Icons.lock),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureS3Secret
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(
+                          () => _obscureS3Secret = !_obscureS3Secret,
+                        ),
+                      ),
+                    ),
+                    obscureText: _obscureS3Secret,
+                    validator: (value) => value == null || value.isEmpty
+                        ? l10n.s3SecretKeyRequired
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3SessionTokenController,
+                    decoration: InputDecoration(
+                      labelText: l10n.s3SessionToken,
+                      prefixIcon: const Icon(Icons.token),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
-                  obscureText: _obscurePassword,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return l10n.passwordRequired;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.s3PathStyle),
+                    subtitle: Text(l10n.s3PathStyleHelp),
+                    value: _s3UsePathStyle,
+                    onChanged: (value) =>
+                        setState(() => _s3UsePathStyle = value),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l10n.s3PermissionHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ] else ...[
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.username,
+                      prefixIcon: const Icon(Icons.person),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n.usernameRequired;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: l10n.password,
+                      prefixIcon: const Icon(Icons.lock),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
+                      ),
+                    ),
+                    obscureText: _obscurePassword,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return l10n.passwordRequired;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 // Test Connection Button
                 SizedBox(
                   width: double.infinity,
@@ -1614,7 +1883,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _testResult!.startsWith('Success')
+                      color: _testSucceeded
                           ? Colors.green.withAlpha(20)
                           : Colors.red.withAlpha(20),
                       borderRadius: BorderRadius.circular(4),
@@ -1622,13 +1891,9 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                     child: Row(
                       children: [
                         Icon(
-                          _testResult!.startsWith('Success')
-                              ? Icons.check_circle
-                              : Icons.error,
+                          _testSucceeded ? Icons.check_circle : Icons.error,
                           size: 16,
-                          color: _testResult!.startsWith('Success')
-                              ? Colors.green
-                              : Colors.red,
+                          color: _testSucceeded ? Colors.green : Colors.red,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -1636,9 +1901,7 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
                             _testResult!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: _testResult!.startsWith('Success')
-                                  ? Colors.green
-                                  : Colors.red,
+                              color: _testSucceeded ? Colors.green : Colors.red,
                             ),
                           ),
                         ),
@@ -1677,30 +1940,40 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
     setState(() {
       _isTesting = true;
       _testResult = null;
+      _testSucceeded = false;
     });
 
     try {
-      // Create a temporary service for testing
       final testService = WebDavService();
-      final testServer = ServerConfig.create(
-        name: _nameController.text.trim(),
-        serverUrl: _urlController.text.trim(),
-        username: _usernameController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      testService.initializeWithServer(testServer);
-      final result = await testService.testConnection();
-
+      testService.initializeWithServer(_serverFromForm());
+      var result = await testService.testConnection();
       if (result.isSuccess) {
-        setState(() => _testResult = l10n.testConnectionSuccess);
+        result = await testService.ensureFolderStructure();
+      }
+
+      if (!mounted) return;
+      if (result.isSuccess) {
+        setState(() {
+          _testSucceeded = true;
+          _testResult = l10n.testConnectionSuccess;
+        });
       } else {
-        setState(() => _testResult = l10n.testConnectionFailed(result.error?.userMessage ?? 'Unknown error'));
+        setState(() {
+          _testSucceeded = false;
+          _testResult = l10n.testConnectionFailed(
+            result.error?.userMessage ?? 'Unknown error',
+          );
+        });
       }
     } catch (e) {
-      setState(() => _testResult = l10n.testConnectionFailed(e.toString()));
+      if (mounted) {
+        setState(() {
+          _testSucceeded = false;
+          _testResult = l10n.testConnectionFailed(e.toString());
+        });
+      }
     } finally {
-      setState(() => _isTesting = false);
+      if (mounted) setState(() => _isTesting = false);
     }
   }
 
@@ -1711,32 +1984,76 @@ class _ServerEditDialogState extends ConsumerState<_ServerEditDialog> {
     return trimmed.characters.first;
   }
 
+  ServerConfig _serverFromForm() {
+    final existing = widget.server;
+    final name = _nameController.text.trim();
+    final endpoint = _urlController.text.trim();
+    final emoji = _trimEmoji(_emojiController.text);
+
+    if (existing == null) {
+      if (_storageType == StorageType.s3) {
+        return ServerConfig.createS3(
+          name: name,
+          endpoint: endpoint,
+          bucket: _s3BucketController.text.trim(),
+          region: _s3RegionController.text.trim(),
+          accessKey: _s3AccessKeyController.text.trim(),
+          secretKey: _s3SecretKeyController.text,
+          sessionToken: _s3SessionTokenController.text.trim(),
+          usePathStyle: _s3UsePathStyle,
+          emoji: emoji,
+        );
+      }
+      return ServerConfig.create(
+        name: name,
+        serverUrl: endpoint,
+        username: _usernameController.text.trim(),
+        password: _passwordController.text,
+        emoji: emoji,
+      );
+    }
+
+    return ServerConfig(
+      id: existing.id,
+      name: name,
+      storageType: _storageType,
+      serverUrl: endpoint,
+      username: _storageType == StorageType.webDav
+          ? _usernameController.text.trim()
+          : '',
+      password: _storageType == StorageType.webDav
+          ? _passwordController.text
+          : '',
+      s3Bucket: _storageType == StorageType.s3
+          ? _s3BucketController.text.trim()
+          : '',
+      s3Region: _storageType == StorageType.s3
+          ? _s3RegionController.text.trim()
+          : 'us-east-1',
+      s3AccessKey: _storageType == StorageType.s3
+          ? _s3AccessKeyController.text.trim()
+          : '',
+      s3SecretKey: _storageType == StorageType.s3
+          ? _s3SecretKeyController.text
+          : '',
+      s3SessionToken: _storageType == StorageType.s3
+          ? _s3SessionTokenController.text.trim()
+          : '',
+      s3UsePathStyle: _s3UsePathStyle,
+      createdAt: existing.createdAt,
+      lastUsed: existing.lastUsed,
+      enabled: existing.enabled,
+      emoji: emoji,
+    );
+  }
+
   Future<void> _saveServer() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
 
     try {
-      final ServerConfig newServer;
-      if (widget.server != null) {
-        newServer = widget.server!.copyWith(
-          name: _nameController.text.trim(),
-          serverUrl: _urlController.text.trim(),
-          username: _usernameController.text.trim(),
-          password: _passwordController.text,
-          emoji: _trimEmoji(_emojiController.text),
-        );
-      } else {
-        newServer = ServerConfig.create(
-          name: _nameController.text.trim(),
-          serverUrl: _urlController.text.trim(),
-          username: _usernameController.text.trim(),
-          password: _passwordController.text,
-          emoji: _trimEmoji(_emojiController.text),
-        );
-      }
-
-      await widget.onSave(newServer);
+      await widget.onSave(_serverFromForm());
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSaving = false);
