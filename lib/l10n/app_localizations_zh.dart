@@ -66,12 +66,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectDate => '选择日期';
 
   @override
-  String get autoSyncOn => '自动同步已开启';
-
-  @override
-  String get autoSyncOff => '自动同步已关闭';
-
-  @override
   String get refresh => '刷新';
 
   @override
@@ -569,17 +563,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToChangePortableMode => '更改便携模式失败';
 
   @override
-  String get refreshInterval => '同步间隔';
-
-  @override
-  String refreshIntervalSeconds(Object seconds) {
-    return '$seconds 秒';
-  }
-
-  @override
-  String get refreshIntervalDescription => '自动同步的轮询间隔';
-
-  @override
   String get connectionStatusConnected => '已连接';
 
   @override
@@ -869,12 +852,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chatOwnMessageLeftDescription => '将自己的消息也放在左侧，与远程消息对齐';
-
-  @override
-  String get autoSyncEnabledLabel => '自动同步文本';
-
-  @override
-  String get autoSyncEnabledDescription => '启动时自动拉取新消息';
 
   @override
   String get connectToWebDavFirst => '请先连接WebDAV';

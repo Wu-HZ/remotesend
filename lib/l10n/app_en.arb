@@ -25,8 +25,6 @@
   "yesterday": "Yesterday",
   "selectDate": "Select Date",
 
-  "autoSyncOn": "Auto-sync ON",
-  "autoSyncOff": "Auto-sync OFF",
   "refresh": "Refresh",
   "clearSelection": "Clear selection",
   "selectAll": "Select all",
@@ -373,15 +371,6 @@
   "dataLocationPortable": "Portable",
   "failedToChangePortableMode": "Failed to change portable mode",
 
-  "refreshInterval": "Sync interval",
-  "refreshIntervalSeconds": "{seconds} seconds",
-  "@refreshIntervalSeconds": {
-    "placeholders": {
-      "seconds": {}
-    }
-  },
-  "refreshIntervalDescription": "Auto-sync polling interval",
-
   "connectionStatusConnected": "Connected",
   "connectionStatusConnecting": "Connecting...",
   "connectionStatusError": "Connection error",
@@ -506,8 +495,6 @@
   "dropFilesToUpload": "Drop files here to upload",
   "chatOwnMessageLeftLabel": "Show own messages on left",
   "chatOwnMessageLeftDescription": "Place your own messages on the left side like remote messages",
-  "autoSyncEnabledLabel": "Auto-sync text",
-  "autoSyncEnabledDescription": "Automatically pull new messages on launch",
   "connectToWebDavFirst": "Connect to WebDAV first",
   "goToSettingsToConfigureConnection": "Go to Settings to configure connection",
   "connectToWebDavFirstToUploadFiles": "Connect to WebDAV first to upload files",

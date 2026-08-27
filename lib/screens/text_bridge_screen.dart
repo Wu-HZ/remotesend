@@ -51,13 +51,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     await ref.read(messageHistoryProvider.notifier).initialize();
     _scrollToBottom();
-
-    // Start auto-sync if enabled in config
-    final config = ref.read(configProvider).valueOrNull;
-    if (config?.autoSyncEnabled == true) {
-      final interval = config!.refreshIntervalSeconds;
-      ref.read(autoPullProvider.notifier).enable(interval);
-    }
   }
 
   void _onTextChanged() {
@@ -66,7 +59,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   @override
   void dispose() {
-    ref.read(autoPullProvider.notifier).disable();
     _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _scrollController.dispose();
@@ -109,7 +101,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final isConfigured = ref.watch(isTextConfiguredProvider);
     final connectionStatus = ref.watch(textConnectionStatusProvider);
     final historyState = ref.watch(messageHistoryProvider);
-    final autoPullState = ref.watch(autoPullProvider);
     final localName = ref.watch(localNameProvider);
     final selectedDate = ref.watch(selectedDateProvider);
     final activeServer = ref.watch(activeTextServerProvider);
@@ -192,19 +183,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             actions: [
               if (servers.isNotEmpty)
                 _buildServerSelector(activeServer, servers, l10n),
-              if (canSync)
-                IconButton(
-                  onPressed: () => _toggleAutoSync(),
-                  icon: Icon(
-                    autoPullState.isEnabled ? Icons.sync : Icons.sync_disabled,
-                    color: autoPullState.isEnabled
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
-                  ),
-                  tooltip: autoPullState.isEnabled
-                      ? l10n.autoSyncOn
-                      : l10n.autoSyncOff,
-                ),
               if (canSync)
                 IconButton(
                   onPressed: historyState.isLoading ? null : _manualRefresh,
@@ -377,27 +355,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     ref.read(messageHistoryProvider.notifier).loadMessagesForDate(date);
   }
 
-  void _toggleAutoSync() {
-    final config = ref.read(configProvider).valueOrNull;
-    final refreshInterval = config?.refreshIntervalSeconds ?? 3;
-    final notifier = ref.read(autoPullProvider.notifier);
-    notifier.toggle(refreshInterval);
-    // Persist new state
-    final newEnabled = ref.read(autoPullProvider).isEnabled;
-    if (config != null && config.autoSyncEnabled != newEnabled) {
-      ref
-          .read(configProvider.notifier)
-          .updateConfig(config.copyWith(autoSyncEnabled: newEnabled));
-    }
-  }
-
   Future<void> _manualRefresh() async {
-    try {
-      ref.read(autoPullProvider.notifier).pause();
-      await ref.read(messageHistoryProvider.notifier).refresh();
-    } finally {
-      ref.read(autoPullProvider.notifier).resume();
-    }
+    await ref.read(messageHistoryProvider.notifier).refresh();
   }
 
   Future<void> _switchTextServer(ServerConfig server) async {
@@ -1063,14 +1022,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     if (text.isEmpty) return;
 
     _textController.clear();
-
-    try {
-      ref.read(autoPullProvider.notifier).pause();
-      await ref.read(messageHistoryProvider.notifier).sendMessage(text);
-    } finally {
-      ref.read(autoPullProvider.notifier).resume();
-    }
-
+    await ref.read(messageHistoryProvider.notifier).sendMessage(text);
     _focusNode.requestFocus();
   }
 
@@ -1079,11 +1031,6 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final text = data?.text?.trim();
     if (text == null || text.isEmpty) return;
 
-    try {
-      ref.read(autoPullProvider.notifier).pause();
-      await ref.read(messageHistoryProvider.notifier).sendMessage(text);
-    } finally {
-      ref.read(autoPullProvider.notifier).resume();
-    }
+    await ref.read(messageHistoryProvider.notifier).sendMessage(text);
   }
 }

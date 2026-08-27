@@ -212,18 +212,6 @@ abstract class AppLocalizations {
   /// **'Select Date'**
   String get selectDate;
 
-  /// No description provided for @autoSyncOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-sync ON'**
-  String get autoSyncOn;
-
-  /// No description provided for @autoSyncOff.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-sync OFF'**
-  String get autoSyncOff;
-
   /// No description provided for @refresh.
   ///
   /// In en, this message translates to:
@@ -1080,24 +1068,6 @@ abstract class AppLocalizations {
   /// **'Failed to change portable mode'**
   String get failedToChangePortableMode;
 
-  /// No description provided for @refreshInterval.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync interval'**
-  String get refreshInterval;
-
-  /// No description provided for @refreshIntervalSeconds.
-  ///
-  /// In en, this message translates to:
-  /// **'{seconds} seconds'**
-  String refreshIntervalSeconds(Object seconds);
-
-  /// No description provided for @refreshIntervalDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-sync polling interval'**
-  String get refreshIntervalDescription;
-
   /// No description provided for @connectionStatusConnected.
   ///
   /// In en, this message translates to:
@@ -1667,18 +1637,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Place your own messages on the left side like remote messages'**
   String get chatOwnMessageLeftDescription;
-
-  /// No description provided for @autoSyncEnabledLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-sync text'**
-  String get autoSyncEnabledLabel;
-
-  /// No description provided for @autoSyncEnabledDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Automatically pull new messages on launch'**
-  String get autoSyncEnabledDescription;
 
   /// No description provided for @connectToWebDavFirst.
   ///

@@ -88,7 +88,7 @@ flutter build apk --release --target-platform android-arm64
 
 ```json
 {
-  "version": 4,
+  "version": 6,
   "servers": [
     {
       "id": "uuid",
@@ -104,7 +104,6 @@ flutter build apk --release --target-platform android-arm64
   "activeTextServerId": "uuid",
   "activeFilesServerId": "uuid",
   "portableMode": true,
-  "refreshIntervalSeconds": 3,
   "downloadLocation": "",
   "localName": "我的电脑",
   "themeMode": "system",
@@ -112,8 +111,7 @@ flutter build apk --release --target-platform android-arm64
   "useDynamicColor": true,
   "locale": "system",
   "dragMode": "instant",
-  "chatOwnMessageLeft": false,
-  "autoSyncEnabled": false
+  "chatOwnMessageLeft": false
 }
 ```
 

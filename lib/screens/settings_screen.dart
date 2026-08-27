@@ -25,7 +25,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isSaving = false;
 
   // Settings
-  late double _refreshInterval;
   String _downloadLocation = '';
   bool _autoDownload = false;
   bool _showNotification = true;
@@ -33,17 +32,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshInterval = 3.0;
     Future.microtask(_loadConfig);
   }
 
   void _loadConfig() async {
     final config = ref.read(configProvider).valueOrNull;
     if (config != null) {
-      setState(() {
-        _refreshInterval = config.refreshIntervalSeconds.toDouble();
-        _downloadLocation = config.downloadLocation;
-      });
+      setState(() => _downloadLocation = config.downloadLocation);
     }
     // If no download location set, get system default
     if (_downloadLocation.isEmpty) {
@@ -675,9 +670,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ==================== Transfer Section ====================
   Widget _buildTransferSection(AppLocalizations l10n) {
-    final config = ref.watch(configProvider).valueOrNull;
-    final dragMode = config?.dragMode ?? 'instant';
-    final autoSyncEnabled = config?.autoSyncEnabled ?? false;
+    final dragMode = ref.watch(configProvider).valueOrNull?.dragMode ?? 'instant';
 
     return _SettingsSection(
       title: l10n.sectionTransferSetting,
@@ -687,16 +680,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           label: l10n.dragModeLabel,
           buttonLabel: dragMode == 'instant' ? l10n.dragModeInstant : l10n.dragModePending,
           onTap: () => _showDragModeDialog(l10n, dragMode),
-        ),
-        _ButtonEntry(
-          label: l10n.refreshInterval,
-          buttonLabel: l10n.refreshIntervalSeconds(_refreshInterval.toInt()),
-          onTap: () => _showSyncIntervalDialog(l10n),
-        ),
-        _BooleanEntry(
-          label: l10n.autoSyncEnabledLabel,
-          value: autoSyncEnabled,
-          onChanged: (value) => _saveAutoSyncEnabled(l10n, value),
         ),
       ],
     );
@@ -745,20 +728,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (currentConfig == null) return;
     final newConfig = currentConfig.copyWith(chatOwnMessageLeft: value);
     await ref.read(configProvider.notifier).updateConfig(newConfig);
-  }
-
-  Future<void> _saveAutoSyncEnabled(AppLocalizations l10n, bool value) async {
-    final currentConfig = ref.read(configProvider).valueOrNull;
-    if (currentConfig == null) return;
-    final newConfig = currentConfig.copyWith(autoSyncEnabled: value);
-    await ref.read(configProvider.notifier).updateConfig(newConfig);
-    // Also start/stop auto-pull immediately
-    if (value) {
-      final interval = currentConfig.refreshIntervalSeconds;
-      ref.read(autoPullProvider.notifier).enable(interval);
-    } else {
-      ref.read(autoPullProvider.notifier).disable();
-    }
   }
 
   // ==================== Data Section ====================
@@ -1085,77 +1054,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ==================== Other Actions ====================
-  void _showSyncIntervalDialog(AppLocalizations l10n) {
-    double tempValue = _refreshInterval;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l10n.refreshInterval),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10n.refreshIntervalDescription,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Text('1s'),
-                  Expanded(
-                    child: Slider(
-                      value: tempValue,
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      label: '${tempValue.toInt()}s',
-                      onChanged: (value) {
-                        setDialogState(() => tempValue = value);
-                      },
-                    ),
-                  ),
-                  Text('10s'),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                _saveRefreshInterval(tempValue.toInt());
-              },
-              child: Text(l10n.save),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _saveRefreshInterval(int seconds) async {
-    setState(() => _refreshInterval = seconds.toDouble());
-
-    final currentConfig = ref.read(configProvider).valueOrNull;
-    if (currentConfig == null) return;
-
-    final newConfig = currentConfig.copyWith(refreshIntervalSeconds: seconds);
-    final success = await ref.read(configProvider.notifier).updateConfig(newConfig);
-
-    if (success) {
-      // Update auto-pull interval if it's running
-      ref.read(autoPullProvider.notifier).updateRefreshInterval(seconds);
-    }
-  }
-
   void _showDataLocationDialog(AppLocalizations l10n, bool isPortable) {
     final configService = ref.read(configServiceProvider);
     final portablePath = configService.portableConfigPath;

@@ -5,16 +5,48 @@ import 'server_config.dart';
 /// Generate a random local name.
 String _generateRandomName() {
   final adjectives = [
-    'Swift', 'Bright', 'Calm', 'Eager', 'Fancy',
-    'Gentle', 'Happy', 'Jolly', 'Kind', 'Lively',
-    'Merry', 'Noble', 'Proud', 'Quick', 'Sharp',
-    'Brave', 'Clever', 'Daring', 'Witty', 'Zesty',
+    'Swift',
+    'Bright',
+    'Calm',
+    'Eager',
+    'Fancy',
+    'Gentle',
+    'Happy',
+    'Jolly',
+    'Kind',
+    'Lively',
+    'Merry',
+    'Noble',
+    'Proud',
+    'Quick',
+    'Sharp',
+    'Brave',
+    'Clever',
+    'Daring',
+    'Witty',
+    'Zesty',
   ];
   final nouns = [
-    'Fox', 'Bear', 'Eagle', 'Wolf', 'Hawk',
-    'Lion', 'Tiger', 'Panda', 'Koala', 'Otter',
-    'Falcon', 'Raven', 'Phoenix', 'Dragon', 'Lynx',
-    'Dolphin', 'Penguin', 'Owl', 'Deer', 'Rabbit',
+    'Fox',
+    'Bear',
+    'Eagle',
+    'Wolf',
+    'Hawk',
+    'Lion',
+    'Tiger',
+    'Panda',
+    'Koala',
+    'Otter',
+    'Falcon',
+    'Raven',
+    'Phoenix',
+    'Dragon',
+    'Lynx',
+    'Dolphin',
+    'Penguin',
+    'Owl',
+    'Deer',
+    'Rabbit',
   ];
 
   final random = Random();
@@ -27,17 +59,17 @@ String _generateRandomName() {
 
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
-  static const int currentVersion = 4;
+  // Versions 4 and 5 contained the retired polling and S3 settings.
+  static const int currentVersion = 6;
 
   // Default primary color (Material Blue 500)
   static const int defaultPrimaryColor = 0xFF009688;
 
   final int version;
   final List<ServerConfig> servers;
-  final String? activeTextServerId;  // Server for Text Bridge
+  final String? activeTextServerId; // Server for Text Bridge
   final String? activeFilesServerId; // Server for File Depot
   final bool portableMode;
-  final int refreshIntervalSeconds;
   final String downloadLocation;
   final String localName; // Local device name for chat display
   final String themeMode; // 'system', 'light', 'dark'
@@ -46,7 +78,6 @@ class AppConfig {
   final String locale; // 'system', 'en', 'zh'
   final String dragMode; // 'instant' or 'pending'
   final bool chatOwnMessageLeft; // show own messages on left side too
-  final bool autoSyncEnabled; // auto-sync text messages on launch
 
   AppConfig({
     this.version = currentVersion,
@@ -54,7 +85,6 @@ class AppConfig {
     this.activeTextServerId,
     this.activeFilesServerId,
     this.portableMode = false,
-    this.refreshIntervalSeconds = 3,
     this.downloadLocation = '',
     String? localName,
     this.themeMode = 'system',
@@ -63,7 +93,6 @@ class AppConfig {
     this.locale = 'system',
     this.dragMode = 'instant',
     this.chatOwnMessageLeft = false,
-    this.autoSyncEnabled = false,
   }) : localName = localName ?? _generateRandomName();
 
   /// Get the active server for Text Bridge.
@@ -114,7 +143,6 @@ class AppConfig {
     String? activeTextServerId,
     String? activeFilesServerId,
     bool? portableMode,
-    int? refreshIntervalSeconds,
     String? downloadLocation,
     String? localName,
     String? themeMode,
@@ -123,7 +151,6 @@ class AppConfig {
     String? locale,
     String? dragMode,
     bool? chatOwnMessageLeft,
-    bool? autoSyncEnabled,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -131,7 +158,6 @@ class AppConfig {
       activeTextServerId: activeTextServerId ?? this.activeTextServerId,
       activeFilesServerId: activeFilesServerId ?? this.activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
-      refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
@@ -140,7 +166,6 @@ class AppConfig {
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
-      autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
     );
   }
 
@@ -149,7 +174,6 @@ class AppConfig {
     int? version,
     List<ServerConfig>? servers,
     bool? portableMode,
-    int? refreshIntervalSeconds,
     String? downloadLocation,
     String? localName,
     String? themeMode,
@@ -158,7 +182,6 @@ class AppConfig {
     String? locale,
     String? dragMode,
     bool? chatOwnMessageLeft,
-    bool? autoSyncEnabled,
     bool clearText = false,
     bool clearFiles = false,
   }) {
@@ -168,7 +191,6 @@ class AppConfig {
       activeTextServerId: clearText ? null : activeTextServerId,
       activeFilesServerId: clearFiles ? null : activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
-      refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
@@ -177,7 +199,6 @@ class AppConfig {
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
-      autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
     );
   }
 
@@ -189,7 +210,6 @@ class AppConfig {
       'activeTextServerId': activeTextServerId,
       'activeFilesServerId': activeFilesServerId,
       'portableMode': portableMode,
-      'refreshIntervalSeconds': refreshIntervalSeconds,
       'downloadLocation': downloadLocation,
       'localName': localName,
       'themeMode': themeMode,
@@ -198,7 +218,6 @@ class AppConfig {
       'locale': locale,
       'dragMode': dragMode,
       'chatOwnMessageLeft': chatOwnMessageLeft,
-      'autoSyncEnabled': autoSyncEnabled,
     };
   }
 
@@ -216,18 +235,20 @@ class AppConfig {
       return AppConfig._migrateFromV2(json);
     }
 
-    // Handle v3+ config (separate text/files server IDs)
-    final serversList = (json['servers'] as List<dynamic>?)
-        ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
-        .toList() ?? [];
+    // Handle v3+ config (separate text/files server IDs). Retired keys are
+    // intentionally ignored and the schema version is upgraded on next save.
+    final serversList =
+        (json['servers'] as List<dynamic>?)
+            ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
+            .toList() ??
+        [];
 
     return AppConfig(
-      version: version,
+      version: AppConfig.currentVersion,
       servers: serversList,
       activeTextServerId: json['activeTextServerId'] as String?,
       activeFilesServerId: json['activeFilesServerId'] as String?,
       portableMode: json['portableMode'] as bool? ?? false,
-      refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
       localName: json['localName'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
@@ -236,7 +257,6 @@ class AppConfig {
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
-      autoSyncEnabled: json['autoSyncEnabled'] as bool? ?? false,
     );
   }
 
@@ -277,7 +297,6 @@ class AppConfig {
       activeTextServerId: activeServerId,
       activeFilesServerId: activeServerId,
       portableMode: json['portableMode'] as bool? ?? false,
-      refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
       localName: json['localName'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
@@ -286,15 +305,16 @@ class AppConfig {
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
-      autoSyncEnabled: json['autoSyncEnabled'] as bool? ?? false,
     );
   }
 
   /// Migrate from v2 (single activeServerId) to v3 (separate text/files IDs).
   factory AppConfig._migrateFromV2(Map<String, dynamic> json) {
-    final serversList = (json['servers'] as List<dynamic>?)
-        ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
-        .toList() ?? [];
+    final serversList =
+        (json['servers'] as List<dynamic>?)
+            ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
+            .toList() ??
+        [];
 
     final activeServerId = json['activeServerId'] as String?;
 
@@ -304,7 +324,6 @@ class AppConfig {
       activeTextServerId: activeServerId,
       activeFilesServerId: activeServerId,
       portableMode: json['portableMode'] as bool? ?? false,
-      refreshIntervalSeconds: json['refreshIntervalSeconds'] as int? ?? 3,
       downloadLocation: json['downloadLocation'] as String? ?? '',
       localName: json['localName'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
@@ -313,7 +332,6 @@ class AppConfig {
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
-      autoSyncEnabled: json['autoSyncEnabled'] as bool? ?? false,
     );
   }
 
@@ -334,7 +352,6 @@ class AppConfig {
         other.activeTextServerId != activeTextServerId ||
         other.activeFilesServerId != activeFilesServerId ||
         other.portableMode != portableMode ||
-        other.refreshIntervalSeconds != refreshIntervalSeconds ||
         other.downloadLocation != downloadLocation ||
         other.localName != localName ||
         other.themeMode != themeMode ||
@@ -343,7 +360,6 @@ class AppConfig {
         other.locale != locale ||
         other.dragMode != dragMode ||
         other.chatOwnMessageLeft != chatOwnMessageLeft ||
-        other.autoSyncEnabled != autoSyncEnabled ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -361,7 +377,6 @@ class AppConfig {
       activeTextServerId,
       activeFilesServerId,
       portableMode,
-      refreshIntervalSeconds,
       downloadLocation,
       localName,
       themeMode,
@@ -370,7 +385,6 @@ class AppConfig {
       locale,
       dragMode,
       chatOwnMessageLeft,
-      autoSyncEnabled,
     );
   }
 

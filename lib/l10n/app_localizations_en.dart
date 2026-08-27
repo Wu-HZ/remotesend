@@ -66,12 +66,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectDate => 'Select Date';
 
   @override
-  String get autoSyncOn => 'Auto-sync ON';
-
-  @override
-  String get autoSyncOff => 'Auto-sync OFF';
-
-  @override
   String get refresh => 'Refresh';
 
   @override
@@ -577,17 +571,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToChangePortableMode => 'Failed to change portable mode';
 
   @override
-  String get refreshInterval => 'Sync interval';
-
-  @override
-  String refreshIntervalSeconds(Object seconds) {
-    return '$seconds seconds';
-  }
-
-  @override
-  String get refreshIntervalDescription => 'Auto-sync polling interval';
-
-  @override
   String get connectionStatusConnected => 'Connected';
 
   @override
@@ -896,13 +879,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chatOwnMessageLeftDescription =>
       'Place your own messages on the left side like remote messages';
-
-  @override
-  String get autoSyncEnabledLabel => 'Auto-sync text';
-
-  @override
-  String get autoSyncEnabledDescription =>
-      'Automatically pull new messages on launch';
 
   @override
   String get connectToWebDavFirst => 'Connect to WebDAV first';
