@@ -1,5 +1,5 @@
 name: remote_send
-description: "A lightweight, portable, cross-platform app to transfer text and files via WebDAV or S3."
+description: "A lightweight, portable, cross-platform app to transfer text and files via WebDAV."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -41,9 +41,7 @@ dependencies:
 
   # WebDAV Client
   webdav_client: ^1.2.2
-  dio: ^5.4.0  # HTTP transport for WebDAV and S3
-  crypto: ^3.0.6  # AWS Signature Version 4
-  xml: ^6.5.0  # S3 ListObjects responses
+  dio: ^5.4.0  # For exception handling
 
   # File System & Path utilities
   path_provider: ^2.1.5

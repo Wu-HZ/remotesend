@@ -86,29 +86,23 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
     // If deleting the active text server, select another one
     String? newTextServerId = currentConfig.activeTextServerId;
     if (currentConfig.activeTextServerId == serverId) {
-      newTextServerId = updatedServers.isNotEmpty
-          ? updatedServers.first.id
-          : null;
+      newTextServerId = updatedServers.isNotEmpty ? updatedServers.first.id : null;
     }
 
     // If deleting the active files server, select another one
     String? newFilesServerId = currentConfig.activeFilesServerId;
     if (currentConfig.activeFilesServerId == serverId) {
-      newFilesServerId = updatedServers.isNotEmpty
-          ? updatedServers.first.id
-          : null;
+      newFilesServerId = updatedServers.isNotEmpty ? updatedServers.first.id : null;
     }
 
-    final newConfig = currentConfig
-        .copyWithNullActiveServers(
-          servers: updatedServers,
-          clearText: newTextServerId == null,
-          clearFiles: newFilesServerId == null,
-        )
-        .copyWith(
-          activeTextServerId: newTextServerId,
-          activeFilesServerId: newFilesServerId,
-        );
+    final newConfig = currentConfig.copyWithNullActiveServers(
+      servers: updatedServers,
+      clearText: newTextServerId == null,
+      clearFiles: newFilesServerId == null,
+    ).copyWith(
+      activeTextServerId: newTextServerId,
+      activeFilesServerId: newFilesServerId,
+    );
 
     return updateConfig(newConfig);
   }
@@ -164,11 +158,7 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
   }
 
   /// Set server for a specific feature (text or files).
-  Future<bool> setServerForFeature(
-    String serverId, {
-    required bool forText,
-    required bool forFiles,
-  }) async {
+  Future<bool> setServerForFeature(String serverId, {required bool forText, required bool forFiles}) async {
     final currentConfig = state.valueOrNull;
     if (currentConfig == null) return false;
 
@@ -178,9 +168,7 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
 
     final newConfig = currentConfig.copyWith(
       activeTextServerId: forText ? serverId : currentConfig.activeTextServerId,
-      activeFilesServerId: forFiles
-          ? serverId
-          : currentConfig.activeFilesServerId,
+      activeFilesServerId: forFiles ? serverId : currentConfig.activeFilesServerId,
     );
 
     return updateConfig(newConfig);
@@ -244,11 +232,9 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
       return -1; // parse error
     }
 
-    final existingIdentities = currentConfig.servers
-        .map((server) => server.identityKey)
-        .toSet();
+    final existingUrls = currentConfig.servers.map((s) => s.serverUrl).toSet();
     final newServers = imported.servers
-        .where((server) => !existingIdentities.contains(server.identityKey))
+        .where((s) => !existingUrls.contains(s.serverUrl))
         .toList();
 
     if (newServers.isEmpty) return 0;
@@ -274,9 +260,7 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
     final currentConfig = state.valueOrNull;
     if (currentConfig == null) return false;
 
-    final serverIndex = currentConfig.servers.indexWhere(
-      (s) => s.id == serverId,
-    );
+    final serverIndex = currentConfig.servers.indexWhere((s) => s.id == serverId);
     if (serverIndex == -1) return false;
 
     final server = currentConfig.servers[serverIndex];
@@ -292,13 +276,15 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
     var newConfig = currentConfig.copyWith(servers: updatedServers);
 
     // If disabling the active text server, switch to another enabled server
-    if (disabling && currentConfig.activeTextServerId == serverId) {
+    if (disabling &&
+        currentConfig.activeTextServerId == serverId) {
       final fallback = updatedServers.where((s) => s.enabled).firstOrNull;
       newConfig = newConfig.copyWith(activeTextServerId: fallback?.id);
     }
 
     // If disabling the active files server, switch to another enabled server
-    if (disabling && currentConfig.activeFilesServerId == serverId) {
+    if (disabling &&
+        currentConfig.activeFilesServerId == serverId) {
       final fallback = updatedServers.where((s) => s.enabled).firstOrNull;
       newConfig = newConfig.copyWith(activeFilesServerId: fallback?.id);
     }
@@ -310,9 +296,9 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
 /// Provider for the configuration state.
 final configProvider =
     StateNotifierProvider<ConfigNotifier, AsyncValue<AppConfig>>((ref) {
-      final configService = ref.watch(configServiceProvider);
-      return ConfigNotifier(configService);
-    });
+  final configService = ref.watch(configServiceProvider);
+  return ConfigNotifier(configService);
+});
 
 /// Convenience provider to check if config is ready and valid.
 final isConfiguredProvider = Provider<bool>((ref) {

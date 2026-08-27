@@ -5,48 +5,16 @@ import 'server_config.dart';
 /// Generate a random local name.
 String _generateRandomName() {
   final adjectives = [
-    'Swift',
-    'Bright',
-    'Calm',
-    'Eager',
-    'Fancy',
-    'Gentle',
-    'Happy',
-    'Jolly',
-    'Kind',
-    'Lively',
-    'Merry',
-    'Noble',
-    'Proud',
-    'Quick',
-    'Sharp',
-    'Brave',
-    'Clever',
-    'Daring',
-    'Witty',
-    'Zesty',
+    'Swift', 'Bright', 'Calm', 'Eager', 'Fancy',
+    'Gentle', 'Happy', 'Jolly', 'Kind', 'Lively',
+    'Merry', 'Noble', 'Proud', 'Quick', 'Sharp',
+    'Brave', 'Clever', 'Daring', 'Witty', 'Zesty',
   ];
   final nouns = [
-    'Fox',
-    'Bear',
-    'Eagle',
-    'Wolf',
-    'Hawk',
-    'Lion',
-    'Tiger',
-    'Panda',
-    'Koala',
-    'Otter',
-    'Falcon',
-    'Raven',
-    'Phoenix',
-    'Dragon',
-    'Lynx',
-    'Dolphin',
-    'Penguin',
-    'Owl',
-    'Deer',
-    'Rabbit',
+    'Fox', 'Bear', 'Eagle', 'Wolf', 'Hawk',
+    'Lion', 'Tiger', 'Panda', 'Koala', 'Otter',
+    'Falcon', 'Raven', 'Phoenix', 'Dragon', 'Lynx',
+    'Dolphin', 'Penguin', 'Owl', 'Deer', 'Rabbit',
   ];
 
   final random = Random();
@@ -59,14 +27,14 @@ String _generateRandomName() {
 
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
-  static const int currentVersion = 5;
+  static const int currentVersion = 4;
 
   // Default primary color (Material Blue 500)
   static const int defaultPrimaryColor = 0xFF009688;
 
   final int version;
   final List<ServerConfig> servers;
-  final String? activeTextServerId; // Server for Text Bridge
+  final String? activeTextServerId;  // Server for Text Bridge
   final String? activeFilesServerId; // Server for File Depot
   final bool portableMode;
   final int refreshIntervalSeconds;
@@ -163,8 +131,7 @@ class AppConfig {
       activeTextServerId: activeTextServerId ?? this.activeTextServerId,
       activeFilesServerId: activeFilesServerId ?? this.activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
-      refreshIntervalSeconds:
-          refreshIntervalSeconds ?? this.refreshIntervalSeconds,
+      refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
@@ -201,8 +168,7 @@ class AppConfig {
       activeTextServerId: clearText ? null : activeTextServerId,
       activeFilesServerId: clearFiles ? null : activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
-      refreshIntervalSeconds:
-          refreshIntervalSeconds ?? this.refreshIntervalSeconds,
+      refreshIntervalSeconds: refreshIntervalSeconds ?? this.refreshIntervalSeconds,
       downloadLocation: downloadLocation ?? this.downloadLocation,
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
@@ -251,14 +217,12 @@ class AppConfig {
     }
 
     // Handle v3+ config (separate text/files server IDs)
-    final serversList =
-        (json['servers'] as List<dynamic>?)
-            ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
-            .toList() ??
-        [];
+    final serversList = (json['servers'] as List<dynamic>?)
+        ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
+        .toList() ?? [];
 
     return AppConfig(
-      version: AppConfig.currentVersion,
+      version: version,
       servers: serversList,
       activeTextServerId: json['activeTextServerId'] as String?,
       activeFilesServerId: json['activeFilesServerId'] as String?,
@@ -328,11 +292,9 @@ class AppConfig {
 
   /// Migrate from v2 (single activeServerId) to v3 (separate text/files IDs).
   factory AppConfig._migrateFromV2(Map<String, dynamic> json) {
-    final serversList =
-        (json['servers'] as List<dynamic>?)
-            ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
-            .toList() ??
-        [];
+    final serversList = (json['servers'] as List<dynamic>?)
+        ?.map((s) => ServerConfig.fromJson(s as Map<String, dynamic>))
+        .toList() ?? [];
 
     final activeServerId = json['activeServerId'] as String?;
 

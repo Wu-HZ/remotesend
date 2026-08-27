@@ -48,11 +48,7 @@ class PendingUploadScreen extends ConsumerWidget {
                         style: const TextStyle(fontSize: 18),
                       )
                     else
-                      Icon(
-                      activeServer.isS3 ? Icons.storage : Icons.cloud,
-                      size: 20,
-                      color: colorScheme.primary,
-                    ),
+                      Icon(Icons.cloud, size: 20, color: colorScheme.primary),
                     const SizedBox(width: 4),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 120),
@@ -189,9 +185,7 @@ class PendingUploadScreen extends ConsumerWidget {
                                         style: const TextStyle(fontSize: 18),
                                       )
                                     : Icon(
-                                        server.isS3
-                                            ? Icons.storage
-                                            : Icons.cloud,
+                                        Icons.cloud,
                                         size: 20,
                                         color: colorScheme.primary,
                                       ),
@@ -205,7 +199,7 @@ class PendingUploadScreen extends ConsumerWidget {
                                 ),
                               ),
                               subtitle: Text(
-                                server.displayAddress,
+                                server.serverUrl,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: colorScheme.outline,

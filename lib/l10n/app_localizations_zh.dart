@@ -89,13 +89,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get switchServer => '切换服务器';
 
   @override
-  String get configureWebDavToSync => '请在设置中配置存储服务器以同步';
+  String get configureWebDavToSync => '请在设置中配置WebDAV连接以同步';
 
   @override
   String get notConnectedTestInSettings => '未连接，请在设置中测试连接';
 
   @override
-  String get configureWebDavToUseFileDepot => '请在设置中配置存储服务器以使用文件仓库';
+  String get configureWebDavToUseFileDepot => '请在设置中配置WebDAV连接以使用文件仓库';
 
   @override
   String get noMessagesYet => '暂无消息';
@@ -174,7 +174,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get idle => '空闲';
 
   @override
-  String get connectToWebDavToViewFiles => '连接存储服务器以查看文件';
+  String get connectToWebDavToViewFiles => '连接WebDAV以查看文件';
 
   @override
   String get noFilesYet => '暂无文件';
@@ -700,8 +700,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutLegalese => '© 2026 Wu-HZ';
 
   @override
-  String get aboutAppDescription =>
-      '一款轻量级、便携的应用，用于通过 WebDAV 或 S3 在设备之间传输文本和文件。';
+  String get aboutAppDescription => '一款轻量级、便携的应用，用于通过WebDAV在设备之间传输文本和文件。';
 
   @override
   String get sourceCode => '源代码';
@@ -847,61 +846,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get passwordRequired => '请输入密码';
 
   @override
-  String get storageType => '存储类型';
-
-  @override
-  String get webDavType => 'WebDAV';
-
-  @override
-  String get s3Type => 'S3 兼容存储';
-
-  @override
-  String get s3Endpoint => 'S3 端点';
-
-  @override
-  String get s3EndpointHint => 'https://s3.example.com';
-
-  @override
-  String get s3Bucket => '存储桶';
-
-  @override
-  String get s3BucketRequired => '请输入存储桶名称';
-
-  @override
-  String get s3Region => '区域';
-
-  @override
-  String get s3RegionHint => '例如：us-east-1';
-
-  @override
-  String get s3RegionRequired => '请输入区域';
-
-  @override
-  String get s3AccessKey => 'Access Key ID';
-
-  @override
-  String get s3AccessKeyRequired => '请输入 Access Key ID';
-
-  @override
-  String get s3SecretKey => 'Secret Access Key';
-
-  @override
-  String get s3SecretKeyRequired => '请输入 Secret Access Key';
-
-  @override
-  String get s3SessionToken => '会话令牌（可选）';
-
-  @override
-  String get s3PathStyle => '使用路径样式访问';
-
-  @override
-  String get s3PathStyleHelp => 'MinIO 和多数自建 S3 服务请开启；AWS 虚拟主机样式存储桶请关闭。';
-
-  @override
-  String get s3PermissionHint =>
-      '需要 ListBucket 以及 GetObject、PutObject、DeleteObject 权限。';
-
-  @override
   String get testConnection => '测试连接';
 
   @override
@@ -933,13 +877,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoSyncEnabledDescription => '启动时自动拉取新消息';
 
   @override
-  String get connectToWebDavFirst => '请先连接存储服务器';
+  String get connectToWebDavFirst => '请先连接WebDAV';
 
   @override
   String get goToSettingsToConfigureConnection => '前往设置配置连接';
 
   @override
-  String get connectToWebDavFirstToUploadFiles => '请先连接存储服务器以上传文件';
+  String get connectToWebDavFirstToUploadFiles => '请先连接WebDAV以上传文件';
 
   @override
   String addedFilesAndFolders(Object files, Object folders) {
@@ -1008,7 +952,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get invalidConfigFile => '文件格式不对';
 
   @override
-  String get noServersFoundInConfig => '没有找到服务器数据（存储配置重复检查）';
+  String get noServersFoundInConfig => '没有找到服务器数据（URL 重复检查）';
 
   @override
   String importedServers(Object count) {

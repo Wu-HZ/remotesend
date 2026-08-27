@@ -6,7 +6,6 @@ import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:path/path.dart' as p;
 import '../models/app_config.dart';
 import '../models/server_config.dart';
-import 's3_service.dart';
 import 'webdav_exceptions.dart';
 
 /// Model for remote file information.
@@ -47,14 +46,10 @@ class WebDavService {
   static const String _messagesFolder = '/RemoteSend/Messages';
 
   webdav.Client? _client;
-  S3StorageClient? _s3Client;
   AppConfig? _config;
 
-  /// Whether the selected storage backend is initialized.
-  bool get isConnected =>
-      _config != null && (_client != null || _s3Client != null);
-
-  bool get _isS3 => _s3Client != null;
+  /// Whether the service is connected with valid credentials.
+  bool get isConnected => _client != null && _config != null;
 
   /// The base path for RemoteSend folder.
   String get remoteSendFolder => _remoteSendFolder;
@@ -68,70 +63,75 @@ class WebDavService {
   /// The path for the messages folder.
   String get messagesFolderPath => _messagesFolder;
 
-  /// Initialize the storage client with the active configuration.
+  /// Initialize the WebDAV client with configuration.
   void initialize(AppConfig config) {
-    final server = config.activeServer;
-    if (server == null || !server.isConfigured) {
-      disconnect();
+    if (!config.isConfigured) {
+      _client = null;
+      _config = null;
       return;
     }
-    initializeWithServer(server);
+
     _config = config;
+    _client = webdav.newClient(
+      config.serverUrl,
+      user: config.username,
+      password: config.password,
+      debug: false,
+    );
+
+    // Set timeouts - generous for large file transfers
+    _client!.setHeaders({'accept-charset': 'utf-8'});
+    _client!.setConnectTimeout(30000); // 30 seconds for connection
+    _client!.setSendTimeout(600000); // 10 minutes for uploads
+    _client!.setReceiveTimeout(600000); // 10 minutes for downloads
   }
 
-  /// Initialize WebDAV or S3 from a server configuration.
+  /// Initialize the WebDAV client with a server configuration directly.
   void initializeWithServer(ServerConfig server) {
     if (!server.isConfigured) {
-      disconnect();
+      _client = null;
+      _config = null;
       return;
     }
 
+    // Create a minimal AppConfig for backward compatibility
     _config = AppConfig(
       servers: [server],
       activeTextServerId: server.id,
       activeFilesServerId: server.id,
     );
 
-    if (server.isS3) {
-      _client = null;
-      _s3Client = S3StorageClient(server);
-      return;
-    }
-
-    _s3Client = null;
     _client = webdav.newClient(
       server.serverUrl,
       user: server.username,
       password: server.password,
       debug: false,
     );
+
+    // Set timeouts - generous for large file transfers
     _client!.setHeaders({'accept-charset': 'utf-8'});
-    _client!.setConnectTimeout(30000);
-    _client!.setSendTimeout(600000);
-    _client!.setReceiveTimeout(600000);
+    _client!.setConnectTimeout(30000); // 30 seconds for connection
+    _client!.setSendTimeout(600000); // 10 minutes for uploads
+    _client!.setReceiveTimeout(600000); // 10 minutes for downloads
   }
 
-  /// Disconnect and clear the active backend.
+  /// Disconnect and clear the client.
   void disconnect() {
     _client = null;
-    _s3Client = null;
     _config = null;
   }
 
-  /// Test the connection to the selected storage server.
+  /// Test the connection to the WebDAV server.
   Future<WebDavResult<bool>> testConnection() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        await _s3Client!.testConnection();
-      } else {
-        await _client!.ping();
-      }
+      // Try to ping/read the root to verify connection
+      await _client!.ping();
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -143,26 +143,25 @@ class WebDavService {
   /// Creates /RemoteSend, /RemoteSend/Files, /RemoteSend/Messages, and /RemoteSend/buffer.txt
   /// if they don't exist.
   Future<WebDavResult<bool>> ensureFolderStructure() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        await _s3Client!.createDirectory(_remoteSendFolder);
-        await _s3Client!.createDirectory(_filesFolder);
-        await _s3Client!.createDirectory(_messagesFolder);
-        if (await _s3Client!.headObject(_bufferFile) == null) {
-          await _s3Client!.putBytes(_bufferFile, const []);
-        }
-      } else {
-        await _createDirectoryIfNotExists(_remoteSendFolder);
-        await _createDirectoryIfNotExists(_filesFolder);
-        await _createDirectoryIfNotExists(_messagesFolder);
-        await _createBufferFileIfNotExists();
-      }
+      // Create /RemoteSend folder
+      await _createDirectoryIfNotExists(_remoteSendFolder);
+
+      // Create /RemoteSend/Files folder
+      await _createDirectoryIfNotExists(_filesFolder);
+
+      // Create /RemoteSend/Messages folder
+      await _createDirectoryIfNotExists(_messagesFolder);
+
+      // Create buffer.txt if it doesn't exist
+      await _createBufferFileIfNotExists();
+
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -171,16 +170,14 @@ class WebDavService {
 
   /// Read the text buffer content.
   Future<WebDavResult<String>> readBuffer() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      final bytes = _isS3
-          ? await _s3Client!.getBytes(_bufferFile)
-          : await _client!.read(_bufferFile);
+      final bytes = await _client!.read(_bufferFile);
       final content = utf8.decode(bytes);
       return WebDavResult.success(content);
     } on DioException catch (e) {
@@ -196,7 +193,7 @@ class WebDavService {
 
   /// Write content to the text buffer.
   Future<WebDavResult<bool>> writeBuffer(String content) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -204,11 +201,7 @@ class WebDavService {
 
     try {
       final bytes = Uint8List.fromList(utf8.encode(content));
-      if (_isS3) {
-        await _s3Client!.putBytes(_bufferFile, bytes);
-      } else {
-        await _client!.write(_bufferFile, bytes);
-      }
+      await _client!.write(_bufferFile, bytes);
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -217,17 +210,13 @@ class WebDavService {
 
   /// Get the last modification time of the buffer file.
   Future<WebDavResult<DateTime?>> getBufferModifiedTime() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        final object = await _s3Client!.headObject(_bufferFile);
-        return WebDavResult.success(object?.modifiedTime);
-      }
       // Read directory to get file metadata
       final files = await _client!.readDir(_remoteSendFolder);
       final bufferFile = files.firstWhere(
@@ -251,7 +240,7 @@ class WebDavService {
 
   /// List files and folders in the specified path (defaults to Files folder).
   Future<WebDavResult<List<RemoteFile>>> listFiles([String? subPath]) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -262,34 +251,18 @@ class WebDavService {
           ? '$_filesFolder/$subPath'
           : _filesFolder;
 
-      final List<RemoteFile> result;
-      if (_isS3) {
-        final objects = await _s3Client!.listDirectory(targetPath);
-        result = objects
-            .map(
-              (object) => RemoteFile(
-                name: _objectName(object.key),
-                path: '/${object.key}',
-                size: object.isDirectory ? null : object.size,
-                modifiedTime: object.modifiedTime,
-                isDirectory: object.isDirectory,
-              ),
-            )
-            .toList();
-      } else {
-        final files = await _client!.readDir(targetPath);
-        result = files
-            .map(
-              (f) => RemoteFile(
-                name: f.name ?? 'Unknown',
-                path: f.path ?? '',
-                size: f.size,
-                modifiedTime: f.mTime,
-                isDirectory: f.isDir ?? false,
-              ),
-            )
-            .toList();
-      }
+      final files = await _client!.readDir(targetPath);
+      final result = files
+          .map(
+            (f) => RemoteFile(
+              name: f.name ?? 'Unknown',
+              path: f.path ?? '',
+              size: f.size,
+              modifiedTime: f.mTime,
+              isDirectory: f.isDir ?? false,
+            ),
+          )
+          .toList();
 
       // Sort: directories first, then by modified time (newest first)
       result.sort((a, b) {
@@ -325,7 +298,7 @@ class WebDavService {
     String? remoteName,
     void Function(double progress)? onProgress,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -342,21 +315,13 @@ class WebDavService {
       final fileName = remoteName ?? p.basename(localPath);
       final remotePath = '$_filesFolder/$fileName';
 
-      if (_isS3) {
-        await _s3Client!.uploadFile(
-          localPath,
-          remotePath,
-          onProgress: onProgress,
-        );
-      } else {
-        await _client!.writeFromFile(
-          localPath,
-          remotePath,
-          onProgress: onProgress != null
-              ? (count, total) => onProgress(count / total)
-              : null,
-        );
-      }
+      await _client!.writeFromFile(
+        localPath,
+        remotePath,
+        onProgress: onProgress != null
+            ? (count, total) => onProgress(count / total)
+            : null,
+      );
 
       return const WebDavResult.success(true);
     } catch (e) {
@@ -366,18 +331,14 @@ class WebDavService {
 
   /// Create a directory on the server.
   Future<WebDavResult<bool>> createRemoteDirectory(String remotePath) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        await _s3Client!.createDirectory(remotePath);
-      } else {
-        await _client!.mkdir(remotePath);
-      }
+      await _client!.mkdir(remotePath);
       return const WebDavResult.success(true);
     } on DioException catch (e) {
       // Directory might already exist (405 Method Not Allowed)
@@ -397,7 +358,7 @@ class WebDavService {
     void Function(double progress)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -411,23 +372,14 @@ class WebDavService {
         );
       }
 
-      if (_isS3) {
-        await _s3Client!.uploadFile(
-          localPath,
-          remotePath,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
-        );
-      } else {
-        await _client!.writeFromFile(
-          localPath,
-          remotePath,
-          onProgress: onProgress != null
-              ? (count, total) => onProgress(count / total)
-              : null,
-          cancelToken: cancelToken,
-        );
-      }
+      await _client!.writeFromFile(
+        localPath,
+        remotePath,
+        onProgress: onProgress != null
+            ? (count, total) => onProgress(count / total)
+            : null,
+        cancelToken: cancelToken,
+      );
 
       return const WebDavResult.success(true);
     } on DioException catch (e) {
@@ -452,7 +404,7 @@ class WebDavService {
     void Function(String fileName, int current, int total, double fileProgress)?
     onProgress,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -535,7 +487,7 @@ class WebDavService {
     void Function(int downloaded, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -544,21 +496,12 @@ class WebDavService {
     try {
       final remotePath = '$_filesFolder/$remoteName';
 
-      if (_isS3) {
-        await _s3Client!.downloadFile(
-          remotePath,
-          localPath,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
-        );
-      } else {
-        await _client!.read2File(
-          remotePath,
-          localPath,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
-        );
-      }
+      await _client!.read2File(
+        remotePath,
+        localPath,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
 
       return const WebDavResult.success(true);
     } on DioException catch (e) {
@@ -575,7 +518,7 @@ class WebDavService {
 
   /// Delete a file from the Files folder.
   Future<WebDavResult<bool>> deleteFile(String remoteName) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -583,16 +526,7 @@ class WebDavService {
 
     try {
       final remotePath = '$_filesFolder/$remoteName';
-      if (_isS3) {
-        final object = await _s3Client!.headObject(remotePath);
-        if (object != null) {
-          await _s3Client!.deleteObject(remotePath);
-        } else {
-          await _s3Client!.deletePrefix('$remotePath/');
-        }
-      } else {
-        await _client!.remove(remotePath);
-      }
+      await _client!.remove(remotePath);
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -608,7 +542,7 @@ class WebDavService {
     String newName, {
     bool isDirectory = false,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -624,15 +558,7 @@ class WebDavService {
       final sourcePath = isDirectory ? '$remotePath/' : remotePath;
       final destinationPath = isDirectory ? '$newRemotePath/' : newRemotePath;
 
-      if (_isS3) {
-        if (isDirectory) {
-          await _s3Client!.movePrefix(sourcePath, destinationPath);
-        } else {
-          await _s3Client!.moveObject(sourcePath, destinationPath);
-        }
-      } else {
-        await _client!.rename(sourcePath, destinationPath, false);
-      }
+      await _client!.rename(sourcePath, destinationPath, false);
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -648,7 +574,7 @@ class WebDavService {
     String destinationPath, {
     bool isDirectory = false,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -664,15 +590,7 @@ class WebDavService {
       final sourcePath = isDirectory ? '$remotePath/' : remotePath;
       final destination = isDirectory ? '$newRemotePath/' : newRemotePath;
 
-      if (_isS3) {
-        if (isDirectory) {
-          await _s3Client!.movePrefix(sourcePath, destination);
-        } else {
-          await _s3Client!.moveObject(sourcePath, destination);
-        }
-      } else {
-        await _client!.rename(sourcePath, destination, false);
-      }
+      await _client!.rename(sourcePath, destination, false);
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -686,7 +604,7 @@ class WebDavService {
   /// [date] - Date string in format 'yyyy-MM-dd'.
   /// Returns the JSON content of the messages file.
   Future<WebDavResult<String>> readMessagesFile(String date) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -694,9 +612,7 @@ class WebDavService {
 
     try {
       final remotePath = '$_messagesFolder/$date.json';
-      final bytes = _isS3
-          ? await _s3Client!.getBytes(remotePath)
-          : await _client!.read(remotePath);
+      final bytes = await _client!.read(remotePath);
       final content = utf8.decode(bytes);
       return WebDavResult.success(content);
     } on DioException catch (e) {
@@ -718,7 +634,7 @@ class WebDavService {
     String date,
     String content,
   ) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -727,11 +643,7 @@ class WebDavService {
     try {
       final remotePath = '$_messagesFolder/$date.json';
       final bytes = Uint8List.fromList(utf8.encode(content));
-      if (_isS3) {
-        await _s3Client!.putBytes(remotePath, bytes);
-      } else {
-        await _client!.write(remotePath, bytes);
-      }
+      await _client!.write(remotePath, bytes);
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -742,31 +654,18 @@ class WebDavService {
   ///
   /// Returns a list of date strings (yyyy-MM-dd) for which message files exist.
   Future<WebDavResult<List<String>>> listMessageDates() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      final List<String> dates;
-      if (_isS3) {
-        final objects = await _s3Client!.listAll('$_messagesFolder/');
-        dates = objects
-            .where(
-              (object) =>
-                  !object.isDirectory &&
-                  _objectName(object.key).endsWith('.json'),
-            )
-            .map((object) => _objectName(object.key).replaceAll('.json', ''))
-            .toList();
-      } else {
-        final files = await _client!.readDir(_messagesFolder);
-        dates = files
-            .where((f) => f.name?.endsWith('.json') == true && f.isDir != true)
-            .map((f) => f.name!.replaceAll('.json', ''))
-            .toList();
-      }
+      final files = await _client!.readDir(_messagesFolder);
+      final dates = files
+          .where((f) => f.name?.endsWith('.json') == true && f.isDir != true)
+          .map((f) => f.name!.replaceAll('.json', ''))
+          .toList();
       dates.sort((a, b) => b.compareTo(a)); // Most recent first
       return WebDavResult.success(dates);
     } on DioException catch (e) {
@@ -783,19 +682,13 @@ class WebDavService {
   ///
   /// [date] - Date string in format 'yyyy-MM-dd'.
   Future<WebDavResult<DateTime?>> getMessagesModifiedTime(String date) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        final object = await _s3Client!.headObject(
-          '$_messagesFolder/$date.json',
-        );
-        return WebDavResult.success(object?.modifiedTime);
-      }
       final files = await _client!.readDir(_messagesFolder);
       final targetFile = files.firstWhere(
         (f) => f.name == '$date.json',
@@ -822,22 +715,14 @@ class WebDavService {
     String localPath, {
     void Function(int downloaded, int total)? onProgress,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        await _s3Client!.downloadFile(
-          remotePath,
-          localPath,
-          onProgress: onProgress,
-        );
-      } else {
-        await _client!.read2File(remotePath, localPath, onProgress: onProgress);
-      }
+      await _client!.read2File(remotePath, localPath, onProgress: onProgress);
 
       return const WebDavResult.success(true);
     } catch (e) {
@@ -865,7 +750,7 @@ class WebDavService {
     )?
     onProgress,
   }) async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
@@ -930,26 +815,6 @@ class WebDavService {
     String relativePath,
     List<RemoteFileInfo> files,
   ) async {
-    if (_isS3) {
-      final prefix = remotePath.endsWith('/') ? remotePath : '$remotePath/';
-      final objects = await _s3Client!.listAll(prefix);
-      for (final object in objects.where((object) => !object.isDirectory)) {
-        final objectRelativePath = object.key.substring(prefix.length);
-        if (objectRelativePath.isEmpty) continue;
-        files.add(
-          RemoteFileInfo(
-            remotePath: object.key,
-            relativePath: relativePath.isEmpty
-                ? objectRelativePath
-                : '$relativePath/$objectRelativePath',
-            fileName: _objectName(object.key),
-            fileSize: object.size,
-          ),
-        );
-      }
-      return;
-    }
-
     final items = await _client!.readDir(remotePath);
 
     for (final item in items) {
@@ -977,13 +842,6 @@ class WebDavService {
   }
 
   // Private helper methods
-
-  String _objectName(String key) {
-    final withoutSlash = key.endsWith('/')
-        ? key.substring(0, key.length - 1)
-        : key;
-    return p.posix.basename(withoutSlash);
-  }
 
   Future<void> _createDirectoryIfNotExists(String path) async {
     try {
@@ -1136,18 +994,13 @@ class WebDavService {
 
   /// Get total storage usage by recursively summing all file sizes in RemoteSend.
   Future<WebDavResult<int>> getStorageUsage() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        return WebDavResult.success(
-          await _s3Client!.storageUsage('$_remoteSendFolder/'),
-        );
-      }
       // Try Depth: infinity first (fast, single request).
       final totalSize = await _tryDepthInfinity();
       if (totalSize != null && totalSize > 0) {
@@ -1241,19 +1094,14 @@ class WebDavService {
 
   /// Delete all files and folders under /RemoteSend/Files/.
   Future<WebDavResult<bool>> clearAllFiles() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        await _s3Client!.deletePrefix('$_filesFolder/');
-        await _s3Client!.createDirectory(_filesFolder);
-      } else {
-        await _deleteDirectoryContents(_filesFolder);
-      }
+      await _deleteDirectoryContents(_filesFolder);
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));
@@ -1262,19 +1110,14 @@ class WebDavService {
 
   /// Delete all files and folders under /RemoteSend/Messages/.
   Future<WebDavResult<bool>> clearAllMessages() async {
-    if (!isConnected) {
+    if (_client == null) {
       return const WebDavResult.failure(
         WebDavConfigException(message: 'Client not initialized'),
       );
     }
 
     try {
-      if (_isS3) {
-        await _s3Client!.deletePrefix('$_messagesFolder/');
-        await _s3Client!.createDirectory(_messagesFolder);
-      } else {
-        await _deleteDirectoryContents(_messagesFolder);
-      }
+      await _deleteDirectoryContents(_messagesFolder);
       return const WebDavResult.success(true);
     } catch (e) {
       return WebDavResult.failure(_mapException(e));

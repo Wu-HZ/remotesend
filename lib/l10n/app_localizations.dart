@@ -257,7 +257,7 @@ abstract class AppLocalizations {
   /// No description provided for @configureWebDavToSync.
   ///
   /// In en, this message translates to:
-  /// **'Configure a storage server in Settings to sync'**
+  /// **'Configure WebDAV connection in Settings to sync'**
   String get configureWebDavToSync;
 
   /// No description provided for @notConnectedTestInSettings.
@@ -269,7 +269,7 @@ abstract class AppLocalizations {
   /// No description provided for @configureWebDavToUseFileDepot.
   ///
   /// In en, this message translates to:
-  /// **'Configure a storage server in Settings to use File Depot'**
+  /// **'Configure WebDAV connection in Settings to use File Depot'**
   String get configureWebDavToUseFileDepot;
 
   /// No description provided for @noMessagesYet.
@@ -399,7 +399,7 @@ abstract class AppLocalizations {
   /// No description provided for @connectToWebDavToViewFiles.
   ///
   /// In en, this message translates to:
-  /// **'Connect to a storage server to view files'**
+  /// **'Connect to WebDAV to view files'**
   String get connectToWebDavToViewFiles;
 
   /// No description provided for @noFilesYet.
@@ -1341,7 +1341,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutAppDescription.
   ///
   /// In en, this message translates to:
-  /// **'A lightweight, portable app to transfer text and files between devices using WebDAV or S3.'**
+  /// **'A lightweight, portable app to transfer text and files between devices using WebDAV.'**
   String get aboutAppDescription;
 
   /// No description provided for @sourceCode.
@@ -1626,114 +1626,6 @@ abstract class AppLocalizations {
   /// **'Please enter a password'**
   String get passwordRequired;
 
-  /// No description provided for @storageType.
-  ///
-  /// In en, this message translates to:
-  /// **'Storage type'**
-  String get storageType;
-
-  /// No description provided for @webDavType.
-  ///
-  /// In en, this message translates to:
-  /// **'WebDAV'**
-  String get webDavType;
-
-  /// No description provided for @s3Type.
-  ///
-  /// In en, this message translates to:
-  /// **'S3 compatible'**
-  String get s3Type;
-
-  /// No description provided for @s3Endpoint.
-  ///
-  /// In en, this message translates to:
-  /// **'S3 endpoint'**
-  String get s3Endpoint;
-
-  /// No description provided for @s3EndpointHint.
-  ///
-  /// In en, this message translates to:
-  /// **'https://s3.example.com'**
-  String get s3EndpointHint;
-
-  /// No description provided for @s3Bucket.
-  ///
-  /// In en, this message translates to:
-  /// **'Bucket'**
-  String get s3Bucket;
-
-  /// No description provided for @s3BucketRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter a bucket name'**
-  String get s3BucketRequired;
-
-  /// No description provided for @s3Region.
-  ///
-  /// In en, this message translates to:
-  /// **'Region'**
-  String get s3Region;
-
-  /// No description provided for @s3RegionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g., us-east-1'**
-  String get s3RegionHint;
-
-  /// No description provided for @s3RegionRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter a region'**
-  String get s3RegionRequired;
-
-  /// No description provided for @s3AccessKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Access key ID'**
-  String get s3AccessKey;
-
-  /// No description provided for @s3AccessKeyRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter an access key ID'**
-  String get s3AccessKeyRequired;
-
-  /// No description provided for @s3SecretKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Secret access key'**
-  String get s3SecretKey;
-
-  /// No description provided for @s3SecretKeyRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter a secret access key'**
-  String get s3SecretKeyRequired;
-
-  /// No description provided for @s3SessionToken.
-  ///
-  /// In en, this message translates to:
-  /// **'Session token (optional)'**
-  String get s3SessionToken;
-
-  /// No description provided for @s3PathStyle.
-  ///
-  /// In en, this message translates to:
-  /// **'Use path-style access'**
-  String get s3PathStyle;
-
-  /// No description provided for @s3PathStyleHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable for MinIO and most self-hosted S3 services. Disable for AWS virtual-hosted buckets.'**
-  String get s3PathStyleHelp;
-
-  /// No description provided for @s3PermissionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Requires ListBucket plus GetObject, PutObject and DeleteObject permissions.'**
-  String get s3PermissionHint;
-
   /// No description provided for @testConnection.
   ///
   /// In en, this message translates to:
@@ -1791,7 +1683,7 @@ abstract class AppLocalizations {
   /// No description provided for @connectToWebDavFirst.
   ///
   /// In en, this message translates to:
-  /// **'Connect to a storage server first'**
+  /// **'Connect to WebDAV first'**
   String get connectToWebDavFirst;
 
   /// No description provided for @goToSettingsToConfigureConnection.
@@ -1803,7 +1695,7 @@ abstract class AppLocalizations {
   /// No description provided for @connectToWebDavFirstToUploadFiles.
   ///
   /// In en, this message translates to:
-  /// **'Connect to a storage server first to upload files'**
+  /// **'Connect to WebDAV first to upload files'**
   String get connectToWebDavFirstToUploadFiles;
 
   /// No description provided for @addedFilesAndFolders.
@@ -1929,7 +1821,7 @@ abstract class AppLocalizations {
   /// No description provided for @noServersFoundInConfig.
   ///
   /// In en, this message translates to:
-  /// **'No servers found (duplicate storage check)'**
+  /// **'No servers found (duplicate URL check)'**
   String get noServersFoundInConfig;
 
   /// No description provided for @importedServers.

@@ -1,20 +1,20 @@
 # RemoteSend
 
-轻量、便携、跨平台的 WebDAV / S3 文本与文件传输工具。Windows & Android。
+轻量、便携、跨平台的 WebDAV 文本与文件传输工具。Windows & Android。
 
 ## 功能
 
 - **文本桥接** — 聊天式界面，消息在设备间自动同步
 - **文件仓库** — 上传、下载、管理文件，支持文件夹导航
 - **传输队列** — 实时查看上传/下载进度，支持重试、清空
-- **多服务器** — 可混合配置多个 WebDAV、AWS S3、MinIO、Cloudflare R2 等 S3 兼容服务器，文本/文件可分别指定
+- **多服务器** — 配置多个 WebDAV 服务器，文本/文件可分别指定
 - **拖拽上传** — 桌面端拖入文件即传，支持直接上传和待传两种模式
 - **便携模式** — 配置文件放在软件目录下，适合 U 盘使用
 - **跨平台** — Windows 和 Android
 - **主题** — 浅色/深色/跟随系统，自定义强调色
 - **Material You** — 支持动态取色
 - **多语言** — 简体中文、English
-- **无专用服务端** — 使用标准 WebDAV（Nextcloud、Alist、群晖等）或 S3 兼容对象存储
+- **无专用服务端** — 使用标准 WebDAV 协议（Nextcloud、Alist、群晖等）
 
 ## 安装
 
@@ -31,8 +31,8 @@
 
 ### 初次配置
 1. 打开应用，进入**设置**
-2. 点击**添加服务器**，选择 WebDAV 或 S3 兼容存储并填写连接信息
-3. 点击**测试连接**验证连接和目录写入权限
+2. 点击**添加服务器**，填入 WebDAV 信息
+3. 点击**测试连接**验证
 4. 分别为文本和文件选择要使用的服务器
 
 ### 文本传输
@@ -48,9 +48,7 @@
 4. 点击文件下载，长按查看删除等更多操作
 5. 点击文件夹进入下一级
 
-## 远端数据结构
-
-WebDAV 使用以下目录；S3 在存储桶中使用相同的对象键前缀（`RemoteSend/`）：
+## WebDAV 目录结构
 
 ```
 /RemoteSend/
@@ -58,10 +56,6 @@ WebDAV 使用以下目录；S3 在存储桶中使用相同的对象键前缀（`
 │   └── yyyy-MM-dd.json
 └── Files/                 # 上传的文件和文件夹
 ```
-
-### S3 权限
-
-S3 凭据至少需要存储桶的 `ListBucket` 权限，以及 `RemoteSend/*` 对象的 `GetObject`、`PutObject`、`DeleteObject` 权限。MinIO 和多数自建服务使用“路径样式访问”；AWS S3 通常关闭该选项并使用虚拟主机样式。
 
 ## 从源码构建
 
@@ -94,37 +88,21 @@ flutter build apk --release --target-platform android-arm64
 
 ```json
 {
-  "version": 5,
+  "version": 4,
   "servers": [
     {
-      "id": "webdav-uuid",
-      "name": "我的 WebDAV",
-      "storageType": "webdav",
+      "id": "uuid",
+      "name": "我的服务器",
       "serverUrl": "https://example.com/dav",
       "username": "用户名",
       "password": "密码",
       "emoji": "☁️",
       "enabled": true,
       "createdAt": "2026-01-01T00:00:00.000"
-    },
-    {
-      "id": "s3-uuid",
-      "name": "我的 S3",
-      "storageType": "s3",
-      "serverUrl": "https://s3.example.com",
-      "s3Bucket": "remote-send",
-      "s3Region": "us-east-1",
-      "s3AccessKey": "ACCESS_KEY",
-      "s3SecretKey": "SECRET_KEY",
-      "s3SessionToken": "",
-      "s3UsePathStyle": true,
-      "emoji": "🪣",
-      "enabled": true,
-      "createdAt": "2026-01-01T00:00:00.000"
     }
   ],
-  "activeTextServerId": "webdav-uuid",
-  "activeFilesServerId": "s3-uuid",
+  "activeTextServerId": "uuid",
+  "activeFilesServerId": "uuid",
   "portableMode": true,
   "refreshIntervalSeconds": 3,
   "downloadLocation": "",
@@ -143,7 +121,7 @@ flutter build apk --release --target-platform android-arm64
 
 - Flutter / Dart
 - Riverpod 状态管理
-- webdav_client + dio（WebDAV / S3 Signature V4）
+- webdav_client + dio
 - Material 3
 - window_manager（桌面窗口）
 - dynamic_color（Material You 取色）
