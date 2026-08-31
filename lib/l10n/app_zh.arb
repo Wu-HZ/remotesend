@@ -369,6 +369,8 @@
   "gotifyTestSuccess": "Gotify 连接成功",
   "gotifyTestFailed": "Gotify 连接失败：{error}",
   "gotifyCredentialsRequired": "请输入服务器地址、应用令牌和客户端令牌",
+  "gotifyHistoryLookback": "上线消息回溯期",
+  "gotifyHistoryLookbackMinutes": "{count} 分钟",
   "gotifyTargets": "默认接收设备",
   "gotifyAllDevices": "所有其他设备",
   "gotifyNoDevices": "尚未发现其他 RemoteSend 设备",

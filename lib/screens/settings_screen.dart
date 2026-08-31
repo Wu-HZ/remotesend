@@ -619,6 +619,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : '${gotify.targetDeviceIds.length}',
             onTap: () => _showGotifyTargetsDialog(l10n),
           ),
+        if (gotify.enabled)
+          _ButtonEntry(
+            label: l10n.gotifyHistoryLookback,
+            buttonLabel: l10n.gotifyHistoryLookbackMinutes(
+              gotify.historyLookbackMinutes,
+            ),
+            onTap: () => _showGotifyLookbackDialog(l10n, gotify),
+          ),
         if (gotifyState.outboxCount > 0)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -838,6 +846,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     urlController.dispose();
     appTokenController.dispose();
     clientTokenController.dispose();
+  }
+
+  Future<void> _showGotifyLookbackDialog(
+    AppLocalizations l10n,
+    GotifyConfig gotify,
+  ) async {
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(l10n.gotifyHistoryLookback),
+        children: List.generate(5, (index) => index + 1)
+            .map(
+              (minutes) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(dialogContext, minutes),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      child: minutes == gotify.historyLookbackMinutes
+                          ? Icon(
+                              Icons.check,
+                              color: Theme.of(context).colorScheme.primary,
+                            )
+                          : null,
+                    ),
+                    Text(l10n.gotifyHistoryLookbackMinutes(minutes)),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+    if (selected != null) {
+      await _saveGotifyConfig(
+        gotify.copyWith(historyLookbackMinutes: selected),
+      );
+    }
   }
 
   Future<void> _showGotifyTargetsDialog(AppLocalizations l10n) async {

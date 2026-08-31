@@ -18,10 +18,33 @@ void main() {
         wifiOnly: true,
         maxAutoDownloadBytes: 1024,
         targetDeviceIds: const ['device-b', 'device-c'],
+        historyLookbackMinutes: 5,
       );
 
       expect(GotifyConfig.fromJson(config.toJson()), config);
       expect(config.isConfigured, isTrue);
+    });
+
+    test('clamps lookback and checks event age', () {
+      final now = DateTime.utc(2026, 8, 31, 12);
+      final config = GotifyConfig(historyLookbackMinutes: 3);
+
+      expect(GotifyConfig(historyLookbackMinutes: 0).historyLookbackMinutes, 1);
+      expect(GotifyConfig(historyLookbackMinutes: 9).historyLookbackMinutes, 5);
+      expect(
+        config.isWithinHistoryLookback(
+          now.subtract(const Duration(minutes: 2)),
+          now: now,
+        ),
+        isTrue,
+      );
+      expect(
+        config.isWithinHistoryLookback(
+          now.subtract(const Duration(minutes: 4)),
+          now: now,
+        ),
+        isFalse,
+      );
     });
 
     test('creates a stable non-empty device ID when absent', () {
@@ -80,7 +103,7 @@ void main() {
     expect(webDavServerKey(first), webDavServerKey(second));
   });
 
-  test('runtime store persists pending inbound events for replay', () async {
+  test('runtime store cancels inbound work but persists outbox', () async {
     SharedPreferences.setMockInitialValues({});
     final store = GotifyRuntimeStore('test');
     final event = RemoteSendEvent(
@@ -92,15 +115,23 @@ void main() {
 
     await store.save(
       GotifyRuntimeData(
-        initialized: true,
         lastMessageId: 9,
         pendingInboundEvents: [event],
+        outbox: [
+          PendingGotifyEvent(
+            event: event,
+            title: 'RemoteSend',
+            message: 'File ready',
+            priority: 1,
+          ),
+        ],
       ),
     );
     final restored = await store.load();
 
     expect(restored.lastMessageId, 9);
-    expect(restored.pendingInboundEvents.single.eventId, 'pending-event');
+    expect(restored.pendingInboundEvents, isEmpty);
+    expect(restored.outbox.single.event.eventId, 'pending-event');
   });
 
   test('AppConfig migrates retired polling keys and stores Gotify', () {
@@ -127,5 +158,6 @@ void main() {
     final encodedGotify = encoded['gotify'] as Map<String, dynamic>;
     expect(encodedGotify['appToken'], 'app');
     expect(encodedGotify['clientToken'], 'client');
+    expect(encodedGotify['historyLookbackMinutes'], 3);
   });
 }

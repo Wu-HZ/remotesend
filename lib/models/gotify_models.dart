@@ -17,9 +17,11 @@ class GotifyConfig {
     this.wifiOnly = false,
     this.maxAutoDownloadBytes = 0,
     this.targetDeviceIds = const [],
+    int historyLookbackMinutes = 3,
   }) : deviceId = deviceId == null || deviceId.trim().isEmpty
            ? _uuid.v4()
-           : deviceId.trim();
+           : deviceId.trim(),
+       historyLookbackMinutes = historyLookbackMinutes.clamp(1, 5);
 
   final bool enabled;
   final String serverUrl;
@@ -34,6 +36,16 @@ class GotifyConfig {
 
   /// An empty list broadcasts to all other RemoteSend devices.
   final List<String> targetDeviceIds;
+
+  /// Only offline events this recent are accepted after reconnecting.
+  final int historyLookbackMinutes;
+
+  Duration get historyLookback => Duration(minutes: historyLookbackMinutes);
+
+  bool isWithinHistoryLookback(DateTime createdAt, {DateTime? now}) {
+    final cutoff = (now ?? DateTime.now()).subtract(historyLookback);
+    return !createdAt.isBefore(cutoff);
+  }
 
   bool get hasCredentials {
     final uri = Uri.tryParse(serverUrl.trim());
@@ -57,6 +69,7 @@ class GotifyConfig {
     bool? wifiOnly,
     int? maxAutoDownloadBytes,
     List<String>? targetDeviceIds,
+    int? historyLookbackMinutes,
   }) {
     return GotifyConfig(
       enabled: enabled ?? this.enabled,
@@ -68,6 +81,8 @@ class GotifyConfig {
       wifiOnly: wifiOnly ?? this.wifiOnly,
       maxAutoDownloadBytes: maxAutoDownloadBytes ?? this.maxAutoDownloadBytes,
       targetDeviceIds: targetDeviceIds ?? this.targetDeviceIds,
+      historyLookbackMinutes:
+          historyLookbackMinutes ?? this.historyLookbackMinutes,
     );
   }
 
@@ -82,6 +97,7 @@ class GotifyConfig {
       'wifiOnly': wifiOnly,
       'maxAutoDownloadBytes': maxAutoDownloadBytes,
       'targetDeviceIds': targetDeviceIds,
+      'historyLookbackMinutes': historyLookbackMinutes,
     };
   }
 
@@ -100,6 +116,8 @@ class GotifyConfig {
       targetDeviceIds: (json['targetDeviceIds'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(growable: false),
+      historyLookbackMinutes:
+          (json['historyLookbackMinutes'] as num?)?.toInt() ?? 3,
     );
   }
 
@@ -114,7 +132,8 @@ class GotifyConfig {
         other.autoDownloadEnabled == autoDownloadEnabled &&
         other.wifiOnly == wifiOnly &&
         other.maxAutoDownloadBytes == maxAutoDownloadBytes &&
-        _sameStrings(other.targetDeviceIds, targetDeviceIds);
+        _sameStrings(other.targetDeviceIds, targetDeviceIds) &&
+        other.historyLookbackMinutes == historyLookbackMinutes;
   }
 
   @override
@@ -128,6 +147,7 @@ class GotifyConfig {
     wifiOnly,
     maxAutoDownloadBytes,
     Object.hashAll(targetDeviceIds),
+    historyLookbackMinutes,
   );
 }
 

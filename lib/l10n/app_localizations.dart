@@ -2022,6 +2022,18 @@ abstract class AppLocalizations {
   /// **'Enter the server URL, application token, and client token'**
   String get gotifyCredentialsRequired;
 
+  /// No description provided for @gotifyHistoryLookback.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect message lookback'**
+  String get gotifyHistoryLookback;
+
+  /// No description provided for @gotifyHistoryLookbackMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String gotifyHistoryLookbackMinutes(Object count);
+
   /// No description provided for @gotifyTargets.
   ///
   /// In en, this message translates to:

@@ -621,6 +621,13 @@
     }
   },
   "gotifyCredentialsRequired": "Enter the server URL, application token, and client token",
+  "gotifyHistoryLookback": "Reconnect message lookback",
+  "gotifyHistoryLookbackMinutes": "{count} min",
+  "@gotifyHistoryLookbackMinutes": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "gotifyTargets": "Default receiving devices",
   "gotifyAllDevices": "All other devices",
   "gotifyNoDevices": "No other RemoteSend devices discovered yet",

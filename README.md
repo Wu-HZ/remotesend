@@ -52,7 +52,7 @@
 5. 接收设备收到事件后会对当前文件目录执行一次刷新，不会轮询 WebDAV
 6. 接收设备还可按本机策略自动下载（开关、网络类型、大小上限和目录）
 
-> 当前 Gotify WebSocket 仅在 RemoteSend 运行期间保持连接；应用重新连接时会从 Gotify 恢复遗漏事件。RemoteSend 不会自动轮询 WebDAV。
+> 当前 Gotify WebSocket 仅在 RemoteSend 运行期间保持连接；重新上线时只接收本机设置的最近 1–5 分钟事件（默认 3 分钟），更早的事件会被丢弃。退出应用会取消尚未完成的接收任务，RemoteSend 不会自动轮询 WebDAV。
 
 ## WebDAV 目录结构
 
@@ -94,7 +94,7 @@ flutter build apk --release --target-platform android-arm64
 
 ```json
 {
-  "version": 7,
+  "version": 8,
   "servers": [
     {
       "id": "uuid",
@@ -127,7 +127,8 @@ flutter build apk --release --target-platform android-arm64
     "autoDownloadEnabled": true,
     "wifiOnly": true,
     "maxAutoDownloadBytes": 1073741824,
-    "targetDeviceIds": []
+    "targetDeviceIds": [],
+    "historyLookbackMinutes": 3
   }
 }
 ```

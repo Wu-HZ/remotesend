@@ -60,8 +60,8 @@ class GotifyState {
 }
 
 /// Maintains one Gotify WebSocket while the app is running. WebDAV is never
-/// polled here; REST history is only read when reconnecting to recover events
-/// that arrived while this device was offline.
+/// polled here; reconnect history is accepted only inside the configured short
+/// lookback window, and older events are discarded.
 class GotifyNotifier extends StateNotifier<GotifyState> {
   GotifyNotifier(this._config, this._ref)
     : _store = GotifyRuntimeStore(_runtimeNamespace(_config)),
@@ -156,13 +156,19 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
       if (_disposed || service != _service) return;
 
       final baseline = _runtime.lastMessageId;
-      final firstConnection = !_runtime.initialized;
-      final fetched = await _fetchMessagesNewerThan(baseline, maxPages: 20);
+      final historyCutoff = DateTime.now().subtract(
+        _currentConfig.historyLookback,
+      );
+      final fetched = await _fetchMessagesNewerThan(
+        baseline,
+        notBefore: historyCutoff,
+        maxPages: 20,
+      );
       fetched.sort((a, b) => a.id.compareTo(b.id));
       for (final message in fetched) {
         await _processMessage(
           message,
-          deliver: !firstConnection,
+          notBefore: historyCutoff,
           persist: false,
         );
       }
@@ -174,10 +180,13 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
         ..sort((a, b) => a.id.compareTo(b.id));
       _catchUpBuffer.clear();
       for (final message in buffered) {
-        await _processMessage(message, persist: false);
+        await _processMessage(
+          message,
+          notBefore: historyCutoff,
+          persist: false,
+        );
       }
 
-      _runtime = _runtime.copyWith(initialized: true);
       await _saveRuntime();
       _catchingUp = false;
       _reconnectAttempt = 0;
@@ -203,6 +212,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
 
   Future<List<GotifyMessage>> _fetchMessagesNewerThan(
     int baseline, {
+    required DateTime notBefore,
     required int maxPages,
   }) async {
     final service = _service;
@@ -215,14 +225,22 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
       if (page.messages.isEmpty) break;
 
       var reachedBaseline = false;
+      var reachedLookbackBoundary = false;
       for (final message in page.messages) {
         if (message.id > baseline) {
           result.add(message);
         } else {
           reachedBaseline = true;
         }
+        if (message.date.isBefore(notBefore)) {
+          reachedLookbackBoundary = true;
+        }
       }
-      if (reachedBaseline || page.nextSince == null) break;
+      if (reachedBaseline ||
+          reachedLookbackBoundary ||
+          page.nextSince == null) {
+        break;
+      }
       since = page.nextSince;
     }
     return result;
@@ -230,10 +248,13 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
 
   Future<void> _processMessage(
     GotifyMessage message, {
-    bool deliver = true,
+    DateTime? notBefore,
     bool persist = true,
   }) async {
     final event = RemoteSendEvent.fromGotifyMessage(message);
+    final historyCutoff =
+        notBefore ?? DateTime.now().subtract(_currentConfig.historyLookback);
+    final deliver = event == null || !event.createdAt.isBefore(historyCutoff);
     var devices = _runtime.devices;
     var processedIds = _runtime.processedEventIds;
     var pendingInbound = _runtime.pendingInboundEvents;
@@ -246,7 +267,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
         !processedIds.contains(event.eventId) &&
         !alreadyPending) {
       if (event.type == RemoteSendEvent.deviceAnnounce) {
-        if (event.senderDeviceId != _config.deviceId) {
+        if (deliver && event.senderDeviceId != _config.deviceId) {
           final updated = Map<String, RemoteDevice>.from(devices);
           updated[event.senderDeviceId] = RemoteDevice(
             id: event.senderDeviceId,
@@ -283,7 +304,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
     if (eventToDeliver != null) _events.add(eventToDeliver);
   }
 
-  /// Re-emits persisted inbound events after local receive settings change.
+  /// Re-emits session-only inbound events after local receive settings change.
   void replayPendingEvents() {
     if (_disposed) return;
     for (final event in _runtime.pendingInboundEvents) {
@@ -292,7 +313,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
   }
 
   /// Marks an inbound event complete only after its one-shot action succeeds.
-  /// Pending events are persisted and replayed after the next reconnect.
+  /// Pending events survive WebSocket reconnects, but not an app restart.
   Future<void> acknowledgeEvent(String eventId) async {
     if (_disposed) return;
     if (!_runtime.pendingInboundEvents.any(

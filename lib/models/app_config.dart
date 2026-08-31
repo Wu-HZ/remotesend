@@ -62,8 +62,8 @@ String _generateRandomName() {
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
   // Versions 4 and 5 contained the retired polling and S3 settings.
-  // Version 7 adds Gotify event transport and per-device receive settings.
-  static const int currentVersion = 7;
+  // Version 8 limits Gotify reconnect history to a per-device lookback window.
+  static const int currentVersion = 8;
 
   // Default primary color (Material Blue 500)
   static const int defaultPrimaryColor = 0xFF009688;

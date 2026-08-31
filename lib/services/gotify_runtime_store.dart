@@ -40,7 +40,6 @@ class PendingGotifyEvent {
 
 class GotifyRuntimeData {
   const GotifyRuntimeData({
-    this.initialized = false,
     this.lastMessageId = 0,
     this.devices = const {},
     this.processedEventIds = const [],
@@ -48,15 +47,15 @@ class GotifyRuntimeData {
     this.outbox = const [],
   });
 
-  final bool initialized;
   final int lastMessageId;
   final Map<String, RemoteDevice> devices;
   final List<String> processedEventIds;
+
+  /// Session-only receive work. It is deliberately omitted from persistence.
   final List<RemoteSendEvent> pendingInboundEvents;
   final List<PendingGotifyEvent> outbox;
 
   GotifyRuntimeData copyWith({
-    bool? initialized,
     int? lastMessageId,
     Map<String, RemoteDevice>? devices,
     List<String>? processedEventIds,
@@ -64,7 +63,6 @@ class GotifyRuntimeData {
     List<PendingGotifyEvent>? outbox,
   }) {
     return GotifyRuntimeData(
-      initialized: initialized ?? this.initialized,
       lastMessageId: lastMessageId ?? this.lastMessageId,
       devices: devices ?? this.devices,
       processedEventIds: processedEventIds ?? this.processedEventIds,
@@ -74,15 +72,12 @@ class GotifyRuntimeData {
   }
 
   Map<String, dynamic> toJson() => {
-    'initialized': initialized,
     'lastMessageId': lastMessageId,
     'devices': {
       for (final item in devices.entries) item.key: item.value.toJson(),
     },
     'processedEventIds': processedEventIds,
-    'pendingInboundEvents': pendingInboundEvents
-        .map((event) => event.toJson())
-        .toList(),
+    // Inbound work is intentionally session-only. Closing the app cancels it.
     'outbox': outbox.map((item) => item.toJson()).toList(),
   };
 
@@ -102,20 +97,6 @@ class GotifyRuntimeData {
       }
     }
 
-    final pendingInboundEvents = <RemoteSendEvent>[];
-    final rawPendingInbound = json['pendingInboundEvents'];
-    if (rawPendingInbound is List) {
-      for (final item in rawPendingInbound.whereType<Map>()) {
-        try {
-          pendingInboundEvents.add(
-            RemoteSendEvent.fromJson(Map<String, dynamic>.from(item)),
-          );
-        } catch (_) {
-          // Ignore malformed pending events.
-        }
-      }
-    }
-
     final outbox = <PendingGotifyEvent>[];
     final rawOutbox = json['outbox'];
     if (rawOutbox is List) {
@@ -131,14 +112,12 @@ class GotifyRuntimeData {
     }
 
     return GotifyRuntimeData(
-      initialized: json['initialized'] as bool? ?? false,
       lastMessageId: (json['lastMessageId'] as num?)?.toInt() ?? 0,
       devices: devices,
       processedEventIds:
           (json['processedEventIds'] as List<dynamic>? ?? const [])
               .whereType<String>()
               .toList(growable: false),
-      pendingInboundEvents: pendingInboundEvents,
       outbox: outbox,
     );
   }

@@ -1103,6 +1103,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter the server URL, application token, and client token';
 
   @override
+  String get gotifyHistoryLookback => 'Reconnect message lookback';
+
+  @override
+  String gotifyHistoryLookbackMinutes(Object count) {
+    return '$count min';
+  }
+
+  @override
   String get gotifyTargets => 'Default receiving devices';
 
   @override

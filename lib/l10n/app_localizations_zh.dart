@@ -1070,6 +1070,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gotifyCredentialsRequired => '请输入服务器地址、应用令牌和客户端令牌';
 
   @override
+  String get gotifyHistoryLookback => '上线消息回溯期';
+
+  @override
+  String gotifyHistoryLookbackMinutes(Object count) {
+    return '$count 分钟';
+  }
+
+  @override
   String get gotifyTargets => '默认接收设备';
 
   @override
