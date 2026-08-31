@@ -75,18 +75,21 @@ class GotifyCoordinatorState {
     this.lastReceivedFile,
     this.lastError,
     this.lastReceipt,
+    this.clipboardCopyRevision = 0,
   });
 
   final List<IncomingTransfer> incomingTransfers;
   final IncomingTransfer? lastReceivedFile;
   final String? lastError;
   final String? lastReceipt;
+  final int clipboardCopyRevision;
 
   GotifyCoordinatorState copyWith({
     List<IncomingTransfer>? incomingTransfers,
     IncomingTransfer? lastReceivedFile,
     String? lastError,
     String? lastReceipt,
+    int? clipboardCopyRevision,
     bool clearError = false,
   }) {
     return GotifyCoordinatorState(
@@ -94,6 +97,8 @@ class GotifyCoordinatorState {
       lastReceivedFile: lastReceivedFile ?? this.lastReceivedFile,
       lastError: clearError ? null : lastError ?? this.lastError,
       lastReceipt: lastReceipt ?? this.lastReceipt,
+      clipboardCopyRevision:
+          clipboardCopyRevision ?? this.clipboardCopyRevision,
     );
   }
 }
@@ -199,6 +204,10 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
       if (clipboardText != null) {
         try {
           await Clipboard.setData(ClipboardData(text: clipboardText));
+          if (!mounted) return;
+          state = state.copyWith(
+            clipboardCopyRevision: state.clipboardCopyRevision + 1,
+          );
         } catch (error) {
           if (mounted) {
             state = state.copyWith(

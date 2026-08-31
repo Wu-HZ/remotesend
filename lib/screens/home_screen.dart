@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/config_provider.dart';
+import '../providers/gotify_coordinator_provider.dart';
 import '../providers/message_history_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../util/theme_ext.dart';
@@ -26,6 +27,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(
+      gotifyCoordinatorProvider.select(
+        (state) => state.clipboardCopyRevision,
+      ),
+      (previous, next) {
+        if (previous == null || next <= previous) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.copiedToClipboard),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      },
+    );
+
     final configAsync = ref.watch(configProvider);
     final isConfigured = ref.watch(isConfiguredProvider);
     final l10n = AppLocalizations.of(context)!;
