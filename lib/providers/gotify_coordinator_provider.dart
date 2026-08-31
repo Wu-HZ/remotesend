@@ -14,6 +14,7 @@ import 'download_cache_provider.dart';
 import 'download_state_provider.dart';
 import 'gotify_provider.dart';
 import 'message_history_provider.dart';
+import 'webdav_provider.dart';
 
 class IncomingTransfer {
   const IncomingTransfer({
@@ -110,12 +111,17 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
   bool _processingFiles = false;
   Timer? _textRefreshDebounce;
   final List<RemoteSendEvent> _pendingTextEvents = [];
+  Timer? _fileRefreshDebounce;
+  final List<RemoteSendEvent> _pendingFileRefreshEvents = [];
+  final Set<String> _refreshedFileEventIds = {};
+  final Set<String> _downloadedFileEventIds = {};
 
   void _handleEvent(RemoteSendEvent event) {
     switch (event.type) {
       case RemoteSendEvent.textChanged:
         _scheduleTextRefresh(event);
       case RemoteSendEvent.fileReady:
+        _scheduleFileRefresh(event);
         _enqueueFile(event);
       case RemoteSendEvent.fileReceived:
         final fileName = event.payload['fileName'] as String? ?? '';
@@ -158,6 +164,72 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
         }
       }
     });
+  }
+
+  void _scheduleFileRefresh(RemoteSendEvent event) {
+    final config = _ref.read(configProvider).valueOrNull;
+    final server = config?.activeFilesServer;
+    if (server == null ||
+        event.payload['serverKey'] != webDavServerKey(server) ||
+        _refreshedFileEventIds.contains(event.eventId)) {
+      return;
+    }
+
+    if (!_pendingFileRefreshEvents.any(
+      (item) => item.eventId == event.eventId,
+    )) {
+      _pendingFileRefreshEvents.add(event);
+    }
+    _fileRefreshDebounce?.cancel();
+    _fileRefreshDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final pending = List<RemoteSendEvent>.from(_pendingFileRefreshEvents);
+      _pendingFileRefreshEvents.clear();
+      final success = await _ref.read(fileListProvider.notifier).refresh();
+      if (!mounted) return;
+      if (!success) {
+        state = state.copyWith(
+          lastError: 'Failed to refresh the WebDAV file list',
+        );
+        return;
+      }
+
+      for (final item in pending) {
+        _refreshedFileEventIds.add(item.eventId);
+        await _acknowledgeFileIfComplete(item);
+      }
+    });
+  }
+
+  Future<void> _acknowledgeFileIfComplete(RemoteSendEvent event) async {
+    final config = _ref.read(configProvider).valueOrNull;
+    if (config == null) return;
+    final serverKey = event.payload['serverKey'] as String? ?? '';
+    if (_matchingServer(config.servers, serverKey) == null) return;
+    final activeServer = config.activeFilesServer;
+    final fileListRefreshRequired =
+        activeServer != null && serverKey == webDavServerKey(activeServer);
+    if (fileListRefreshRequired &&
+        !_refreshedFileEventIds.contains(event.eventId)) {
+      return;
+    }
+
+    final fileSize = (event.payload['fileSize'] as num?)?.toInt() ?? 0;
+    final autoDownloadRequired =
+        config.gotify.autoDownloadEnabled &&
+        (config.gotify.maxAutoDownloadBytes <= 0 ||
+            fileSize <= config.gotify.maxAutoDownloadBytes);
+    if (autoDownloadRequired &&
+        !_downloadedFileEventIds.contains(event.eventId)) {
+      return;
+    }
+
+    if (!autoDownloadRequired) {
+      _waitingFiles.remove(event.eventId);
+      _setTransfer(event.eventId, status: 'available');
+    }
+    _refreshedFileEventIds.remove(event.eventId);
+    _downloadedFileEventIds.remove(event.eventId);
+    await _gotify.acknowledgeEvent(event.eventId);
   }
 
   void _enqueueFile(RemoteSendEvent event) {
@@ -205,6 +277,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
 
     if (!gotify.autoDownloadEnabled) {
       _waitForPolicy(event);
+      await _acknowledgeFileIfComplete(event);
       return;
     }
     if (gotify.maxAutoDownloadBytes > 0 &&
@@ -213,6 +286,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
         event,
         error: 'File exceeds this device auto-download limit',
       );
+      await _acknowledgeFileIfComplete(event);
       return;
     }
     if (gotify.wifiOnly && !await _isUnmeteredNetwork()) {
@@ -286,7 +360,8 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
       );
       state = state.copyWith(lastReceivedFile: completed, clearError: true);
       await _gotify.publishFileReceived(event);
-      await _gotify.acknowledgeEvent(event.eventId);
+      _downloadedFileEventIds.add(event.eventId);
+      await _acknowledgeFileIfComplete(event);
     } catch (error) {
       _waitForPolicy(event, error: error.toString());
       state = state.copyWith(lastError: error.toString());
@@ -399,6 +474,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
   @override
   void dispose() {
     _textRefreshDebounce?.cancel();
+    _fileRefreshDebounce?.cancel();
     unawaited(_subscription.cancel());
     unawaited(_connectivitySubscription.cancel());
     super.dispose();
