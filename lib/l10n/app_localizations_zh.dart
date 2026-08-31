@@ -909,7 +909,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportConfigTitle => '导出配置';
 
   @override
-  String get exportConfigWarning => '配置文件包含服务器密码（明文），请妥善保管。';
+  String get exportConfigWarning => '配置文件包含服务器密码和 Gotify 令牌（明文），请妥善保管。';
 
   @override
   String get continueExport => '继续导出';
@@ -1031,6 +1031,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gotifyClientToken => '客户端令牌';
+
+  @override
+  String get gotifyTokenStorageNotice => '令牌会以明文显示并保存到应用配置中。';
 
   @override
   String get gotifyStatusDisabled => '已关闭';

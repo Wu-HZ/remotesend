@@ -124,5 +124,8 @@ void main() {
     expect(encoded, isNot(contains('refreshIntervalSeconds')));
     expect(encoded, isNot(contains('autoSyncEnabled')));
     expect(encoded['gotify'], isA<Map<String, dynamic>>());
+    final encodedGotify = encoded['gotify'] as Map<String, dynamic>;
+    expect(encodedGotify['appToken'], 'app');
+    expect(encodedGotify['clientToken'], 'client');
   });
 }

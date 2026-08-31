@@ -1743,7 +1743,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportConfigWarning.
   ///
   /// In en, this message translates to:
-  /// **'The exported file contains server passwords (plain text). Keep it safe.'**
+  /// **'The exported file contains server passwords and Gotify tokens in plaintext. Keep it safe.'**
   String get exportConfigWarning;
 
   /// No description provided for @continueExport.
@@ -1955,6 +1955,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Client token'**
   String get gotifyClientToken;
+
+  /// No description provided for @gotifyTokenStorageNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokens are displayed and stored in plaintext in the app configuration.'**
+  String get gotifyTokenStorageNotice;
 
   /// No description provided for @gotifyStatusDisabled.
   ///

@@ -671,6 +671,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     var testing = false;
     String? testMessage;
     var testSucceeded = false;
+    var obscureAppToken = false;
+    var obscureClientToken = false;
 
     await showDialog<void>(
       context: context,
@@ -693,16 +695,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: appTokenController,
-                  decoration: InputDecoration(labelText: l10n.gotifyAppToken),
-                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: l10n.gotifyAppToken,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureAppToken
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () => setDialogState(
+                        () => obscureAppToken = !obscureAppToken,
+                      ),
+                    ),
+                  ),
+                  obscureText: obscureAppToken,
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: clientTokenController,
                   decoration: InputDecoration(
                     labelText: l10n.gotifyClientToken,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureClientToken
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () => setDialogState(
+                        () => obscureClientToken = !obscureClientToken,
+                      ),
+                    ),
                   ),
-                  obscureText: true,
+                  obscureText: obscureClientToken,
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n.gotifyTokenStorageNotice,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
                 ),
                 if (testMessage != null) ...[
                   const SizedBox(height: 12),

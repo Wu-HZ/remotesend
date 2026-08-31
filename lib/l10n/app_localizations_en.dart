@@ -940,7 +940,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportConfigWarning =>
-      'The exported file contains server passwords (plain text). Keep it safe.';
+      'The exported file contains server passwords and Gotify tokens in plaintext. Keep it safe.';
 
   @override
   String get continueExport => 'Continue export';
@@ -1062,6 +1062,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gotifyClientToken => 'Client token';
+
+  @override
+  String get gotifyTokenStorageNotice =>
+      'Tokens are displayed and stored in plaintext in the app configuration.';
 
   @override
   String get gotifyStatusDisabled => 'Disabled';
