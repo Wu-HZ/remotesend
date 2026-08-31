@@ -622,6 +622,7 @@
   },
   "gotifyCredentialsRequired": "Enter the server URL, application token, and client token",
   "gotifyHistoryLookback": "Reconnect message lookback",
+  "gotifyAutoCopyText": "Copy newest received text",
   "gotifyHistoryLookbackMinutes": "{count} min",
   "@gotifyHistoryLookbackMinutes": {
     "placeholders": {

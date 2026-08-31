@@ -133,14 +133,53 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
   /// Refresh exactly once after a Gotify notification. Historical changes
   /// update the available dates without forcing the user away from the date
   /// currently being viewed.
-  Future<bool> refreshFromRemoteChange(String date) async {
+  Future<List<TextMessage>?> refreshFromRemoteChange(String date) async {
     final selectedDate = _ref.read(selectedDateProvider);
-    if (selectedDate == date) {
-      await loadMessagesForDate(date);
-      if (state.error != null) return false;
+    final isSelectedDate = selectedDate == date;
+    if (isSelectedDate) {
+      state = state.copyWith(isLoading: true, error: null);
     }
-    await loadAvailableDates();
-    return true;
+
+    try {
+      final result = await _webDavService.readMessagesFile(date);
+      if (result.isFailure) {
+        if (isSelectedDate) {
+          state = state.copyWith(
+            isLoading: false,
+            error: result.error?.userMessage ?? 'Failed to load messages',
+          );
+        }
+        return null;
+      }
+
+      final jsonContent = result.data ?? '[]';
+      final List<dynamic> jsonList = jsonDecode(jsonContent);
+      final localName =
+          _ref.read(configProvider).valueOrNull?.localName ?? 'Me';
+      final messages = jsonList
+          .map(
+            (json) => TextMessage.fromJson(
+              json as Map<String, dynamic>,
+              localName: localName,
+            ),
+          )
+          .toList()
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+      if (isSelectedDate) {
+        state = state.copyWith(messages: messages, isLoading: false);
+      }
+      await loadAvailableDates();
+      return messages;
+    } catch (error) {
+      if (isSelectedDate) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Failed to load messages: $error',
+        );
+      }
+      return null;
+    }
   }
 
   /// Send a new message.
@@ -188,7 +227,11 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
         if (server != null) {
           await _ref
               .read(gotifyProvider.notifier)
-              .publishTextChanged(server: server, date: today);
+              .publishTextChanged(
+                server: server,
+                date: today,
+                newMessageId: message.id,
+              );
         }
 
         // Update state if viewing today

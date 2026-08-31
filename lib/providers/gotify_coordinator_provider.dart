@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -15,6 +16,25 @@ import 'download_state_provider.dart';
 import 'gotify_provider.dart';
 import 'message_history_provider.dart';
 import 'webdav_provider.dart';
+
+String? selectNewestTextForClipboard(
+  Iterable<RemoteSendEvent> events,
+  Map<String, String> textByMessageId,
+) {
+  RemoteSendEvent? newest;
+  for (final event in events) {
+    final messageId =
+        event.payload[RemoteSendEvent.newMessageIdPayloadKey] as String?;
+    if (messageId == null || !textByMessageId.containsKey(messageId)) continue;
+    if (newest == null || !event.createdAt.isBefore(newest.createdAt)) {
+      newest = event;
+    }
+  }
+  if (newest == null) return null;
+  final messageId =
+      newest.payload[RemoteSendEvent.newMessageIdPayloadKey] as String;
+  return textByMessageId[messageId];
+}
 
 class IncomingTransfer {
   const IncomingTransfer({
@@ -152,16 +172,44 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
         final date = item.payload['date'] as String? ?? '';
         if (date.isNotEmpty) byDate.putIfAbsent(date, () => []).add(item);
       }
+      final completed = <RemoteSendEvent>[];
+      final refreshedTextById = <String, String>{};
+      final autoCopyEnabled =
+          _ref.read(configProvider).valueOrNull?.gotify.autoCopyTextEnabled ??
+          false;
+
       for (final entry in byDate.entries) {
-        final success = await _ref
+        final messages = await _ref
             .read(messageHistoryProvider.notifier)
             .refreshFromRemoteChange(entry.key);
         if (!mounted) return;
-        if (success) {
-          for (final item in entry.value) {
-            await _gotify.acknowledgeEvent(item.eventId);
-          }
+        if (messages == null) continue;
+        completed.addAll(entry.value);
+
+        if (autoCopyEnabled) {
+          refreshedTextById.addEntries(
+            messages.map((message) => MapEntry(message.id, message.content)),
+          );
         }
+      }
+
+      final clipboardText = autoCopyEnabled
+          ? selectNewestTextForClipboard(completed, refreshedTextById)
+          : null;
+      if (clipboardText != null) {
+        try {
+          await Clipboard.setData(ClipboardData(text: clipboardText));
+        } catch (error) {
+          if (mounted) {
+            state = state.copyWith(
+              lastError: 'Failed to copy new text: $error',
+            );
+          }
+          return;
+        }
+      }
+      for (final item in completed) {
+        await _gotify.acknowledgeEvent(item.eventId);
       }
     });
   }

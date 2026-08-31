@@ -2028,6 +2028,12 @@ abstract class AppLocalizations {
   /// **'Reconnect message lookback'**
   String get gotifyHistoryLookback;
 
+  /// No description provided for @gotifyAutoCopyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy newest received text'**
+  String get gotifyAutoCopyText;
+
   /// No description provided for @gotifyHistoryLookbackMinutes.
   ///
   /// In en, this message translates to:

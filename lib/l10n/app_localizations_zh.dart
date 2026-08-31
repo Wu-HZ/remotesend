@@ -1073,6 +1073,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gotifyHistoryLookback => '上线消息回溯期';
 
   @override
+  String get gotifyAutoCopyText => '自动复制最新接收文本';
+
+  @override
   String gotifyHistoryLookbackMinutes(Object count) {
     return '$count 分钟';
   }

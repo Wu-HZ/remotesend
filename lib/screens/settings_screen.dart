@@ -627,6 +627,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             onTap: () => _showGotifyLookbackDialog(l10n, gotify),
           ),
+        if (gotify.enabled)
+          _BooleanEntry(
+            label: l10n.gotifyAutoCopyText,
+            value: gotify.autoCopyTextEnabled,
+            onChanged: (value) => _saveGotifyConfig(
+              gotify.copyWith(autoCopyTextEnabled: value),
+            ),
+          ),
         if (gotifyState.outboxCount > 0)
           Padding(
             padding: const EdgeInsets.only(top: 8),

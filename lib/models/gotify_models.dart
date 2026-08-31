@@ -17,6 +17,7 @@ class GotifyConfig {
     this.wifiOnly = false,
     this.maxAutoDownloadBytes = 0,
     this.targetDeviceIds = const [],
+    this.autoCopyTextEnabled = false,
     int historyLookbackMinutes = 3,
   }) : deviceId = deviceId == null || deviceId.trim().isEmpty
            ? _uuid.v4()
@@ -36,6 +37,9 @@ class GotifyConfig {
 
   /// An empty list broadcasts to all other RemoteSend devices.
   final List<String> targetDeviceIds;
+
+  /// Copy the newest newly-received text to this device's clipboard.
+  final bool autoCopyTextEnabled;
 
   /// Only offline events this recent are accepted after reconnecting.
   final int historyLookbackMinutes;
@@ -69,6 +73,7 @@ class GotifyConfig {
     bool? wifiOnly,
     int? maxAutoDownloadBytes,
     List<String>? targetDeviceIds,
+    bool? autoCopyTextEnabled,
     int? historyLookbackMinutes,
   }) {
     return GotifyConfig(
@@ -81,6 +86,7 @@ class GotifyConfig {
       wifiOnly: wifiOnly ?? this.wifiOnly,
       maxAutoDownloadBytes: maxAutoDownloadBytes ?? this.maxAutoDownloadBytes,
       targetDeviceIds: targetDeviceIds ?? this.targetDeviceIds,
+      autoCopyTextEnabled: autoCopyTextEnabled ?? this.autoCopyTextEnabled,
       historyLookbackMinutes:
           historyLookbackMinutes ?? this.historyLookbackMinutes,
     );
@@ -97,6 +103,7 @@ class GotifyConfig {
       'wifiOnly': wifiOnly,
       'maxAutoDownloadBytes': maxAutoDownloadBytes,
       'targetDeviceIds': targetDeviceIds,
+      'autoCopyTextEnabled': autoCopyTextEnabled,
       'historyLookbackMinutes': historyLookbackMinutes,
     };
   }
@@ -116,6 +123,7 @@ class GotifyConfig {
       targetDeviceIds: (json['targetDeviceIds'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(growable: false),
+      autoCopyTextEnabled: json['autoCopyTextEnabled'] as bool? ?? false,
       historyLookbackMinutes:
           (json['historyLookbackMinutes'] as num?)?.toInt() ?? 3,
     );
@@ -133,6 +141,7 @@ class GotifyConfig {
         other.wifiOnly == wifiOnly &&
         other.maxAutoDownloadBytes == maxAutoDownloadBytes &&
         _sameStrings(other.targetDeviceIds, targetDeviceIds) &&
+        other.autoCopyTextEnabled == autoCopyTextEnabled &&
         other.historyLookbackMinutes == historyLookbackMinutes;
   }
 
@@ -147,6 +156,7 @@ class GotifyConfig {
     wifiOnly,
     maxAutoDownloadBytes,
     Object.hashAll(targetDeviceIds),
+    autoCopyTextEnabled,
     historyLookbackMinutes,
   );
 }
@@ -235,6 +245,8 @@ class RemoteSendEvent {
   static const textChanged = 'text_changed';
   static const fileReady = 'file_ready';
   static const fileReceived = 'file_received';
+
+  static const newMessageIdPayloadKey = 'newMessageId';
 
   final String type;
   final String eventId;

@@ -1106,6 +1106,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gotifyHistoryLookback => 'Reconnect message lookback';
 
   @override
+  String get gotifyAutoCopyText => 'Copy newest received text';
+
+  @override
   String gotifyHistoryLookbackMinutes(Object count) {
     return '$count min';
   }

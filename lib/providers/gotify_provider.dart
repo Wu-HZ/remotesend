@@ -346,6 +346,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
   Future<bool> publishTextChanged({
     required ServerConfig server,
     required String date,
+    String? newMessageId,
   }) {
     return _publish(
       RemoteSendEvent(
@@ -353,7 +354,12 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
         senderDeviceId: _config.deviceId,
         senderName: _localName,
         targetDeviceIds: _currentConfig.targetDeviceIds,
-        payload: {'date': date, 'serverKey': webDavServerKey(server)},
+        payload: {
+          'date': date,
+          'serverKey': webDavServerKey(server),
+          if (newMessageId != null)
+            RemoteSendEvent.newMessageIdPayloadKey: newMessageId,
+        },
       ),
       title: 'RemoteSend · $_localName',
       message: 'New text is available',

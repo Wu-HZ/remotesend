@@ -41,8 +41,9 @@
 1. 进入**文本**页
 2. 输入消息，点击发送
 3. Gotify 通知目标设备从 WebDAV 拉取本次更新
-4. 未配置 Gotify 时可使用右上角按钮手动刷新
-5. 长按消息可删除
+4. 接收设备可独立开启“自动复制最新接收文本”，每批只复制最新新增的一条
+5. 未配置 Gotify 时可使用右上角按钮手动刷新
+6. 长按消息可删除
 
 ### 文件传输
 1. 进入**文件**页
@@ -94,7 +95,7 @@ flutter build apk --release --target-platform android-arm64
 
 ```json
 {
-  "version": 8,
+  "version": 9,
   "servers": [
     {
       "id": "uuid",
@@ -128,6 +129,7 @@ flutter build apk --release --target-platform android-arm64
     "wifiOnly": true,
     "maxAutoDownloadBytes": 1073741824,
     "targetDeviceIds": [],
+    "autoCopyTextEnabled": false,
     "historyLookbackMinutes": 3
   }
 }

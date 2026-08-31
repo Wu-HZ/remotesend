@@ -18,6 +18,7 @@ void main() {
         wifiOnly: true,
         maxAutoDownloadBytes: 1024,
         targetDeviceIds: const ['device-b', 'device-c'],
+        autoCopyTextEnabled: true,
         historyLookbackMinutes: 5,
       );
 
@@ -158,6 +159,7 @@ void main() {
     final encodedGotify = encoded['gotify'] as Map<String, dynamic>;
     expect(encodedGotify['appToken'], 'app');
     expect(encodedGotify['clientToken'], 'client');
+    expect(encodedGotify['autoCopyTextEnabled'], isFalse);
     expect(encodedGotify['historyLookbackMinutes'], 3);
   });
 }
