@@ -6,6 +6,8 @@ import '../models/upload_queue.dart';
 import '../services/webdav_service.dart';
 import '../services/webdav_exceptions.dart';
 import '../screens/home_screen.dart' show selectedTabProvider;
+import 'config_provider.dart';
+import 'gotify_provider.dart';
 import 'webdav_provider.dart';
 import 'pending_upload_provider.dart';
 
@@ -195,6 +197,15 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
         status: UploadStatus.completed,
         progress: 1.0,
       );
+      final server = _ref.read(activeFilesServerProvider);
+      if (server != null) {
+        await _ref.read(gotifyProvider.notifier).publishFileReady(
+          server: server,
+          remotePath: item.remotePath,
+          fileName: item.fileName,
+          fileSize: item.fileSize,
+        );
+      }
     } else {
       updatedItems[pendingIndex] = updatedItems[pendingIndex].copyWith(
         status: UploadStatus.failed,

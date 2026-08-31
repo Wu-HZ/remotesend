@@ -1,11 +1,11 @@
 # RemoteSend
 
-轻量、便携、跨平台的 WebDAV 文本与文件传输工具。Windows & Android。
+轻量、便携、跨平台的设备间文本与文件传输工具。WebDAV 存储数据，Gotify 提供可选的实时事件。Windows & Android。
 
 ## 功能
 
-- **文本桥接** — 聊天式界面，消息在设备间自动同步
-- **文件仓库** — 上传、下载、管理文件，支持文件夹导航
+- **文本桥接** — 聊天式界面，通过 Gotify 通知其他设备一次性拉取新文本
+- **文件仓库** — 上传、下载、管理文件，支持文件夹导航和事件驱动的自动下载
 - **传输队列** — 实时查看上传/下载进度，支持重试、清空
 - **多服务器** — 配置多个 WebDAV 服务器，文本/文件可分别指定
 - **拖拽上传** — 桌面端拖入文件即传，支持直接上传和待传两种模式
@@ -14,7 +14,7 @@
 - **主题** — 浅色/深色/跟随系统，自定义强调色
 - **Material You** — 支持动态取色
 - **多语言** — 简体中文、English
-- **无专用服务端** — 使用标准 WebDAV 协议（Nextcloud、Alist、群晖等）
+- **自托管友好** — 支持标准 WebDAV（Nextcloud、Alist、群晖等）和自建 Gotify
 
 ## 安装
 
@@ -31,22 +31,28 @@
 
 ### 初次配置
 1. 打开应用，进入**设置**
-2. 点击**添加服务器**，填入 WebDAV 信息
-3. 点击**测试连接**验证
-4. 分别为文本和文件选择要使用的服务器
+2. 点击**添加服务器**，填入 WebDAV 信息并测试连接
+3. 分别为文本和文件选择要使用的服务器
+4. 如需实时接收，建议在 Gotify 中创建专用用户，并在该用户下创建 RemoteSend 应用和客户端
+5. 在每台设备填写相同的 Gotify 地址和应用令牌，并填写各自的客户端令牌
+6. 开启 Gotify 后打开其他设备上的 RemoteSend，以完成设备发现
 
 ### 文本传输
 1. 进入**文本**页
 2. 输入消息，点击发送
-3. 消息在多设备间自动同步
-4. 长按消息可删除
+3. Gotify 通知目标设备从 WebDAV 拉取本次更新
+4. 未配置 Gotify 时可使用右上角按钮手动刷新
+5. 长按消息可删除
 
 ### 文件传输
 1. 进入**文件**页
 2. 点击 + 按钮上传文件或文件夹
 3. 或直接将文件拖入窗口（桌面端）
-4. 点击文件下载，长按查看删除等更多操作
-5. 点击文件夹进入下一级
+4. 上传完成后，Gotify 会通知全部其他设备或设置中选择的指定设备
+5. 接收设备可按本机策略自动下载（开关、网络类型、大小上限和目录）
+6. 未启用自动下载时仍可手动刷新并下载
+
+> 当前 Gotify WebSocket 仅在 RemoteSend 运行期间保持连接；应用重新连接时会从 Gotify 恢复遗漏事件。RemoteSend 不会自动轮询 WebDAV。
 
 ## WebDAV 目录结构
 
@@ -88,7 +94,7 @@ flutter build apk --release --target-platform android-arm64
 
 ```json
 {
-  "version": 6,
+  "version": 7,
   "servers": [
     {
       "id": "uuid",
@@ -111,7 +117,18 @@ flutter build apk --release --target-platform android-arm64
   "useDynamicColor": true,
   "locale": "system",
   "dragMode": "instant",
-  "chatOwnMessageLeft": false
+  "chatOwnMessageLeft": false,
+  "gotify": {
+    "enabled": true,
+    "serverUrl": "https://gotify.example.com",
+    "appToken": "应用令牌",
+    "clientToken": "本设备客户端令牌",
+    "deviceId": "设备 UUID",
+    "autoDownloadEnabled": true,
+    "wifiOnly": true,
+    "maxAutoDownloadBytes": 1073741824,
+    "targetDeviceIds": []
+  }
 }
 ```
 
@@ -119,7 +136,8 @@ flutter build apk --release --target-platform android-arm64
 
 - Flutter / Dart
 - Riverpod 状态管理
-- webdav_client + dio
+- webdav_client + dio（WebDAV 与 Gotify REST）
+- Gotify WebSocket（实时事件与离线恢复）
 - Material 3
 - window_manager（桌面窗口）
 - dynamic_color（Material You 取色）

@@ -9,6 +9,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:share_handler/share_handler.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/config_provider.dart';
+import 'providers/gotify_coordinator_provider.dart';
 import 'providers/message_history_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
@@ -148,6 +149,9 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
         }
       });
     });
+
+    // Keep Gotify event handling alive while the app is running.
+    ref.watch(gotifyCoordinatorProvider);
 
     // Watch theme settings
     final themeMode = ref.watch(themeModeProvider);

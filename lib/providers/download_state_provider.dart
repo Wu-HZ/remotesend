@@ -177,12 +177,14 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
     required String remoteName,
     required String localPath,
     int? fileSize,
+    WebDavService? serviceOverride,
   }) async {
     final completer = Completer<bool>();
     _queue.add(_DownloadTask(
       remoteName: remoteName,
       localPath: localPath,
       fileSize: fileSize ?? 0,
+      serviceOverride: serviceOverride,
       completer: completer,
     ));
 
@@ -247,7 +249,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
         items: updatedItems,
       );
 
-      final result = await _service.downloadFile(
+      final result = await (task.serviceOverride ?? _service).downloadFile(
         task.remoteName,
         task.localPath,
         cancelToken: _cancelToken,
@@ -562,12 +564,14 @@ class _DownloadTask {
   final String remoteName;
   final String localPath;
   final int fileSize;
+  final WebDavService? serviceOverride;
   final Completer<bool> completer;
 
   _DownloadTask({
     required this.remoteName,
     required this.localPath,
     required this.fileSize,
+    required this.serviceOverride,
     required this.completer,
   });
 }

@@ -1012,5 +1012,81 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get gotifySection => 'Gotify 实时通信';
+
+  @override
+  String get gotifyEnabled => '启用 Gotify';
+
+  @override
+  String get gotifyConfigure => 'Gotify 连接';
+
+  @override
+  String get gotifyServerUrl => 'Gotify 服务器地址';
+
+  @override
+  String get gotifyServerUrlHint => 'https://gotify.example.com';
+
+  @override
+  String get gotifyAppToken => '应用令牌';
+
+  @override
+  String get gotifyClientToken => '客户端令牌';
+
+  @override
+  String get gotifyStatusDisabled => '已关闭';
+
+  @override
+  String get gotifyStatusConnecting => '连接中...';
+
+  @override
+  String get gotifyStatusConnected => '已连接';
+
+  @override
+  String get gotifyStatusReconnecting => '正在重连...';
+
+  @override
+  String get gotifyStatusError => '连接错误';
+
+  @override
+  String gotifyPendingEvents(Object count) {
+    return '有 $count 个事件等待发送';
+  }
+
+  @override
+  String get gotifyTest => '测试';
+
+  @override
+  String get gotifyTestSuccess => 'Gotify 连接成功';
+
+  @override
+  String gotifyTestFailed(Object error) {
+    return 'Gotify 连接失败：$error';
+  }
+
+  @override
+  String get gotifyCredentialsRequired => '请输入服务器地址、应用令牌和客户端令牌';
+
+  @override
+  String get gotifyTargets => '默认接收设备';
+
+  @override
+  String get gotifyAllDevices => '所有其他设备';
+
+  @override
+  String get gotifyNoDevices => '尚未发现其他 RemoteSend 设备';
+
+  @override
+  String get gotifyDeviceDiscoveryHint => '请在另一台已配置的设备上打开 RemoteSend 以完成发现。';
+
+  @override
+  String get autoDownloadWifiOnly => '仅限 Wi-Fi 或有线网络';
+
+  @override
+  String get autoDownloadLimit => '自动下载大小上限';
+
+  @override
+  String get autoDownloadUnlimited => '不限大小';
+
+  @override
   String get countdownSeconds => '秒';
 }

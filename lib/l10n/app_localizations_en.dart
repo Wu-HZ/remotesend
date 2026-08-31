@@ -1043,5 +1043,83 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get gotifySection => 'Gotify real-time events';
+
+  @override
+  String get gotifyEnabled => 'Enable Gotify';
+
+  @override
+  String get gotifyConfigure => 'Gotify connection';
+
+  @override
+  String get gotifyServerUrl => 'Gotify server URL';
+
+  @override
+  String get gotifyServerUrlHint => 'https://gotify.example.com';
+
+  @override
+  String get gotifyAppToken => 'Application token';
+
+  @override
+  String get gotifyClientToken => 'Client token';
+
+  @override
+  String get gotifyStatusDisabled => 'Disabled';
+
+  @override
+  String get gotifyStatusConnecting => 'Connecting...';
+
+  @override
+  String get gotifyStatusConnected => 'Connected';
+
+  @override
+  String get gotifyStatusReconnecting => 'Reconnecting...';
+
+  @override
+  String get gotifyStatusError => 'Connection error';
+
+  @override
+  String gotifyPendingEvents(Object count) {
+    return '$count event(s) waiting to be sent';
+  }
+
+  @override
+  String get gotifyTest => 'Test';
+
+  @override
+  String get gotifyTestSuccess => 'Gotify connection succeeded';
+
+  @override
+  String gotifyTestFailed(Object error) {
+    return 'Gotify connection failed: $error';
+  }
+
+  @override
+  String get gotifyCredentialsRequired =>
+      'Enter the server URL, application token, and client token';
+
+  @override
+  String get gotifyTargets => 'Default receiving devices';
+
+  @override
+  String get gotifyAllDevices => 'All other devices';
+
+  @override
+  String get gotifyNoDevices => 'No other RemoteSend devices discovered yet';
+
+  @override
+  String get gotifyDeviceDiscoveryHint =>
+      'Open RemoteSend on another configured device to discover it.';
+
+  @override
+  String get autoDownloadWifiOnly => 'Only on Wi-Fi or Ethernet';
+
+  @override
+  String get autoDownloadLimit => 'Auto-download size limit';
+
+  @override
+  String get autoDownloadUnlimited => 'Unlimited';
+
+  @override
   String get countdownSeconds => 's';
 }

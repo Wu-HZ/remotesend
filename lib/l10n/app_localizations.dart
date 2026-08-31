@@ -1914,6 +1914,150 @@ abstract class AppLocalizations {
   /// **'All texts on {name}'**
   String clearAllTexts(Object name);
 
+  /// No description provided for @gotifySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Gotify real-time events'**
+  String get gotifySection;
+
+  /// No description provided for @gotifyEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Gotify'**
+  String get gotifyEnabled;
+
+  /// No description provided for @gotifyConfigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Gotify connection'**
+  String get gotifyConfigure;
+
+  /// No description provided for @gotifyServerUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Gotify server URL'**
+  String get gotifyServerUrl;
+
+  /// No description provided for @gotifyServerUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://gotify.example.com'**
+  String get gotifyServerUrlHint;
+
+  /// No description provided for @gotifyAppToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Application token'**
+  String get gotifyAppToken;
+
+  /// No description provided for @gotifyClientToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Client token'**
+  String get gotifyClientToken;
+
+  /// No description provided for @gotifyStatusDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get gotifyStatusDisabled;
+
+  /// No description provided for @gotifyStatusConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting...'**
+  String get gotifyStatusConnecting;
+
+  /// No description provided for @gotifyStatusConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get gotifyStatusConnected;
+
+  /// No description provided for @gotifyStatusReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting...'**
+  String get gotifyStatusReconnecting;
+
+  /// No description provided for @gotifyStatusError.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection error'**
+  String get gotifyStatusError;
+
+  /// No description provided for @gotifyPendingEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} event(s) waiting to be sent'**
+  String gotifyPendingEvents(Object count);
+
+  /// No description provided for @gotifyTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get gotifyTest;
+
+  /// No description provided for @gotifyTestSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Gotify connection succeeded'**
+  String get gotifyTestSuccess;
+
+  /// No description provided for @gotifyTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Gotify connection failed: {error}'**
+  String gotifyTestFailed(Object error);
+
+  /// No description provided for @gotifyCredentialsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the server URL, application token, and client token'**
+  String get gotifyCredentialsRequired;
+
+  /// No description provided for @gotifyTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Default receiving devices'**
+  String get gotifyTargets;
+
+  /// No description provided for @gotifyAllDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'All other devices'**
+  String get gotifyAllDevices;
+
+  /// No description provided for @gotifyNoDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No other RemoteSend devices discovered yet'**
+  String get gotifyNoDevices;
+
+  /// No description provided for @gotifyDeviceDiscoveryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open RemoteSend on another configured device to discover it.'**
+  String get gotifyDeviceDiscoveryHint;
+
+  /// No description provided for @autoDownloadWifiOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on Wi-Fi or Ethernet'**
+  String get autoDownloadWifiOnly;
+
+  /// No description provided for @autoDownloadLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-download size limit'**
+  String get autoDownloadLimit;
+
+  /// No description provided for @autoDownloadUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get autoDownloadUnlimited;
+
   /// No description provided for @countdownSeconds.
   ///
   /// In en, this message translates to:

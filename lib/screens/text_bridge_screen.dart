@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../models/text_message.dart';
 import '../providers/config_provider.dart';
+import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/message_history_provider.dart';
 import '../widgets/server_list_panel.dart';
@@ -145,6 +146,17 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                       final service = ref.read(webDavTextServiceProvider);
                       final result = await service.clearAllMessages();
                       if (result.isSuccess) {
+                        if (activeServer != null) {
+                          final now = DateTime.now();
+                          final date =
+                              '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+                          await ref
+                              .read(gotifyProvider.notifier)
+                              .publishTextChanged(
+                                server: activeServer,
+                                date: date,
+                              );
+                        }
                         ref.read(messageHistoryProvider.notifier).refresh();
                       }
                       return result.isSuccess;

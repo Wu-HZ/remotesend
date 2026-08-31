@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_config.dart';
+import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../services/config_service.dart';
 
@@ -322,6 +323,15 @@ final isPortableModeProvider = Provider<bool>((ref) {
 final portableModeAvailableProvider = Provider<bool>((ref) {
   final configService = ref.watch(configServiceProvider);
   return configService.portableConfigPath.isNotEmpty;
+});
+
+/// Gotify settings for this device.
+final gotifyConfigProvider = Provider<GotifyConfig>((ref) {
+  final configAsync = ref.watch(configProvider);
+  return configAsync.maybeWhen(
+    data: (config) => config.gotify,
+    orElse: GotifyConfig.new,
+  );
 });
 
 /// Provider for the list of all configured servers (including disabled).

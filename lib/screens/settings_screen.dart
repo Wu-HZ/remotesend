@@ -7,9 +7,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
+import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
+import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
+import '../services/gotify_service.dart';
 import '../services/webdav_service.dart';
 import 'changelog_page.dart';
 
@@ -26,8 +29,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // Settings
   String _downloadLocation = '';
-  bool _autoDownload = false;
-  bool _showNotification = true;
 
   @override
   void initState() {
@@ -86,6 +87,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           // Connection Section
           _buildConnectionSection(l10n),
+          const SizedBox(height: 24),
+
+          // Gotify Section
+          _buildGotifySection(l10n),
           const SizedBox(height: 24),
 
           // General Section
@@ -587,6 +592,310 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  // ==================== Gotify Section ====================
+  Widget _buildGotifySection(AppLocalizations l10n) {
+    final gotify = ref.watch(gotifyConfigProvider);
+    final gotifyState = ref.watch(gotifyProvider);
+
+    return _SettingsSection(
+      title: l10n.gotifySection,
+      icon: Icons.notifications_active_outlined,
+      children: [
+        _BooleanEntry(
+          label: l10n.gotifyEnabled,
+          value: gotify.enabled,
+          onChanged: (value) => _toggleGotify(l10n, value),
+        ),
+        _ButtonEntry(
+          label: l10n.gotifyConfigure,
+          buttonLabel: _gotifyStatusLabel(l10n, gotifyState),
+          onTap: () => _showGotifyDialog(l10n),
+        ),
+        if (gotify.enabled)
+          _ButtonEntry(
+            label: l10n.gotifyTargets,
+            buttonLabel: gotify.targetDeviceIds.isEmpty
+                ? l10n.gotifyAllDevices
+                : '${gotify.targetDeviceIds.length}',
+            onTap: () => _showGotifyTargetsDialog(l10n),
+          ),
+        if (gotifyState.outboxCount > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              l10n.gotifyPendingEvents(gotifyState.outboxCount),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _gotifyStatusLabel(AppLocalizations l10n, GotifyState state) {
+    return switch (state.status) {
+      GotifyConnectionStatus.disabled => l10n.gotifyStatusDisabled,
+      GotifyConnectionStatus.connecting => l10n.gotifyStatusConnecting,
+      GotifyConnectionStatus.connected => l10n.gotifyStatusConnected,
+      GotifyConnectionStatus.reconnecting => l10n.gotifyStatusReconnecting,
+      GotifyConnectionStatus.error => l10n.gotifyStatusError,
+    };
+  }
+
+  Future<void> _toggleGotify(AppLocalizations l10n, bool enabled) async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config == null) return;
+    if (enabled && !config.gotify.hasCredentials) {
+      await _showGotifyDialog(l10n, enableOnSave: true);
+      return;
+    }
+    await ref.read(configProvider.notifier).updateConfig(
+      config.copyWith(gotify: config.gotify.copyWith(enabled: enabled)),
+    );
+  }
+
+  Future<void> _showGotifyDialog(
+    AppLocalizations l10n, {
+    bool enableOnSave = false,
+  }) async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config == null) return;
+    final current = config.gotify;
+    final urlController = TextEditingController(text: current.serverUrl);
+    final appTokenController = TextEditingController(text: current.appToken);
+    final clientTokenController = TextEditingController(
+      text: current.clientToken,
+    );
+    var testing = false;
+    String? testMessage;
+    var testSucceeded = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.gotifyConfigure),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: urlController,
+                  decoration: InputDecoration(
+                    labelText: l10n.gotifyServerUrl,
+                    hintText: l10n.gotifyServerUrlHint,
+                  ),
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: appTokenController,
+                  decoration: InputDecoration(labelText: l10n.gotifyAppToken),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: clientTokenController,
+                  decoration: InputDecoration(
+                    labelText: l10n.gotifyClientToken,
+                  ),
+                  obscureText: true,
+                ),
+                if (testMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    testMessage!,
+                    style: TextStyle(
+                      color: testSucceeded
+                          ? Colors.green
+                          : Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: testing
+                  ? null
+                  : () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: testing
+                  ? null
+                  : () async {
+                      final draft = current.copyWith(
+                        enabled: true,
+                        serverUrl: urlController.text.trim(),
+                        appToken: appTokenController.text.trim(),
+                        clientToken: clientTokenController.text.trim(),
+                      );
+                      if (!draft.hasCredentials) {
+                        setDialogState(() {
+                          testSucceeded = false;
+                          testMessage = l10n.gotifyCredentialsRequired;
+                        });
+                        return;
+                      }
+                      setDialogState(() {
+                        testing = true;
+                        testMessage = null;
+                      });
+                      try {
+                        await GotifyService.testConfiguration(draft);
+                        setDialogState(() {
+                          testing = false;
+                          testSucceeded = true;
+                          testMessage = l10n.gotifyTestSuccess;
+                        });
+                      } catch (error) {
+                        setDialogState(() {
+                          testing = false;
+                          testSucceeded = false;
+                          testMessage = l10n.gotifyTestFailed(error.toString());
+                        });
+                      }
+                    },
+              child: testing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.gotifyTest),
+            ),
+            FilledButton(
+              onPressed: testing
+                  ? null
+                  : () async {
+                      final updated = current.copyWith(
+                        enabled: enableOnSave || current.enabled,
+                        serverUrl: urlController.text.trim(),
+                        appToken: appTokenController.text.trim(),
+                        clientToken: clientTokenController.text.trim(),
+                      );
+                      if (!updated.hasCredentials) {
+                        setDialogState(() {
+                          testSucceeded = false;
+                          testMessage = l10n.gotifyCredentialsRequired;
+                        });
+                        return;
+                      }
+                      await ref.read(configProvider.notifier).updateConfig(
+                        config.copyWith(gotify: updated),
+                      );
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext);
+                      }
+                    },
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    urlController.dispose();
+    appTokenController.dispose();
+    clientTokenController.dispose();
+  }
+
+  Future<void> _showGotifyTargetsDialog(AppLocalizations l10n) async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config == null) return;
+    final devices = ref.read(gotifyProvider).sortedDevices;
+    final selected = config.gotify.targetDeviceIds.toSet();
+    var allDevices = selected.isEmpty;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.gotifyTargets),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.gotifyAllDevices),
+                  value: allDevices,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      allDevices = value ?? false;
+                      if (allDevices) selected.clear();
+                    });
+                  },
+                ),
+                if (devices.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      children: [
+                        Text(l10n.gotifyNoDevices),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.gotifyDeviceDiscoveryHint,
+                          style: Theme.of(context).textTheme.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...devices.map(
+                    (device) => CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(device.name),
+                      subtitle: Text(device.platform),
+                      value: selected.contains(device.id),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          allDevices = false;
+                          if (value == true) {
+                            selected.add(device.id);
+                          } else {
+                            selected.remove(device.id);
+                          }
+                        });
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final targets = allDevices ? <String>[] : selected.toList();
+                await ref.read(configProvider.notifier).updateConfig(
+                  config.copyWith(
+                    gotify: config.gotify.copyWith(
+                      targetDeviceIds: targets,
+                    ),
+                  ),
+                );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ==================== General Section ====================
   Widget _buildGeneralSection(AppLocalizations l10n) {
     final config = ref.watch(configProvider).valueOrNull;
@@ -872,6 +1181,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final displayPath = _downloadLocation.isNotEmpty
         ? _downloadLocation
         : l10n.systemDefault;
+    final gotify = ref.watch(gotifyConfigProvider);
 
     return _SettingsSection(
       title: l10n.sectionDownload,
@@ -879,27 +1189,96 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         _BooleanEntry(
           label: l10n.autoDownload,
-          value: _autoDownload,
-          onChanged: (value) {
-            setState(() => _autoDownload = value);
-            _showComingSoon(l10n, l10n.autoDownload);
-          },
+          value: gotify.autoDownloadEnabled,
+          onChanged: (value) => _saveGotifyConfig(
+            gotify.copyWith(autoDownloadEnabled: value),
+          ),
         ),
+        if (gotify.autoDownloadEnabled)
+          _BooleanEntry(
+            label: l10n.autoDownloadWifiOnly,
+            value: gotify.wifiOnly,
+            onChanged: (value) => _saveGotifyConfig(
+              gotify.copyWith(wifiOnly: value),
+            ),
+          ),
+        if (gotify.autoDownloadEnabled)
+          _ButtonEntry(
+            label: l10n.autoDownloadLimit,
+            buttonLabel: _formatAutoDownloadLimit(
+              l10n,
+              gotify.maxAutoDownloadBytes,
+            ),
+            onTap: () => _showAutoDownloadLimitDialog(l10n, gotify),
+          ),
         _ButtonEntry(
           label: l10n.downloadLocation,
           buttonLabel: displayPath,
           onTap: () => _pickDownloadLocation(l10n),
         ),
-        _BooleanEntry(
-          label: l10n.showNotification,
-          value: _showNotification,
-          onChanged: (value) {
-            setState(() => _showNotification = value);
-            _showComingSoon(l10n, l10n.showNotification);
-          },
-        ),
       ],
     );
+  }
+
+  Future<void> _saveGotifyConfig(GotifyConfig gotify) async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config == null) return;
+    await ref.read(configProvider.notifier).updateConfig(
+      config.copyWith(gotify: gotify),
+    );
+  }
+
+  String _formatAutoDownloadLimit(AppLocalizations l10n, int bytes) {
+    if (bytes <= 0) return l10n.autoDownloadUnlimited;
+    if (bytes >= 1024 * 1024 * 1024) {
+      return '${bytes ~/ (1024 * 1024 * 1024)} GB';
+    }
+    return '${bytes ~/ (1024 * 1024)} MB';
+  }
+
+  Future<void> _showAutoDownloadLimitDialog(
+    AppLocalizations l10n,
+    GotifyConfig gotify,
+  ) async {
+    const limits = [
+      0,
+      10 * 1024 * 1024,
+      100 * 1024 * 1024,
+      1024 * 1024 * 1024,
+      5 * 1024 * 1024 * 1024,
+    ];
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(l10n.autoDownloadLimit),
+        children: limits
+            .map(
+              (limit) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(dialogContext, limit),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      child: limit == gotify.maxAutoDownloadBytes
+                          ? Icon(
+                              Icons.check,
+                              color: Theme.of(context).colorScheme.primary,
+                            )
+                          : null,
+                    ),
+                    Text(_formatAutoDownloadLimit(l10n, limit)),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+    if (selected != null) {
+      await _saveGotifyConfig(
+        gotify.copyWith(maxAutoDownloadBytes: selected),
+      );
+    }
   }
 
   Future<void> _pickDownloadLocation(AppLocalizations l10n) async {

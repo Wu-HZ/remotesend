@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/text_message.dart';
 import '../services/webdav_service.dart';
 import 'config_provider.dart';
+import 'gotify_provider.dart';
 import 'webdav_provider.dart';
 
 /// Provider for the selected date in message history.
@@ -129,6 +130,19 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
     await loadAvailableDates();
   }
 
+  /// Refresh exactly once after a Gotify notification. Historical changes
+  /// update the available dates without forcing the user away from the date
+  /// currently being viewed.
+  Future<bool> refreshFromRemoteChange(String date) async {
+    final selectedDate = _ref.read(selectedDateProvider);
+    if (selectedDate == date) {
+      await loadMessagesForDate(date);
+      if (state.error != null) return false;
+    }
+    await loadAvailableDates();
+    return true;
+  }
+
   /// Send a new message.
   Future<bool> sendMessage(String content) async {
     if (content.trim().isEmpty) return false;
@@ -170,6 +184,13 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
       final writeResult = await _webDavService.writeMessagesFile(today, jsonContent);
 
       if (writeResult.isSuccess) {
+        final server = config?.activeTextServer;
+        if (server != null) {
+          await _ref
+              .read(gotifyProvider.notifier)
+              .publishTextChanged(server: server, date: today);
+        }
+
         // Update state if viewing today
         final selectedDate = _ref.read(selectedDateProvider);
         if (selectedDate == today) {
@@ -212,7 +233,8 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
     // Only allow deleting from today's messages
     if (selectedDate != today) return false;
 
-    final localName = _ref.read(configProvider).valueOrNull?.localName ?? 'Me';
+    final config = _ref.read(configProvider).valueOrNull;
+    final localName = config?.localName ?? 'Me';
 
     state = state.copyWith(isSending: true, error: null);
 
@@ -238,6 +260,13 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
       final writeResult = await _webDavService.writeMessagesFile(today, jsonContent);
 
       if (writeResult.isSuccess) {
+        final server = config?.activeTextServer;
+        if (server != null) {
+          await _ref
+              .read(gotifyProvider.notifier)
+              .publishTextChanged(server: server, date: today);
+        }
+
         state = state.copyWith(
           messages: todayMessages,
           isSending: false,

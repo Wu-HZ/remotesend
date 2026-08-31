@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
+
+import 'gotify_models.dart';
 import 'server_config.dart';
 
 /// Generate a random local name.
@@ -60,7 +62,8 @@ String _generateRandomName() {
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
   // Versions 4 and 5 contained the retired polling and S3 settings.
-  static const int currentVersion = 6;
+  // Version 7 adds Gotify event transport and per-device receive settings.
+  static const int currentVersion = 7;
 
   // Default primary color (Material Blue 500)
   static const int defaultPrimaryColor = 0xFF009688;
@@ -78,6 +81,7 @@ class AppConfig {
   final String locale; // 'system', 'en', 'zh'
   final String dragMode; // 'instant' or 'pending'
   final bool chatOwnMessageLeft; // show own messages on left side too
+  final GotifyConfig gotify;
 
   AppConfig({
     this.version = currentVersion,
@@ -93,7 +97,9 @@ class AppConfig {
     this.locale = 'system',
     this.dragMode = 'instant',
     this.chatOwnMessageLeft = false,
-  }) : localName = localName ?? _generateRandomName();
+    GotifyConfig? gotify,
+  }) : localName = localName ?? _generateRandomName(),
+       gotify = gotify ?? GotifyConfig();
 
   /// Get the active server for Text Bridge.
   ServerConfig? get activeTextServer {
@@ -151,6 +157,7 @@ class AppConfig {
     String? locale,
     String? dragMode,
     bool? chatOwnMessageLeft,
+    GotifyConfig? gotify,
   }) {
     return AppConfig(
       version: version ?? this.version,
@@ -166,6 +173,7 @@ class AppConfig {
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
+      gotify: gotify ?? this.gotify,
     );
   }
 
@@ -182,6 +190,7 @@ class AppConfig {
     String? locale,
     String? dragMode,
     bool? chatOwnMessageLeft,
+    GotifyConfig? gotify,
     bool clearText = false,
     bool clearFiles = false,
   }) {
@@ -199,6 +208,7 @@ class AppConfig {
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
+      gotify: gotify ?? this.gotify,
     );
   }
 
@@ -218,6 +228,7 @@ class AppConfig {
       'locale': locale,
       'dragMode': dragMode,
       'chatOwnMessageLeft': chatOwnMessageLeft,
+      'gotify': gotify.toJson(),
     };
   }
 
@@ -257,6 +268,11 @@ class AppConfig {
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
+      gotify: GotifyConfig.fromJson(
+        json['gotify'] is Map
+            ? Map<String, dynamic>.from(json['gotify'] as Map)
+            : null,
+      ),
     );
   }
 
@@ -360,6 +376,7 @@ class AppConfig {
         other.locale != locale ||
         other.dragMode != dragMode ||
         other.chatOwnMessageLeft != chatOwnMessageLeft ||
+        other.gotify != gotify ||
         other.servers.length != servers.length) {
       return false;
     }
@@ -385,6 +402,7 @@ class AppConfig {
       locale,
       dragMode,
       chatOwnMessageLeft,
+      gotify,
     );
   }
 

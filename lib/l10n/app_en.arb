@@ -593,5 +593,39 @@
       "name": {}
     }
   },
+  "gotifySection": "Gotify real-time events",
+  "gotifyEnabled": "Enable Gotify",
+  "gotifyConfigure": "Gotify connection",
+  "gotifyServerUrl": "Gotify server URL",
+  "gotifyServerUrlHint": "https://gotify.example.com",
+  "gotifyAppToken": "Application token",
+  "gotifyClientToken": "Client token",
+  "gotifyStatusDisabled": "Disabled",
+  "gotifyStatusConnecting": "Connecting...",
+  "gotifyStatusConnected": "Connected",
+  "gotifyStatusReconnecting": "Reconnecting...",
+  "gotifyStatusError": "Connection error",
+  "gotifyPendingEvents": "{count} event(s) waiting to be sent",
+  "@gotifyPendingEvents": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "gotifyTest": "Test",
+  "gotifyTestSuccess": "Gotify connection succeeded",
+  "gotifyTestFailed": "Gotify connection failed: {error}",
+  "@gotifyTestFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "gotifyCredentialsRequired": "Enter the server URL, application token, and client token",
+  "gotifyTargets": "Default receiving devices",
+  "gotifyAllDevices": "All other devices",
+  "gotifyNoDevices": "No other RemoteSend devices discovered yet",
+  "gotifyDeviceDiscoveryHint": "Open RemoteSend on another configured device to discover it.",
+  "autoDownloadWifiOnly": "Only on Wi-Fi or Ethernet",
+  "autoDownloadLimit": "Auto-download size limit",
+  "autoDownloadUnlimited": "Unlimited",
   "countdownSeconds": "s"
 }
