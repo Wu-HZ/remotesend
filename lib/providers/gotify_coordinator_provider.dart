@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../services/webdav_service.dart';
+import 'app_visibility_provider.dart';
 import 'config_provider.dart';
 import 'download_cache_provider.dart';
 import 'download_state_provider.dart';
@@ -124,6 +125,14 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
         _gotify.replayPendingEvents();
       }
     });
+    _ref.listen<bool>(appForegroundProvider, (previous, next) {
+      if (next && previous == false) {
+        _retryWaitingFiles();
+        _gotify.replayPendingEvents();
+      } else if (!next && previous == true) {
+        _deferPendingTimersForBackground();
+      }
+    });
   }
 
   final GotifyNotifier _gotify;
@@ -142,6 +151,19 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
   final Set<String> _downloadedFileEventIds = {};
 
   void _handleEvent(RemoteSendEvent event) {
+    if (_shouldDeferInBackground(event)) {
+      unawaited(_gotify.deferEvent(event));
+      return;
+    }
+
+    final config = _ref.read(configProvider).valueOrNull;
+    if (_gotify.isDeferredEvent(event.eventId) &&
+        config != null &&
+        !config.gotify.isWithinHistoryLookback(event.createdAt)) {
+      unawaited(_gotify.acknowledgeEvent(event.eventId));
+      return;
+    }
+
     switch (event.type) {
       case RemoteSendEvent.textChanged:
         _scheduleTextRefresh(event);
@@ -155,6 +177,42 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
         );
         unawaited(_gotify.acknowledgeEvent(event.eventId));
     }
+  }
+
+  void _deferPendingTimersForBackground() {
+    final gotify = _ref.read(configProvider).valueOrNull?.gotify;
+    if (gotify == null) return;
+    if (!gotify.receiveTextInBackground) {
+      _textRefreshDebounce?.cancel();
+      for (final event in _pendingTextEvents) {
+        unawaited(_gotify.deferEvent(event));
+      }
+    }
+    if (!gotify.receiveFilesInBackground) {
+      _fileRefreshDebounce?.cancel();
+      for (final event in _pendingFileRefreshEvents) {
+        unawaited(_gotify.deferEvent(event));
+      }
+      final queuedFiles = List<RemoteSendEvent>.from(_fileQueue);
+      _fileQueue.clear();
+      for (final event in queuedFiles) {
+        unawaited(_gotify.deferEvent(event));
+        _waitForPolicy(
+          event,
+          error: 'Waiting for the app to return to foreground',
+        );
+      }
+    }
+  }
+
+  bool _shouldDeferInBackground(RemoteSendEvent event) {
+    final gotify = _ref.read(configProvider).valueOrNull?.gotify;
+    if (gotify == null) return true;
+    return shouldDeferRemoteEventInBackground(
+      event,
+      gotify,
+      isForeground: _ref.read(appForegroundProvider),
+    );
   }
 
   void _scheduleTextRefresh(RemoteSendEvent event) {
@@ -332,6 +390,14 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
     final remotePath = event.payload['remotePath'] as String? ?? '';
     final serverKey = event.payload['serverKey'] as String? ?? '';
 
+    if (!_ref.read(appForegroundProvider) && !gotify.receiveFilesInBackground) {
+      await _gotify.deferEvent(event);
+      _waitForPolicy(
+        event,
+        error: 'Waiting for the app to return to foreground',
+      );
+      return;
+    }
     if (!gotify.autoDownloadEnabled) {
       _waitForPolicy(event);
       await _acknowledgeFileIfComplete(event);
@@ -431,6 +497,11 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
   }
 
   void _retryWaitingFiles() {
+    final config = _ref.read(configProvider).valueOrNull;
+    if (!_ref.read(appForegroundProvider) &&
+        !(config?.gotify.receiveFilesInBackground ?? false)) {
+      return;
+    }
     if (_waitingFiles.isEmpty) return;
     final waiting = _waitingFiles.values.toList();
     _waitingFiles.clear();

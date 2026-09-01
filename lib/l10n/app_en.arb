@@ -623,6 +623,8 @@
   "gotifyCredentialsRequired": "Enter the server URL, application token, and client token",
   "gotifyHistoryLookback": "Reconnect message lookback",
   "gotifyAutoCopyText": "Copy newest received text",
+  "gotifyReceiveTextInBackground": "Receive text in background",
+  "gotifyReceiveFilesInBackground": "Receive files in background",
   "gotifyHistoryLookbackMinutes": "{count} min",
   "@gotifyHistoryLookbackMinutes": {
     "placeholders": {

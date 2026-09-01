@@ -3,6 +3,41 @@ import 'package:remote_send/models/gotify_models.dart';
 import 'package:remote_send/providers/gotify_coordinator_provider.dart';
 
 void main() {
+  test('defers background events using independent text and file policies', () {
+    final text = RemoteSendEvent(
+      type: RemoteSendEvent.textChanged,
+      senderDeviceId: 'device-a',
+      senderName: 'Phone A',
+    );
+    final file = RemoteSendEvent(
+      type: RemoteSendEvent.fileReady,
+      senderDeviceId: 'device-a',
+      senderName: 'Phone A',
+    );
+    final defaults = GotifyConfig();
+
+    expect(
+      shouldDeferRemoteEventInBackground(text, defaults, isForeground: false),
+      isFalse,
+    );
+    expect(
+      shouldDeferRemoteEventInBackground(file, defaults, isForeground: false),
+      isTrue,
+    );
+    expect(
+      shouldDeferRemoteEventInBackground(file, defaults, isForeground: true),
+      isFalse,
+    );
+    expect(
+      shouldDeferRemoteEventInBackground(
+        text,
+        defaults.copyWith(receiveTextInBackground: false),
+        isForeground: false,
+      ),
+      isTrue,
+    );
+  });
+
   test('selects only the newest available newly-received text', () {
     final older = RemoteSendEvent(
       type: RemoteSendEvent.textChanged,

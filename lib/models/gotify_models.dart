@@ -18,6 +18,8 @@ class GotifyConfig {
     this.maxAutoDownloadBytes = 0,
     this.targetDeviceIds = const [],
     this.autoCopyTextEnabled = false,
+    this.receiveTextInBackground = true,
+    this.receiveFilesInBackground = false,
     int historyLookbackMinutes = 3,
   }) : deviceId = deviceId == null || deviceId.trim().isEmpty
            ? _uuid.v4()
@@ -40,6 +42,12 @@ class GotifyConfig {
 
   /// Copy the newest newly-received text to this device's clipboard.
   final bool autoCopyTextEnabled;
+
+  /// Process text events while this app is not in the foreground.
+  final bool receiveTextInBackground;
+
+  /// Process file events while this app is not in the foreground.
+  final bool receiveFilesInBackground;
 
   /// Only offline events this recent are accepted after reconnecting.
   final int historyLookbackMinutes;
@@ -74,6 +82,8 @@ class GotifyConfig {
     int? maxAutoDownloadBytes,
     List<String>? targetDeviceIds,
     bool? autoCopyTextEnabled,
+    bool? receiveTextInBackground,
+    bool? receiveFilesInBackground,
     int? historyLookbackMinutes,
   }) {
     return GotifyConfig(
@@ -87,6 +97,10 @@ class GotifyConfig {
       maxAutoDownloadBytes: maxAutoDownloadBytes ?? this.maxAutoDownloadBytes,
       targetDeviceIds: targetDeviceIds ?? this.targetDeviceIds,
       autoCopyTextEnabled: autoCopyTextEnabled ?? this.autoCopyTextEnabled,
+      receiveTextInBackground:
+          receiveTextInBackground ?? this.receiveTextInBackground,
+      receiveFilesInBackground:
+          receiveFilesInBackground ?? this.receiveFilesInBackground,
       historyLookbackMinutes:
           historyLookbackMinutes ?? this.historyLookbackMinutes,
     );
@@ -104,6 +118,8 @@ class GotifyConfig {
       'maxAutoDownloadBytes': maxAutoDownloadBytes,
       'targetDeviceIds': targetDeviceIds,
       'autoCopyTextEnabled': autoCopyTextEnabled,
+      'receiveTextInBackground': receiveTextInBackground,
+      'receiveFilesInBackground': receiveFilesInBackground,
       'historyLookbackMinutes': historyLookbackMinutes,
     };
   }
@@ -124,6 +140,9 @@ class GotifyConfig {
           .whereType<String>()
           .toList(growable: false),
       autoCopyTextEnabled: json['autoCopyTextEnabled'] as bool? ?? false,
+      receiveTextInBackground: json['receiveTextInBackground'] as bool? ?? true,
+      receiveFilesInBackground:
+          json['receiveFilesInBackground'] as bool? ?? false,
       historyLookbackMinutes:
           (json['historyLookbackMinutes'] as num?)?.toInt() ?? 3,
     );
@@ -142,6 +161,8 @@ class GotifyConfig {
         other.maxAutoDownloadBytes == maxAutoDownloadBytes &&
         _sameStrings(other.targetDeviceIds, targetDeviceIds) &&
         other.autoCopyTextEnabled == autoCopyTextEnabled &&
+        other.receiveTextInBackground == receiveTextInBackground &&
+        other.receiveFilesInBackground == receiveFilesInBackground &&
         other.historyLookbackMinutes == historyLookbackMinutes;
   }
 
@@ -157,8 +178,23 @@ class GotifyConfig {
     maxAutoDownloadBytes,
     Object.hashAll(targetDeviceIds),
     autoCopyTextEnabled,
+    receiveTextInBackground,
+    receiveFilesInBackground,
     historyLookbackMinutes,
   );
+}
+
+bool shouldDeferRemoteEventInBackground(
+  RemoteSendEvent event,
+  GotifyConfig config, {
+  required bool isForeground,
+}) {
+  if (isForeground) return false;
+  return switch (event.type) {
+    RemoteSendEvent.textChanged => !config.receiveTextInBackground,
+    RemoteSendEvent.fileReady => !config.receiveFilesInBackground,
+    _ => false,
+  };
 }
 
 class RemoteDevice {

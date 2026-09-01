@@ -19,6 +19,8 @@ void main() {
         maxAutoDownloadBytes: 1024,
         targetDeviceIds: const ['device-b', 'device-c'],
         autoCopyTextEnabled: true,
+        receiveTextInBackground: false,
+        receiveFilesInBackground: true,
         historyLookbackMinutes: 5,
       );
 
@@ -104,7 +106,7 @@ void main() {
     expect(webDavServerKey(first), webDavServerKey(second));
   });
 
-  test('runtime store cancels inbound work but persists outbox', () async {
+  test('runtime store persists deferred events but not active work', () async {
     SharedPreferences.setMockInitialValues({});
     final store = GotifyRuntimeStore('test');
     final event = RemoteSendEvent(
@@ -118,6 +120,7 @@ void main() {
       GotifyRuntimeData(
         lastMessageId: 9,
         pendingInboundEvents: [event],
+        deferredInboundEvents: [event],
         outbox: [
           PendingGotifyEvent(
             event: event,
@@ -132,6 +135,7 @@ void main() {
 
     expect(restored.lastMessageId, 9);
     expect(restored.pendingInboundEvents, isEmpty);
+    expect(restored.deferredInboundEvents.single.eventId, 'pending-event');
     expect(restored.outbox.single.event.eventId, 'pending-event');
   });
 
@@ -160,6 +164,8 @@ void main() {
     expect(encodedGotify['appToken'], 'app');
     expect(encodedGotify['clientToken'], 'client');
     expect(encodedGotify['autoCopyTextEnabled'], isFalse);
+    expect(encodedGotify['receiveTextInBackground'], isTrue);
+    expect(encodedGotify['receiveFilesInBackground'], isFalse);
     expect(encodedGotify['historyLookbackMinutes'], 3);
   });
 }

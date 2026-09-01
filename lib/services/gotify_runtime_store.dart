@@ -44,6 +44,7 @@ class GotifyRuntimeData {
     this.devices = const {},
     this.processedEventIds = const [],
     this.pendingInboundEvents = const [],
+    this.deferredInboundEvents = const [],
     this.outbox = const [],
   });
 
@@ -53,6 +54,9 @@ class GotifyRuntimeData {
 
   /// Session-only receive work. It is deliberately omitted from persistence.
   final List<RemoteSendEvent> pendingInboundEvents;
+
+  /// Background notifications persisted until the app returns to foreground.
+  final List<RemoteSendEvent> deferredInboundEvents;
   final List<PendingGotifyEvent> outbox;
 
   GotifyRuntimeData copyWith({
@@ -60,6 +64,7 @@ class GotifyRuntimeData {
     Map<String, RemoteDevice>? devices,
     List<String>? processedEventIds,
     List<RemoteSendEvent>? pendingInboundEvents,
+    List<RemoteSendEvent>? deferredInboundEvents,
     List<PendingGotifyEvent>? outbox,
   }) {
     return GotifyRuntimeData(
@@ -67,6 +72,8 @@ class GotifyRuntimeData {
       devices: devices ?? this.devices,
       processedEventIds: processedEventIds ?? this.processedEventIds,
       pendingInboundEvents: pendingInboundEvents ?? this.pendingInboundEvents,
+      deferredInboundEvents:
+          deferredInboundEvents ?? this.deferredInboundEvents,
       outbox: outbox ?? this.outbox,
     );
   }
@@ -77,7 +84,11 @@ class GotifyRuntimeData {
       for (final item in devices.entries) item.key: item.value.toJson(),
     },
     'processedEventIds': processedEventIds,
-    // Inbound work is intentionally session-only. Closing the app cancels it.
+    // Active inbound work is session-only; intentionally deferred background
+    // notifications are persisted so Android can recover after process death.
+    'deferredInboundEvents': deferredInboundEvents
+        .map((event) => event.toJson())
+        .toList(),
     'outbox': outbox.map((item) => item.toJson()).toList(),
   };
 
@@ -93,6 +104,20 @@ class GotifyRuntimeData {
           devices[device.id] = device;
         } catch (_) {
           // Keep the rest of the registry if one item is malformed.
+        }
+      }
+    }
+
+    final deferredInboundEvents = <RemoteSendEvent>[];
+    final rawDeferredInbound = json['deferredInboundEvents'];
+    if (rawDeferredInbound is List) {
+      for (final item in rawDeferredInbound.whereType<Map>()) {
+        try {
+          deferredInboundEvents.add(
+            RemoteSendEvent.fromJson(Map<String, dynamic>.from(item)),
+          );
+        } catch (_) {
+          // Ignore malformed deferred events.
         }
       }
     }
@@ -118,6 +143,7 @@ class GotifyRuntimeData {
           (json['processedEventIds'] as List<dynamic>? ?? const [])
               .whereType<String>()
               .toList(growable: false),
+      deferredInboundEvents: deferredInboundEvents,
       outbox: outbox,
     );
   }

@@ -2034,6 +2034,18 @@ abstract class AppLocalizations {
   /// **'Copy newest received text'**
   String get gotifyAutoCopyText;
 
+  /// No description provided for @gotifyReceiveTextInBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive text in background'**
+  String get gotifyReceiveTextInBackground;
+
+  /// No description provided for @gotifyReceiveFilesInBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive files in background'**
+  String get gotifyReceiveFilesInBackground;
+
   /// No description provided for @gotifyHistoryLookbackMinutes.
   ///
   /// In en, this message translates to:

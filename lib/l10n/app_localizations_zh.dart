@@ -1076,6 +1076,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gotifyAutoCopyText => '自动复制最新接收文本';
 
   @override
+  String get gotifyReceiveTextInBackground => '后台接收文本';
+
+  @override
+  String get gotifyReceiveFilesInBackground => '后台接收文件';
+
+  @override
   String gotifyHistoryLookbackMinutes(Object count) {
     return '$count 分钟';
   }

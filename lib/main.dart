@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:share_handler/share_handler.dart';
 import 'l10n/app_localizations.dart';
+import 'providers/app_visibility_provider.dart';
 import 'providers/config_provider.dart';
 import 'providers/gotify_coordinator_provider.dart';
 import 'providers/message_history_provider.dart';
@@ -69,18 +70,55 @@ class RemoteSendApp extends ConsumerStatefulWidget {
   ConsumerState<RemoteSendApp> createState() => _RemoteSendAppState();
 }
 
-class _RemoteSendAppState extends ConsumerState<RemoteSendApp> {
+class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
+    with WidgetsBindingObserver, WindowListener {
   bool _autoConnectAttempted = false;
   bool _isDragging = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    if (_isDesktop) {
+      windowManager.addListener(this);
+      Future.microtask(() async {
+        final isFocused = await windowManager.isFocused();
+        if (mounted) _setAppForeground(isFocused);
+      });
+    }
     _initShareHandler();
     // Initialize config on app start
     Future.microtask(() {
       ref.read(configProvider.notifier).initialize();
     });
+  }
+
+  bool get _isDesktop =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  void _setAppForeground(bool isForeground) {
+    if (!mounted) return;
+    ref.read(appForegroundProvider.notifier).state = isForeground;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isDesktop) {
+      _setAppForeground(state == AppLifecycleState.resumed);
+    }
+  }
+
+  @override
+  void onWindowFocus() => _setAppForeground(true);
+
+  @override
+  void onWindowBlur() => _setAppForeground(false);
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_isDesktop) windowManager.removeListener(this);
+    super.dispose();
   }
 
   void _initShareHandler() {

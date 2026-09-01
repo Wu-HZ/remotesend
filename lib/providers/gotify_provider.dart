@@ -8,6 +8,7 @@ import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../services/gotify_runtime_store.dart';
 import '../services/gotify_service.dart';
+import 'app_visibility_provider.dart';
 import 'config_provider.dart';
 
 enum GotifyConnectionStatus {
@@ -110,13 +111,23 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
       return;
     }
 
-    _runtime = await _store.load();
+    final loadedRuntime = await _store.load();
+    final recentDeferred = loadedRuntime.deferredInboundEvents
+        .where(
+          (event) => _currentConfig.isWithinHistoryLookback(event.createdAt),
+        )
+        .toList();
+    _runtime = loadedRuntime.copyWith(deferredInboundEvents: recentDeferred);
+    if (recentDeferred.length != loadedRuntime.deferredInboundEvents.length) {
+      await _saveRuntime();
+    }
     if (_disposed) return;
     state = state.copyWith(
       devices: _withoutThisDevice(_runtime.devices, _config.deviceId),
       lastMessageId: _runtime.lastMessageId,
       outboxCount: _runtime.outbox.length,
     );
+    replayPendingEvents();
     await _openConnection();
   }
 
@@ -194,11 +205,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
         status: GotifyConnectionStatus.connected,
         clearError: true,
       );
-      for (final event in _runtime.pendingInboundEvents) {
-        if (event.isForDevice(_config.deviceId)) {
-          _events.add(event);
-        }
-      }
+      replayPendingEvents();
 
       await _announceDevice();
       await _flushOutbox();
@@ -258,14 +265,21 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
     var devices = _runtime.devices;
     var processedIds = _runtime.processedEventIds;
     var pendingInbound = _runtime.pendingInboundEvents;
+    var deferredInbound = _runtime.deferredInboundEvents;
     RemoteSendEvent? eventToDeliver;
 
     final alreadyPending =
         event != null &&
         pendingInbound.any((item) => item.eventId == event.eventId);
+    final alreadyDeferred =
+        event != null &&
+        _runtime.deferredInboundEvents.any(
+          (item) => item.eventId == event.eventId,
+        );
     if (event != null &&
         !processedIds.contains(event.eventId) &&
-        !alreadyPending) {
+        !alreadyPending &&
+        !alreadyDeferred) {
       if (event.type == RemoteSendEvent.deviceAnnounce) {
         if (deliver && event.senderDeviceId != _config.deviceId) {
           final updated = Map<String, RemoteDevice>.from(devices);
@@ -284,6 +298,13 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
         processedIds = _appendProcessed(processedIds, event.eventId);
       } else {
         pendingInbound = [...pendingInbound, event];
+        if (shouldDeferRemoteEventInBackground(
+          event,
+          _currentConfig,
+          isForeground: _ref.read(appForegroundProvider),
+        )) {
+          deferredInbound = [...deferredInbound, event];
+        }
         if (!_catchingUp) eventToDeliver = event;
       }
     }
@@ -295,6 +316,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
       devices: devices,
       processedEventIds: processedIds,
       pendingInboundEvents: pendingInbound,
+      deferredInboundEvents: deferredInbound,
     );
     state = state.copyWith(
       devices: _withoutThisDevice(devices, _config.deviceId),
@@ -304,25 +326,47 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
     if (eventToDeliver != null) _events.add(eventToDeliver);
   }
 
-  /// Re-emits session-only inbound events after local receive settings change.
+  /// Re-emits active and intentionally deferred inbound notifications.
   void replayPendingEvents() {
     if (_disposed) return;
-    for (final event in _runtime.pendingInboundEvents) {
+    final byId = <String, RemoteSendEvent>{
+      for (final event in _runtime.pendingInboundEvents) event.eventId: event,
+      for (final event in _runtime.deferredInboundEvents) event.eventId: event,
+    };
+    for (final event in byId.values) {
       if (event.isForDevice(_config.deviceId)) _events.add(event);
     }
   }
 
+  bool isDeferredEvent(String eventId) {
+    return _runtime.deferredInboundEvents.any(
+      (event) => event.eventId == eventId,
+    );
+  }
+
+  Future<void> deferEvent(RemoteSendEvent event) async {
+    if (_disposed || isDeferredEvent(event.eventId)) return;
+    _runtime = _runtime.copyWith(
+      deferredInboundEvents: [..._runtime.deferredInboundEvents, event],
+    );
+    await _saveRuntime();
+  }
+
   /// Marks an inbound event complete only after its one-shot action succeeds.
-  /// Pending events survive WebSocket reconnects, but not an app restart.
+  /// Active work is session-only; deferred background events survive restart.
   Future<void> acknowledgeEvent(String eventId) async {
     if (_disposed) return;
-    if (!_runtime.pendingInboundEvents.any(
+    final wasPending = _runtime.pendingInboundEvents.any(
       (event) => event.eventId == eventId,
-    )) {
-      return;
-    }
+    );
+    final wasDeferred = isDeferredEvent(eventId);
+    if (!wasPending && !wasDeferred) return;
+
     _runtime = _runtime.copyWith(
       pendingInboundEvents: _runtime.pendingInboundEvents
+          .where((event) => event.eventId != eventId)
+          .toList(),
+      deferredInboundEvents: _runtime.deferredInboundEvents
           .where((event) => event.eventId != eventId)
           .toList(),
       processedEventIds: _appendProcessed(_runtime.processedEventIds, eventId),

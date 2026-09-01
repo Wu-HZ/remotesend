@@ -371,6 +371,8 @@
   "gotifyCredentialsRequired": "请输入服务器地址、应用令牌和客户端令牌",
   "gotifyHistoryLookback": "上线消息回溯期",
   "gotifyAutoCopyText": "自动复制最新接收文本",
+  "gotifyReceiveTextInBackground": "后台接收文本",
+  "gotifyReceiveFilesInBackground": "后台接收文件",
   "gotifyHistoryLookbackMinutes": "{count} 分钟",
   "gotifyTargets": "默认接收设备",
   "gotifyAllDevices": "所有其他设备",

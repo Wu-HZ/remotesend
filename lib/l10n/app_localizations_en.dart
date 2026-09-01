@@ -1109,6 +1109,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gotifyAutoCopyText => 'Copy newest received text';
 
   @override
+  String get gotifyReceiveTextInBackground => 'Receive text in background';
+
+  @override
+  String get gotifyReceiveFilesInBackground => 'Receive files in background';
+
+  @override
   String gotifyHistoryLookbackMinutes(Object count) {
     return '$count min';
   }

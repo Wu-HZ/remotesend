@@ -635,6 +635,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               gotify.copyWith(autoCopyTextEnabled: value),
             ),
           ),
+        if (gotify.enabled)
+          _BooleanEntry(
+            label: l10n.gotifyReceiveTextInBackground,
+            value: gotify.receiveTextInBackground,
+            onChanged: (value) => _saveGotifyConfig(
+              gotify.copyWith(receiveTextInBackground: value),
+            ),
+          ),
+        if (gotify.enabled)
+          _BooleanEntry(
+            label: l10n.gotifyReceiveFilesInBackground,
+            value: gotify.receiveFilesInBackground,
+            onChanged: (value) => _saveGotifyConfig(
+              gotify.copyWith(receiveFilesInBackground: value),
+            ),
+          ),
         if (gotifyState.outboxCount > 0)
           Padding(
             padding: const EdgeInsets.only(top: 8),

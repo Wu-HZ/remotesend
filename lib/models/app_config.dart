@@ -62,8 +62,8 @@ String _generateRandomName() {
 /// Configuration model for app settings with multi-server support.
 class AppConfig {
   // Versions 4 and 5 contained the retired polling and S3 settings.
-  // Version 9 adds per-device clipboard copying for new Gotify text events.
-  static const int currentVersion = 9;
+  // Version 10 adds per-device background text/file receive policies.
+  static const int currentVersion = 10;
 
   // Default primary color (Material Blue 500)
   static const int defaultPrimaryColor = 0xFF009688;
