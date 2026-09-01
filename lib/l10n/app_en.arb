@@ -612,6 +612,20 @@
       "count": {}
     }
   },
+  "gotifyTextLatency": "Last text event: total {total} ms · WebDAV {webdav} ms",
+  "@gotifyTextLatency": {
+    "placeholders": {
+      "total": {},
+      "webdav": {}
+    }
+  },
+  "gotifyFileLatency": "Last file event: total {total} ms · WebDAV list {webdav} ms",
+  "@gotifyFileLatency": {
+    "placeholders": {
+      "total": {},
+      "webdav": {}
+    }
+  },
   "gotifyTest": "Test",
   "gotifyTestSuccess": "Gotify connection succeeded",
   "gotifyTestFailed": "Gotify connection failed: {error}",

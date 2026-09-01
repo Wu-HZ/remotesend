@@ -1998,6 +1998,18 @@ abstract class AppLocalizations {
   /// **'{count} event(s) waiting to be sent'**
   String gotifyPendingEvents(Object count);
 
+  /// No description provided for @gotifyTextLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Last text event: total {total} ms · WebDAV {webdav} ms'**
+  String gotifyTextLatency(Object total, Object webdav);
+
+  /// No description provided for @gotifyFileLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Last file event: total {total} ms · WebDAV list {webdav} ms'**
+  String gotifyFileLatency(Object total, Object webdav);
+
   /// No description provided for @gotifyTest.
   ///
   /// In en, this message translates to:

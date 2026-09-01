@@ -37,6 +37,24 @@ String? selectNewestTextForClipboard(
   return textByMessageId[messageId];
 }
 
+ReceiveLatencySample? _receiveLatency(
+  Iterable<RemoteSendEvent> events,
+  int webDavMilliseconds,
+) {
+  RemoteSendEvent? newest;
+  for (final event in events) {
+    if (newest == null || event.createdAt.isAfter(newest.createdAt)) {
+      newest = event;
+    }
+  }
+  if (newest == null) return null;
+  final age = DateTime.now().difference(newest.createdAt).inMilliseconds;
+  return ReceiveLatencySample(
+    totalMilliseconds: age < 0 ? 0 : age,
+    webDavMilliseconds: webDavMilliseconds,
+  );
+}
+
 class IncomingTransfer {
   const IncomingTransfer({
     required this.eventId,
@@ -70,6 +88,16 @@ class IncomingTransfer {
   }
 }
 
+class ReceiveLatencySample {
+  const ReceiveLatencySample({
+    required this.totalMilliseconds,
+    required this.webDavMilliseconds,
+  });
+
+  final int totalMilliseconds;
+  final int webDavMilliseconds;
+}
+
 class GotifyCoordinatorState {
   const GotifyCoordinatorState({
     this.incomingTransfers = const [],
@@ -77,6 +105,8 @@ class GotifyCoordinatorState {
     this.lastError,
     this.lastReceipt,
     this.clipboardCopyRevision = 0,
+    this.lastTextLatency,
+    this.lastFileLatency,
   });
 
   final List<IncomingTransfer> incomingTransfers;
@@ -84,6 +114,8 @@ class GotifyCoordinatorState {
   final String? lastError;
   final String? lastReceipt;
   final int clipboardCopyRevision;
+  final ReceiveLatencySample? lastTextLatency;
+  final ReceiveLatencySample? lastFileLatency;
 
   GotifyCoordinatorState copyWith({
     List<IncomingTransfer>? incomingTransfers,
@@ -91,6 +123,8 @@ class GotifyCoordinatorState {
     String? lastError,
     String? lastReceipt,
     int? clipboardCopyRevision,
+    ReceiveLatencySample? lastTextLatency,
+    ReceiveLatencySample? lastFileLatency,
     bool clearError = false,
   }) {
     return GotifyCoordinatorState(
@@ -100,6 +134,8 @@ class GotifyCoordinatorState {
       lastReceipt: lastReceipt ?? this.lastReceipt,
       clipboardCopyRevision:
           clipboardCopyRevision ?? this.clipboardCopyRevision,
+      lastTextLatency: lastTextLatency ?? this.lastTextLatency,
+      lastFileLatency: lastFileLatency ?? this.lastFileLatency,
     );
   }
 }
@@ -226,7 +262,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
       _pendingTextEvents.add(event);
     }
     _textRefreshDebounce?.cancel();
-    _textRefreshDebounce = Timer(const Duration(milliseconds: 300), () async {
+    _textRefreshDebounce = Timer(const Duration(milliseconds: 80), () async {
       final pending = List<RemoteSendEvent>.from(_pendingTextEvents);
       _pendingTextEvents.clear();
       final bySource = <(String, String), List<RemoteSendEvent>>{};
@@ -239,6 +275,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
       }
       final completed = <RemoteSendEvent>[];
       final refreshedTextById = <String, String>{};
+      var webDavMilliseconds = 0;
       final autoCopyEnabled =
           _ref.read(configProvider).valueOrNull?.gotify.autoCopyTextEnabled ??
           false;
@@ -264,6 +301,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
         final serviceOverride = updateUi
             ? null
             : (WebDavService()..initializeWithServer(sourceServer));
+        final webDavWatch = Stopwatch()..start();
         final messages = await _ref
             .read(messageHistoryProvider.notifier)
             .refreshFromRemoteChange(
@@ -271,6 +309,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
               serviceOverride: serviceOverride,
               updateUi: updateUi,
             );
+        webDavMilliseconds += webDavWatch.elapsedMilliseconds;
         if (!mounted) return;
         if (messages == null) continue;
         completed.addAll(entry.value);
@@ -301,6 +340,10 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
           return;
         }
       }
+      final latency = _receiveLatency(completed, webDavMilliseconds);
+      if (latency != null) {
+        state = state.copyWith(lastTextLatency: latency);
+      }
       for (final item in completed) {
         await _gotify.acknowledgeEvent(item.eventId);
       }
@@ -322,9 +365,10 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
       _pendingFileRefreshEvents.add(event);
     }
     _fileRefreshDebounce?.cancel();
-    _fileRefreshDebounce = Timer(const Duration(milliseconds: 300), () async {
+    _fileRefreshDebounce = Timer(const Duration(milliseconds: 120), () async {
       final pending = List<RemoteSendEvent>.from(_pendingFileRefreshEvents);
       _pendingFileRefreshEvents.clear();
+      final webDavWatch = Stopwatch()..start();
       final success = await _ref.read(fileListProvider.notifier).refresh();
       if (!mounted) return;
       if (!success) {
@@ -334,6 +378,10 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
         return;
       }
 
+      final latency = _receiveLatency(pending, webDavWatch.elapsedMilliseconds);
+      if (latency != null) {
+        state = state.copyWith(lastFileLatency: latency);
+      }
       for (final item in pending) {
         _refreshedFileEventIds.add(item.eventId);
         await _acknowledgeFileIfComplete(item);

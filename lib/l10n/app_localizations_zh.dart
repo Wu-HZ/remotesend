@@ -1056,6 +1056,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String gotifyTextLatency(Object total, Object webdav) {
+    return '最近文本事件：总响应 $total ms · WebDAV $webdav ms';
+  }
+
+  @override
+  String gotifyFileLatency(Object total, Object webdav) {
+    return '最近文件事件：总响应 $total ms · WebDAV 列表 $webdav ms';
+  }
+
+  @override
   String get gotifyTest => '测试';
 
   @override

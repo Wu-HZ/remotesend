@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remote_send/providers/message_history_provider.dart';
@@ -6,9 +8,10 @@ import 'package:remote_send/services/webdav_exceptions.dart';
 import 'package:remote_send/services/webdav_service.dart';
 
 class _FakeWebDavService extends WebDavService {
-  _FakeWebDavService(this.content);
+  _FakeWebDavService(this.content, {this.datesCompleter});
 
   final String content;
+  final Completer<WebDavResult<List<String>>>? datesCompleter;
   int readCount = 0;
 
   @override
@@ -16,9 +19,42 @@ class _FakeWebDavService extends WebDavService {
     readCount++;
     return WebDavResult.success(content);
   }
+
+  @override
+  Future<WebDavResult<List<String>>> listMessageDates() {
+    return datesCompleter?.future ??
+        Future.value(const WebDavResult.success(<String>[]));
+  }
 }
 
 void main() {
+  test('active text refresh does not wait for the date list', () async {
+    final datesCompleter = Completer<WebDavResult<List<String>>>();
+    addTearDown(() {
+      if (!datesCompleter.isCompleted) {
+        datesCompleter.complete(const WebDavResult.success(<String>[]));
+      }
+    });
+    final activeService = _FakeWebDavService(
+      '[]',
+      datesCompleter: datesCompleter,
+    );
+    final container = ProviderContainer(
+      overrides: [webDavTextServiceProvider.overrideWithValue(activeService)],
+    );
+    addTearDown(container.dispose);
+    container.read(selectedDateProvider.notifier).state = '2026-09-01';
+
+    final messages = await container
+        .read(messageHistoryProvider.notifier)
+        .refreshFromRemoteChange('2026-09-01')
+        .timeout(const Duration(seconds: 1));
+
+    expect(messages, isEmpty);
+    expect(datesCompleter.isCompleted, isFalse);
+    datesCompleter.complete(const WebDavResult.success(<String>[]));
+  });
+
   test('remote text refresh can read a non-active WebDAV service', () async {
     final activeService = _FakeWebDavService('[]');
     final sourceService = _FakeWebDavService('''

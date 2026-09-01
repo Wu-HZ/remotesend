@@ -322,6 +322,14 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
       devices: _withoutThisDevice(devices, _config.deviceId),
       lastMessageId: _runtime.lastMessageId,
     );
+    final eventForImmediateDispatch = eventToDeliver;
+    if (eventForImmediateDispatch != null &&
+        !deferredInbound.any(
+          (event) => event.eventId == eventForImmediateDispatch.eventId,
+        )) {
+      _events.add(eventForImmediateDispatch);
+      eventToDeliver = null;
+    }
     if (persist) await _saveRuntime();
     if (eventToDeliver != null) _events.add(eventToDeliver);
   }

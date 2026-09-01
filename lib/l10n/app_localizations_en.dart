@@ -1088,6 +1088,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String gotifyTextLatency(Object total, Object webdav) {
+    return 'Last text event: total $total ms · WebDAV $webdav ms';
+  }
+
+  @override
+  String gotifyFileLatency(Object total, Object webdav) {
+    return 'Last file event: total $total ms · WebDAV list $webdav ms';
+  }
+
+  @override
   String get gotifyTest => 'Test';
 
   @override

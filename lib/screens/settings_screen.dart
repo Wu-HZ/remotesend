@@ -10,6 +10,7 @@ import '../l10n/app_localizations.dart';
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
+import '../providers/gotify_coordinator_provider.dart';
 import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../services/gotify_service.dart';
@@ -596,6 +597,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildGotifySection(AppLocalizations l10n) {
     final gotify = ref.watch(gotifyConfigProvider);
     final gotifyState = ref.watch(gotifyProvider);
+    final coordinatorState = ref.watch(gotifyCoordinatorProvider);
 
     return _SettingsSection(
       title: l10n.gotifySection,
@@ -660,6 +662,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 color: Theme.of(context).colorScheme.error,
                 fontSize: 12,
               ),
+            ),
+          ),
+        if (coordinatorState.lastTextLatency case final latency?)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              l10n.gotifyTextLatency(
+                latency.totalMilliseconds,
+                latency.webDavMilliseconds,
+              ),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        if (coordinatorState.lastFileLatency case final latency?)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              l10n.gotifyFileLatency(
+                latency.totalMilliseconds,
+                latency.webDavMilliseconds,
+              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
       ],

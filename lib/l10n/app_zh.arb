@@ -365,6 +365,8 @@
   "gotifyStatusReconnecting": "正在重连...",
   "gotifyStatusError": "连接错误",
   "gotifyPendingEvents": "有 {count} 个事件等待发送",
+  "gotifyTextLatency": "最近文本事件：总响应 {total} ms · WebDAV {webdav} ms",
+  "gotifyFileLatency": "最近文件事件：总响应 {total} ms · WebDAV 列表 {webdav} ms",
   "gotifyTest": "测试",
   "gotifyTestSuccess": "Gotify 连接成功",
   "gotifyTestFailed": "Gotify 连接失败：{error}",

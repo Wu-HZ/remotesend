@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/text_message.dart';
@@ -174,7 +175,7 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
       if (isSelectedDate) {
         state = state.copyWith(messages: messages, isLoading: false);
       }
-      if (updateUi) await loadAvailableDates();
+      if (updateUi) unawaited(loadAvailableDates());
       return messages;
     } catch (error) {
       if (isSelectedDate) {
