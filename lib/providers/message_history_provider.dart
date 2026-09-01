@@ -133,15 +133,20 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
   /// Refresh exactly once after a Gotify notification. Historical changes
   /// update the available dates without forcing the user away from the date
   /// currently being viewed.
-  Future<List<TextMessage>?> refreshFromRemoteChange(String date) async {
+  Future<List<TextMessage>?> refreshFromRemoteChange(
+    String date, {
+    WebDavService? serviceOverride,
+    bool updateUi = true,
+  }) async {
+    final service = serviceOverride ?? _webDavService;
     final selectedDate = _ref.read(selectedDateProvider);
-    final isSelectedDate = selectedDate == date;
+    final isSelectedDate = updateUi && selectedDate == date;
     if (isSelectedDate) {
       state = state.copyWith(isLoading: true, error: null);
     }
 
     try {
-      final result = await _webDavService.readMessagesFile(date);
+      final result = await service.readMessagesFile(date);
       if (result.isFailure) {
         if (isSelectedDate) {
           state = state.copyWith(
@@ -169,7 +174,7 @@ class MessageHistoryNotifier extends StateNotifier<MessageHistoryState> {
       if (isSelectedDate) {
         state = state.copyWith(messages: messages, isLoading: false);
       }
-      await loadAvailableDates();
+      if (updateUi) await loadAvailableDates();
       return messages;
     } catch (error) {
       if (isSelectedDate) {

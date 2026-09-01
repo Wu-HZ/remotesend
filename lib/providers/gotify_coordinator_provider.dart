@@ -217,9 +217,8 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
 
   void _scheduleTextRefresh(RemoteSendEvent event) {
     final config = _ref.read(configProvider).valueOrNull;
-    final server = config?.activeTextServer;
-    if (server == null ||
-        event.payload['serverKey'] != webDavServerKey(server)) {
+    final serverKey = event.payload['serverKey'] as String? ?? '';
+    if (config == null || _matchingServer(config.servers, serverKey) == null) {
       return;
     }
 
@@ -230,10 +229,13 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
     _textRefreshDebounce = Timer(const Duration(milliseconds: 300), () async {
       final pending = List<RemoteSendEvent>.from(_pendingTextEvents);
       _pendingTextEvents.clear();
-      final byDate = <String, List<RemoteSendEvent>>{};
+      final bySource = <(String, String), List<RemoteSendEvent>>{};
       for (final item in pending) {
         final date = item.payload['date'] as String? ?? '';
-        if (date.isNotEmpty) byDate.putIfAbsent(date, () => []).add(item);
+        final itemServerKey = item.payload['serverKey'] as String? ?? '';
+        if (date.isNotEmpty && itemServerKey.isNotEmpty) {
+          bySource.putIfAbsent((itemServerKey, date), () => []).add(item);
+        }
       }
       final completed = <RemoteSendEvent>[];
       final refreshedTextById = <String, String>{};
@@ -241,10 +243,34 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
           _ref.read(configProvider).valueOrNull?.gotify.autoCopyTextEnabled ??
           false;
 
-      for (final entry in byDate.entries) {
+      for (final entry in bySource.entries) {
+        final currentConfig = _ref.read(configProvider).valueOrNull;
+        if (currentConfig == null) continue;
+        final sourceServer = _matchingServer(
+          currentConfig.servers,
+          entry.key.$1,
+        );
+        if (sourceServer == null) continue;
+
+        final activeServer = currentConfig.activeTextServer;
+        final updateUi =
+            activeServer != null &&
+            webDavServerKey(activeServer) == entry.key.$1;
+        if (!updateUi && !autoCopyEnabled) {
+          completed.addAll(entry.value);
+          continue;
+        }
+
+        final serviceOverride = updateUi
+            ? null
+            : (WebDavService()..initializeWithServer(sourceServer));
         final messages = await _ref
             .read(messageHistoryProvider.notifier)
-            .refreshFromRemoteChange(entry.key);
+            .refreshFromRemoteChange(
+              entry.key.$2,
+              serviceOverride: serviceOverride,
+              updateUi: updateUi,
+            );
         if (!mounted) return;
         if (messages == null) continue;
         completed.addAll(entry.value);
