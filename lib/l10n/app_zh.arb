@@ -93,6 +93,7 @@
   "failedToCreateFolder": "创建文件夹失败",
 
   "todayTime": "今天 {time}",
+  "yesterdayTime": "昨天 {time}",
   "daysAgo": "{days}天前",
 
   "couldNotAccessFiles": "无法访问文件",

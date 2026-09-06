@@ -182,6 +182,12 @@
       "time": {}
     }
   },
+  "yesterdayTime": "Yesterday {time}",
+  "@yesterdayTime": {
+    "placeholders": {
+      "time": {}
+    }
+  },
   "daysAgo": "{days} days ago",
   "@daysAgo": {
     "placeholders": {

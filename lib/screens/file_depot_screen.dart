@@ -16,6 +16,7 @@ import '../providers/download_state_provider.dart';
 import '../providers/pending_upload_provider.dart';
 import '../services/download_path_service.dart';
 import '../services/webdav_service.dart';
+import '../utils/date_time_utils.dart';
 import '../widgets/server_list_panel.dart';
 import '../widgets/storage_usage_widget.dart';
 import 'pending_upload_screen.dart';
@@ -1250,19 +1251,19 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   }
 
   String _formatDateTime(AppLocalizations l10n, DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
+    final localTime = dt.toLocal();
+    final dayDifference = localCalendarDayDifference(DateTime.now(), localTime);
+    final time =
+        '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
 
-    if (diff.inDays == 0) {
-      return l10n.todayTime(
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
-      );
-    } else if (diff.inDays == 1) {
-      return l10n.yesterday;
-    } else if (diff.inDays < 7) {
-      return l10n.daysAgo(diff.inDays);
+    if (dayDifference == 0) {
+      return l10n.todayTime(time);
+    } else if (dayDifference == 1) {
+      return l10n.yesterdayTime(time);
+    } else if (dayDifference > 1 && dayDifference < 7) {
+      return l10n.daysAgo(dayDifference);
     } else {
-      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+      return '${localTime.year}-${localTime.month.toString().padLeft(2, '0')}-${localTime.day.toString().padLeft(2, '0')}';
     }
   }
 

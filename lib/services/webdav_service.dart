@@ -260,7 +260,7 @@ class WebDavService {
               name: f.name ?? 'Unknown',
               path: f.path ?? '',
               size: f.size,
-              modifiedTime: f.mTime,
+              modifiedTime: f.mTime?.toLocal(),
               eTag: f.eTag,
               isDirectory: f.isDir ?? false,
             ),

@@ -280,6 +280,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String yesterdayTime(Object time) {
+    return 'Yesterday $time';
+  }
+
+  @override
   String daysAgo(Object days) {
     return '$days days ago';
   }

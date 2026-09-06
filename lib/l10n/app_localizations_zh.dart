@@ -276,6 +276,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String yesterdayTime(Object time) {
+    return '昨天 $time';
+  }
+
+  @override
   String daysAgo(Object days) {
     return '$days天前';
   }

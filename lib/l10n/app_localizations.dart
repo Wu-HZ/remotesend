@@ -564,6 +564,12 @@ abstract class AppLocalizations {
   /// **'Today {time}'**
   String todayTime(Object time);
 
+  /// No description provided for @yesterdayTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday {time}'**
+  String yesterdayTime(Object time);
+
   /// No description provided for @daysAgo.
   ///
   /// In en, this message translates to:
