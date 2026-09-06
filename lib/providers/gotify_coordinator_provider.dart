@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
+import '../services/download_path_service.dart';
 import '../services/webdav_service.dart';
 import 'app_visibility_provider.dart';
 import 'config_provider.dart';
@@ -653,17 +654,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
     await directory.create(recursive: true);
 
     final fileName = p.basename(unsafeFileName);
-    var candidate = p.join(directory.path, fileName);
-    if (!await File(candidate).exists()) return candidate;
-
-    final extension = p.extension(fileName);
-    final baseName = p.basenameWithoutExtension(fileName);
-    var suffix = 1;
-    do {
-      candidate = p.join(directory.path, '$baseName ($suffix)$extension');
-      suffix++;
-    } while (await File(candidate).exists());
-    return candidate;
+    return availableDownloadPath(p.join(directory.path, fileName));
   }
 
   static List<IncomingTransfer> _bounded(List<IncomingTransfer> transfers) {

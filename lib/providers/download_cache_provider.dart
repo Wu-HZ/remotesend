@@ -14,12 +14,14 @@ class DownloadCacheEntry {
     required this.isDirectory,
     this.remoteSize,
     this.remoteModifiedTime,
+    this.remoteETag,
   });
 
   final String localPath;
   final bool isDirectory;
   final int? remoteSize;
   final DateTime? remoteModifiedTime;
+  final String? remoteETag;
 
   Map<String, dynamic> toJson() {
     return {
@@ -27,6 +29,7 @@ class DownloadCacheEntry {
       'isDirectory': isDirectory,
       'remoteSize': remoteSize,
       'remoteModifiedTime': remoteModifiedTime?.toIso8601String(),
+      'remoteETag': remoteETag,
     };
   }
 
@@ -38,6 +41,7 @@ class DownloadCacheEntry {
       remoteModifiedTime: json['remoteModifiedTime'] == null
           ? null
           : DateTime.parse(json['remoteModifiedTime'] as String),
+      remoteETag: json['remoteETag'] as String?,
     );
   }
 }
@@ -56,7 +60,11 @@ class DownloadCacheState {
     final entry = entries[keyFor(serverId, file)];
     if (entry == null || entry.isDirectory != file.isDirectory) return false;
     if (entry.remoteSize != file.size) return false;
-    if (entry.remoteModifiedTime != file.modifiedTime) return false;
+    if (entry.remoteETag != null && file.eTag != null) {
+      if (entry.remoteETag != file.eTag) return false;
+    } else if (entry.remoteModifiedTime != file.modifiedTime) {
+      return false;
+    }
 
     try {
       if (file.isDirectory) {
@@ -101,10 +109,14 @@ class DownloadCacheState {
 
 class DownloadCacheNotifier extends StateNotifier<DownloadCacheState> {
   DownloadCacheNotifier() : super(const DownloadCacheState()) {
-    _load();
+    _ready = _load();
   }
 
+  late final Future<void> _ready;
   bool _changedBeforeLoad = false;
+
+  /// Completes after the persisted cache has been loaded (or loading failed).
+  Future<void> get ready => _ready;
 
   Future<void> _load() async {
     try {
@@ -138,6 +150,7 @@ class DownloadCacheNotifier extends StateNotifier<DownloadCacheState> {
       isDirectory: file.isDirectory,
       remoteSize: file.size,
       remoteModifiedTime: file.modifiedTime,
+      remoteETag: file.eTag,
     );
     state = DownloadCacheState(entries: updatedEntries);
 

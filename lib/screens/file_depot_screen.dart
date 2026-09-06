@@ -14,6 +14,7 @@ import '../providers/upload_queue_provider.dart';
 import '../providers/download_cache_provider.dart';
 import '../providers/download_state_provider.dart';
 import '../providers/pending_upload_provider.dart';
+import '../services/download_path_service.dart';
 import '../services/webdav_service.dart';
 import '../widgets/server_list_panel.dart';
 import '../widgets/storage_usage_widget.dart';
@@ -1625,6 +1626,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
           : '${fileListState.currentPath}/${file.name}';
       final serverId = ref.read(activeFilesServerProvider)?.id;
 
+      await ref.read(downloadCacheProvider.notifier).ready;
+      if (!mounted) return;
       if (serverId != null &&
           ref
                   .read(downloadCacheProvider)
@@ -1657,6 +1660,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       }
 
       if (downloadPath == null) return;
+      downloadPath = await availableDownloadPath(downloadPath);
 
       // Use the download provider
       final success = await ref
@@ -1687,7 +1691,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
             SnackBar(
               content: Row(
                 children: [
-                  Expanded(child: Text(l10n.downloaded(file.name))),
+                  Expanded(
+                    child: Text(l10n.downloaded(p.basename(downloadPath))),
+                  ),
                   GestureDetector(
                     onTap: _openDownloadLocation,
                     child: Padding(

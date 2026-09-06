@@ -14,6 +14,7 @@ class RemoteFile {
   final String path;
   final int? size;
   final DateTime? modifiedTime;
+  final String? eTag;
   final bool isDirectory;
 
   const RemoteFile({
@@ -21,6 +22,7 @@ class RemoteFile {
     required this.path,
     this.size,
     this.modifiedTime,
+    this.eTag,
     required this.isDirectory,
   });
 
@@ -259,6 +261,7 @@ class WebDavService {
               path: f.path ?? '',
               size: f.size,
               modifiedTime: f.mTime,
+              eTag: f.eTag,
               isDirectory: f.isDir ?? false,
             ),
           )
