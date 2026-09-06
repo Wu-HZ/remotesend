@@ -592,6 +592,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeDark => '深色';
 
   @override
+  String get startPage => '启动页';
+
+  @override
+  String get startPageDescription => '将在下次启动应用时生效';
+
+  @override
+  String get startPageText => '文本页';
+
+  @override
+  String get startPageFiles => '文件页';
+
+  @override
   String get dynamicColor => '动态颜色';
 
   @override

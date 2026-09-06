@@ -156,6 +156,8 @@ void main() {
     final encoded = config.toJson();
 
     expect(config.version, AppConfig.currentVersion);
+    expect(config.startPage, AppConfig.startPageText);
+    expect(config.startPageIndex, 0);
     expect(config.gotify.deviceId, 'device-a');
     expect(encoded, isNot(contains('refreshIntervalSeconds')));
     expect(encoded, isNot(contains('autoSyncEnabled')));
@@ -167,5 +169,30 @@ void main() {
     expect(encodedGotify['receiveTextInBackground'], isTrue);
     expect(encodedGotify['receiveFilesInBackground'], isFalse);
     expect(encodedGotify['historyLookbackMinutes'], 3);
+  });
+
+  test('AppConfig round-trips the configured startup page', () {
+    final config = AppConfig(
+      localName: 'device-a',
+      startPage: AppConfig.startPageFiles,
+    );
+
+    final restored = AppConfig.fromJson(config.toJson());
+
+    expect(restored.startPage, AppConfig.startPageFiles);
+    expect(restored.startPageIndex, 1);
+    expect(restored, config);
+  });
+
+  test('AppConfig falls back to the text page for invalid startup values', () {
+    final config = AppConfig.fromJson({
+      'version': AppConfig.currentVersion,
+      'servers': <Object>[],
+      'localName': 'device-a',
+      'startPage': 'unknown',
+    });
+
+    expect(config.startPage, AppConfig.startPageText);
+    expect(config.startPageIndex, 0);
   });
 }

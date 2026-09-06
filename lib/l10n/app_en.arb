@@ -386,6 +386,10 @@
   "themeSystem": "System default",
   "themeLight": "Light",
   "themeDark": "Dark",
+  "startPage": "Startup page",
+  "startPageDescription": "Applied the next time the app starts",
+  "startPageText": "Text page",
+  "startPageFiles": "Files page",
 
   "dynamicColor": "Dynamic Color",
   "dynamicColorDescription": "Use system accent color (Material You)",

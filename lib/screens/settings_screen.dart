@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
+import '../models/app_config.dart';
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
@@ -1030,6 +1031,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeMode = config?.themeMode ?? 'system';
     final primaryColor = config?.primaryColor ?? 0xFF009688;
     final useDynamicColor = config?.useDynamicColor ?? true;
+    final startPage = config?.startPage ?? AppConfig.startPageText;
     final chatOwnLeft = config?.chatOwnMessageLeft ?? false;
 
     String themeModeText;
@@ -1067,6 +1069,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           buttonLabel: _getLanguageName(l10n, config?.locale ?? 'system'),
           onTap: () => _showLanguageDialog(l10n),
         ),
+        _ButtonEntry(
+          label: l10n.startPage,
+          buttonLabel: startPage == AppConfig.startPageFiles
+              ? l10n.startPageFiles
+              : l10n.startPageText,
+          onTap: () => _showStartPageDialog(l10n, startPage),
+        ),
         _BooleanEntry(
           label: l10n.chatOwnMessageLeftLabel,
           value: chatOwnLeft,
@@ -1074,6 +1083,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _showStartPageDialog(
+    AppLocalizations l10n,
+    String currentPage,
+  ) async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(l10n.startPage),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text(
+              l10n.startPageDescription,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          for (final option in [
+            (AppConfig.startPageText, l10n.startPageText),
+            (AppConfig.startPageFiles, l10n.startPageFiles),
+          ])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, option.$1),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 28,
+                    child: option.$1 == currentPage
+                        ? Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : null,
+                  ),
+                  Text(option.$2),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    final currentConfig = ref.read(configProvider).valueOrNull;
+    if (currentConfig == null || currentConfig.startPage == selected) return;
+    await ref
+        .read(configProvider.notifier)
+        .updateConfig(currentConfig.copyWith(startPage: selected));
   }
 
   String _getLanguageName(AppLocalizations l10n, String locale) {

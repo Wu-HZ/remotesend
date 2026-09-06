@@ -205,6 +205,10 @@
   "themeSystem": "跟随系统",
   "themeLight": "浅色",
   "themeDark": "深色",
+  "startPage": "启动页",
+  "startPageDescription": "将在下次启动应用时生效",
+  "startPageText": "文本页",
+  "startPageFiles": "文件页",
 
   "dynamicColor": "动态颜色",
   "dynamicColorDescription": "使用系统强调色（Material You）",

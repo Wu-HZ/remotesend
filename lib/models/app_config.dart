@@ -63,7 +63,11 @@ String _generateRandomName() {
 class AppConfig {
   // Versions 4 and 5 contained the retired polling and S3 settings.
   // Version 10 adds per-device background text/file receive policies.
-  static const int currentVersion = 10;
+  // Version 11 adds the configurable startup page.
+  static const int currentVersion = 11;
+
+  static const String startPageText = 'text';
+  static const String startPageFiles = 'files';
 
   // Default primary color (Material Blue 500)
   static const int defaultPrimaryColor = 0xFF009688;
@@ -80,6 +84,7 @@ class AppConfig {
   final bool useDynamicColor; // Use system dynamic color (Material You)
   final String locale; // 'system', 'en', 'zh'
   final String dragMode; // 'instant' or 'pending'
+  final String startPage; // 'text' or 'files'
   final bool chatOwnMessageLeft; // show own messages on left side too
   final GotifyConfig gotify;
 
@@ -96,6 +101,7 @@ class AppConfig {
     this.useDynamicColor = true,
     this.locale = 'system',
     this.dragMode = 'instant',
+    this.startPage = startPageText,
     this.chatOwnMessageLeft = false,
     GotifyConfig? gotify,
   }) : localName = localName ?? _generateRandomName(),
@@ -142,6 +148,9 @@ class AppConfig {
   /// Check if either is configured (backward-compatible).
   bool get isConfigured => isTextConfigured || isFilesConfigured;
 
+  /// Bottom-navigation index for the configured startup page.
+  int get startPageIndex => startPage == startPageFiles ? 1 : 0;
+
   /// Create a copy with updated fields.
   AppConfig copyWith({
     int? version,
@@ -156,6 +165,7 @@ class AppConfig {
     bool? useDynamicColor,
     String? locale,
     String? dragMode,
+    String? startPage,
     bool? chatOwnMessageLeft,
     GotifyConfig? gotify,
   }) {
@@ -172,6 +182,7 @@ class AppConfig {
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
+      startPage: startPage ?? this.startPage,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
       gotify: gotify ?? this.gotify,
     );
@@ -189,6 +200,7 @@ class AppConfig {
     bool? useDynamicColor,
     String? locale,
     String? dragMode,
+    String? startPage,
     bool? chatOwnMessageLeft,
     GotifyConfig? gotify,
     bool clearText = false,
@@ -207,6 +219,7 @@ class AppConfig {
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
       locale: locale ?? this.locale,
       dragMode: dragMode ?? this.dragMode,
+      startPage: startPage ?? this.startPage,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
       gotify: gotify ?? this.gotify,
     );
@@ -227,6 +240,7 @@ class AppConfig {
       'useDynamicColor': useDynamicColor,
       'locale': locale,
       'dragMode': dragMode,
+      'startPage': startPage,
       'chatOwnMessageLeft': chatOwnMessageLeft,
       'gotify': gotify.toJson(),
     };
@@ -267,6 +281,9 @@ class AppConfig {
       useDynamicColor: json['useDynamicColor'] as bool? ?? true,
       locale: json['locale'] as String? ?? 'system',
       dragMode: json['dragMode'] as String? ?? 'instant',
+      startPage: json['startPage'] == startPageFiles
+          ? startPageFiles
+          : startPageText,
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
       gotify: GotifyConfig.fromJson(
         json['gotify'] is Map
@@ -375,6 +392,7 @@ class AppConfig {
         other.useDynamicColor != useDynamicColor ||
         other.locale != locale ||
         other.dragMode != dragMode ||
+        other.startPage != startPage ||
         other.chatOwnMessageLeft != chatOwnMessageLeft ||
         other.gotify != gotify ||
         other.servers.length != servers.length) {
@@ -401,6 +419,7 @@ class AppConfig {
       useDynamicColor,
       locale,
       dragMode,
+      startPage,
       chatOwnMessageLeft,
       gotify,
     );

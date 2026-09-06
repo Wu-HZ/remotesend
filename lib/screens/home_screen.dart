@@ -23,6 +23,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _startupPageApplied = false;
+
   int get _selectedIndex => ref.watch(selectedTabProvider);
 
   @override
@@ -72,6 +74,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       data: (config) {
+        if (!_startupPageApplied) {
+          _startupPageApplied = true;
+          if (isConfigured &&
+              _selectedIndex == 0 &&
+              config.startPageIndex != 0) {
+            Future.microtask(() {
+              if (ref.read(selectedTabProvider) == 0) {
+                ref.read(selectedTabProvider.notifier).state =
+                    config.startPageIndex;
+              }
+            });
+          }
+        }
+
         // If not configured, go directly to settings screen
         if (!isConfigured && _selectedIndex != 2) {
           Future.microtask(() {

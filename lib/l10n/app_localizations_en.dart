@@ -600,6 +600,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeDark => 'Dark';
 
   @override
+  String get startPage => 'Startup page';
+
+  @override
+  String get startPageDescription => 'Applied the next time the app starts';
+
+  @override
+  String get startPageText => 'Text page';
+
+  @override
+  String get startPageFiles => 'Files page';
+
+  @override
   String get dynamicColor => 'Dynamic Color';
 
   @override

@@ -8,6 +8,7 @@
 - **文件仓库** — 上传、下载、管理文件，支持文件夹导航和事件驱动的自动下载
 - **传输队列** — 实时查看上传/下载进度，支持重试、清空
 - **多服务器** — 配置多个 WebDAV 服务器，文本/文件可分别指定
+- **可配置启动页** — 启动时默认进入文本页或文件页
 - **拖拽上传** — 桌面端拖入文件即传，支持直接上传和待传两种模式
 - **便携模式** — 配置文件放在软件目录下，适合 U 盘使用
 - **跨平台** — Windows 和 Android
@@ -99,7 +100,7 @@ flutter build apk --release --target-platform android-arm64
 
 ```json
 {
-  "version": 10,
+  "version": 11,
   "servers": [
     {
       "id": "uuid",
@@ -122,6 +123,7 @@ flutter build apk --release --target-platform android-arm64
   "useDynamicColor": true,
   "locale": "system",
   "dragMode": "instant",
+  "startPage": "text",
   "chatOwnMessageLeft": false,
   "gotify": {
     "enabled": true,

@@ -1122,6 +1122,30 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get themeDark;
 
+  /// No description provided for @startPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Startup page'**
+  String get startPage;
+
+  /// No description provided for @startPageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied the next time the app starts'**
+  String get startPageDescription;
+
+  /// No description provided for @startPageText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text page'**
+  String get startPageText;
+
+  /// No description provided for @startPageFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Files page'**
+  String get startPageFiles;
+
   /// No description provided for @dynamicColor.
   ///
   /// In en, this message translates to:
