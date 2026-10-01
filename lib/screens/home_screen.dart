@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/config_provider.dart';
+import '../providers/camera_capture_provider.dart';
 import '../providers/gotify_coordinator_provider.dart';
 import '../providers/message_history_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -29,6 +30,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(cameraCaptureProvider, (previous, next) {
+      if (next.recoveredCount > (previous?.recoveredCount ?? 0)) {
+        ref.read(selectedTabProvider.notifier).state = 1;
+      }
+      if (next.error != null && next.error != previous?.error) {
+        final l10n = AppLocalizations.of(context)!;
+        final message = switch (next.error!) {
+          CameraCaptureError.permissionDenied => l10n.cameraPermissionDenied,
+          CameraCaptureError.unavailable => l10n.cameraUnavailable,
+          CameraCaptureError.fileAccess => l10n.photoFileAccessFailed,
+          CameraCaptureError.failed => l10n.cameraCaptureFailed,
+          CameraCaptureError.recoveryFailed => l10n.cameraRecoveryFailed,
+        };
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    });
     ref.listen<int>(
       gotifyCoordinatorProvider.select(
         (state) => state.clipboardCopyRevision,
@@ -77,6 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (!_startupPageApplied) {
           _startupPageApplied = true;
           if (isConfigured &&
+              ref.read(cameraCaptureProvider).recoveredCount == 0 &&
               _selectedIndex == 0 &&
               config.startPageIndex != 0) {
             Future.microtask(() {

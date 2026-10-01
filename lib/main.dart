@@ -15,6 +15,7 @@ import 'providers/message_history_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
 import 'providers/pending_upload_provider.dart';
+import 'providers/camera_capture_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/window_service.dart';
 
@@ -90,6 +91,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
     // Initialize config on app start
     Future.microtask(() {
       ref.read(configProvider.notifier).initialize();
+      ref.read(cameraCaptureProvider.notifier).initialize();
     });
   }
 

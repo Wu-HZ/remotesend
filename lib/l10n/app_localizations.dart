@@ -104,6 +104,66 @@ abstract class AppLocalizations {
   /// **'RemoteSend'**
   String get appTitle;
 
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get takePhoto;
+
+  /// No description provided for @takeAnotherPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take another photo'**
+  String get takeAnotherPhoto;
+
+  /// No description provided for @addPendingFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Add files'**
+  String get addPendingFiles;
+
+  /// No description provided for @sendToServerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to send to a server'**
+  String get sendToServerLabel;
+
+  /// No description provided for @cameraPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is unavailable. Allow camera access in system settings and try again.'**
+  String get cameraPermissionDenied;
+
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No camera or camera app is available on this device.'**
+  String get cameraUnavailable;
+
+  /// No description provided for @photoFileAccessFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the photo. Check available storage and try again.'**
+  String get photoFileAccessFailed;
+
+  /// No description provided for @cameraCaptureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not take a photo. Please try again.'**
+  String get cameraCaptureFailed;
+
+  /// No description provided for @cameraRecoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not recover the last photo. Please take it again.'**
+  String get cameraRecoveryFailed;
+
+  /// No description provided for @photoPreviewUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview unavailable. You can still send this image as a file.'**
+  String get photoPreviewUnavailable;
+
   /// No description provided for @navText.
   ///
   /// In en, this message translates to:

@@ -14,6 +14,7 @@ import '../providers/upload_queue_provider.dart';
 import '../providers/download_cache_provider.dart';
 import '../providers/download_state_provider.dart';
 import '../providers/pending_upload_provider.dart';
+import '../providers/camera_capture_provider.dart';
 import '../services/download_path_service.dart';
 import '../services/webdav_service.dart';
 import '../utils/date_time_utils.dart';
@@ -204,9 +205,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final activeServer = ref.watch(activeFilesServerProvider);
     final servers = ref.watch(enabledServersProvider);
     final pendingFiles = ref.watch(pendingUploadProvider);
+    final cameraSupported = ref.watch(cameraSupportedProvider);
+    final cameraBusy = ref.watch(
+      cameraCaptureProvider.select((state) => state.isBusy),
+    );
 
     // Show pending upload page if there are files waiting
-    if (pendingFiles.filePaths.isNotEmpty) {
+    if (pendingFiles.filePaths.isNotEmpty || pendingFiles.isSubmitting) {
       return _buildPendingUploadView(l10n);
     }
 
@@ -365,50 +370,75 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               ),
             ),
           ),
-          floatingActionButton: canOperate
+          floatingActionButton: canOperate || (cameraSupported && isConfigured)
               ? IgnorePointer(
-                  ignoring: !_fabVisible,
+                  ignoring: !_fabVisible || cameraBusy,
                   child: AnimatedSlide(
                     offset: _fabVisible ? Offset.zero : const Offset(0, 1.5),
                     duration: const Duration(milliseconds: 200),
-                    child: Row(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Tooltip(
-                          message: l10n.createFolder,
-                          preferBelow: false,
-                          verticalOffset: 36,
-                          child: FloatingActionButton(
-                            heroTag: 'create-folder',
-                            tooltip: null,
-                            onPressed: () => _createFolder(l10n),
-                            child: const Icon(Icons.create_new_folder),
+                        if (cameraSupported && isConfigured) ...[
+                          Tooltip(
+                            message: l10n.takePhoto,
+                            preferBelow: false,
+                            verticalOffset: 36,
+                            child: FloatingActionButton(
+                              heroTag: 'camera',
+                              tooltip: null,
+                              onPressed: cameraBusy
+                                  ? null
+                                  : () => ref
+                                        .read(cameraCaptureProvider.notifier)
+                                        .capture(),
+                              child: const Icon(Icons.camera_alt_outlined),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Tooltip(
-                          message: l10n.folder,
-                          preferBelow: false,
-                          verticalOffset: 36,
-                          child: FloatingActionButton(
-                            heroTag: 'folder',
-                            tooltip: null,
-                            onPressed: _pickAndUploadFolder,
-                            child: const Icon(Icons.folder),
+                          if (canOperate) const SizedBox(height: 12),
+                        ],
+                        if (canOperate)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Tooltip(
+                                message: l10n.createFolder,
+                                preferBelow: false,
+                                verticalOffset: 36,
+                                child: FloatingActionButton(
+                                  heroTag: 'create-folder',
+                                  tooltip: null,
+                                  onPressed: () => _createFolder(l10n),
+                                  child: const Icon(Icons.create_new_folder),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Tooltip(
+                                message: l10n.folder,
+                                preferBelow: false,
+                                verticalOffset: 36,
+                                child: FloatingActionButton(
+                                  heroTag: 'folder',
+                                  tooltip: null,
+                                  onPressed: _pickAndUploadFolder,
+                                  child: const Icon(Icons.folder),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Tooltip(
+                                message: l10n.file,
+                                preferBelow: false,
+                                verticalOffset: 36,
+                                child: FloatingActionButton(
+                                  heroTag: 'file',
+                                  tooltip: null,
+                                  onPressed: _pickAndUploadFiles,
+                                  child: const Icon(Icons.insert_drive_file),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Tooltip(
-                          message: l10n.file,
-                          preferBelow: false,
-                          verticalOffset: 36,
-                          child: FloatingActionButton(
-                            heroTag: 'file',
-                            tooltip: null,
-                            onPressed: _pickAndUploadFiles,
-                            child: const Icon(Icons.insert_drive_file),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -498,11 +528,7 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
   }
 
   Widget _buildPendingUploadView(AppLocalizations l10n) {
-    return PendingUploadScreen(
-      onClose: () {
-        ref.read(pendingUploadProvider.notifier).clear();
-      },
-    );
+    return const PendingUploadScreen();
   }
 
   Widget _buildWarningBanner(

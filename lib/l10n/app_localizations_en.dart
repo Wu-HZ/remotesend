@@ -12,6 +12,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'RemoteSend';
 
   @override
+  String get takePhoto => 'Take photo';
+
+  @override
+  String get takeAnotherPhoto => 'Take another photo';
+
+  @override
+  String get addPendingFiles => 'Add files';
+
+  @override
+  String get sendToServerLabel => 'Tap to send to a server';
+
+  @override
+  String get cameraPermissionDenied =>
+      'Camera access is unavailable. Allow camera access in system settings and try again.';
+
+  @override
+  String get cameraUnavailable =>
+      'No camera or camera app is available on this device.';
+
+  @override
+  String get photoFileAccessFailed =>
+      'Could not save the photo. Check available storage and try again.';
+
+  @override
+  String get cameraCaptureFailed => 'Could not take a photo. Please try again.';
+
+  @override
+  String get cameraRecoveryFailed =>
+      'Could not recover the last photo. Please take it again.';
+
+  @override
+  String get photoPreviewUnavailable =>
+      'Preview unavailable. You can still send this image as a file.';
+
+  @override
   String get navText => 'Text';
 
   @override

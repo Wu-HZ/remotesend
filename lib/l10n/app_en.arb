@@ -3,6 +3,17 @@
 
   "appTitle": "RemoteSend",
 
+  "takePhoto": "Take photo",
+  "takeAnotherPhoto": "Take another photo",
+  "addPendingFiles": "Add files",
+  "sendToServerLabel": "Tap to send to a server",
+  "cameraPermissionDenied": "Camera access is unavailable. Allow camera access in system settings and try again.",
+  "cameraUnavailable": "No camera or camera app is available on this device.",
+  "photoFileAccessFailed": "Could not save the photo. Check available storage and try again.",
+  "cameraCaptureFailed": "Could not take a photo. Please try again.",
+  "cameraRecoveryFailed": "Could not recover the last photo. Please take it again.",
+  "photoPreviewUnavailable": "Preview unavailable. You can still send this image as a file.",
+
   "navText": "Text",
   "navFiles": "Files",
   "navSettings": "Settings",

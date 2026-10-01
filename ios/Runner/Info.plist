@@ -22,6 +22,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>用于拍摄照片并在确认后发送到您选择的服务器。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于读取您选择发送的照片。</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

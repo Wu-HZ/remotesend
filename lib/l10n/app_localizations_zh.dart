@@ -12,6 +12,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'RemoteSend';
 
   @override
+  String get takePhoto => '拍照';
+
+  @override
+  String get takeAnotherPhoto => '继续拍照';
+
+  @override
+  String get addPendingFiles => '添加文件';
+
+  @override
+  String get sendToServerLabel => '点击发送到对应服务器';
+
+  @override
+  String get cameraPermissionDenied => '无法使用相机，请在系统设置中允许相机访问后重试。';
+
+  @override
+  String get cameraUnavailable => '当前设备没有可用的相机应用或相机。';
+
+  @override
+  String get photoFileAccessFailed => '无法保存拍摄的照片，请检查可用存储空间后重试。';
+
+  @override
+  String get cameraCaptureFailed => '拍照失败，请重试。';
+
+  @override
+  String get cameraRecoveryFailed => '未能恢复上次拍摄的照片，请重新拍摄。';
+
+  @override
+  String get photoPreviewUnavailable => '无法预览此图片，仍可作为文件发送。';
+
+  @override
   String get navText => '文本';
 
   @override

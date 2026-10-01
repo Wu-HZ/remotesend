@@ -3,6 +3,17 @@
 
   "appTitle": "RemoteSend",
 
+  "takePhoto": "拍照",
+  "takeAnotherPhoto": "继续拍照",
+  "addPendingFiles": "添加文件",
+  "sendToServerLabel": "点击发送到对应服务器",
+  "cameraPermissionDenied": "无法使用相机，请在系统设置中允许相机访问后重试。",
+  "cameraUnavailable": "当前设备没有可用的相机应用或相机。",
+  "photoFileAccessFailed": "无法保存拍摄的照片，请检查可用存储空间后重试。",
+  "cameraCaptureFailed": "拍照失败，请重试。",
+  "cameraRecoveryFailed": "未能恢复上次拍摄的照片，请重新拍摄。",
+  "photoPreviewUnavailable": "无法预览此图片，仍可作为文件发送。",
+
   "navText": "文本",
   "navFiles": "文件",
   "navSettings": "设置",

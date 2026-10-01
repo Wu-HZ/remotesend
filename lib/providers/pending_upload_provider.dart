@@ -3,11 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// State for pending upload queue.
 class PendingUploadState {
   final List<String> filePaths;
+  final bool isSubmitting;
 
-  const PendingUploadState({this.filePaths = const []});
+  const PendingUploadState({
+    this.filePaths = const [],
+    this.isSubmitting = false,
+  });
 
-  PendingUploadState copyWith({List<String>? filePaths}) {
-    return PendingUploadState(filePaths: filePaths ?? this.filePaths);
+  PendingUploadState copyWith({List<String>? filePaths, bool? isSubmitting}) {
+    return PendingUploadState(
+      filePaths: filePaths ?? this.filePaths,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+    );
   }
 }
 
@@ -25,7 +32,20 @@ class PendingUploadNotifier extends StateNotifier<PendingUploadState> {
     state = state.copyWith(filePaths: updated);
   }
 
+  List<String> beginSubmission() {
+    if (state.isSubmitting || state.filePaths.isEmpty) return [];
+    final paths = List<String>.from(state.filePaths);
+    // 先移交快照，后续追加或上传失败回退的文件不属于本批次。
+    state = const PendingUploadState(isSubmitting: true);
+    return paths;
+  }
+
+  void finishSubmission({List<String> unsubmitted = const []}) {
+    state = PendingUploadState(filePaths: [...unsubmitted, ...state.filePaths]);
+  }
+
   void clear() {
+    if (state.isSubmitting) return;
     state = const PendingUploadState();
   }
 }
@@ -33,5 +53,5 @@ class PendingUploadNotifier extends StateNotifier<PendingUploadState> {
 /// Provider for pending upload state.
 final pendingUploadProvider =
     StateNotifierProvider<PendingUploadNotifier, PendingUploadState>((ref) {
-  return PendingUploadNotifier();
-});
+      return PendingUploadNotifier();
+    });
