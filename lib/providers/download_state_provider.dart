@@ -330,6 +330,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
   Future<WebDavResult<int>> downloadFolder({
     required String remoteFolderName,
     required String localFolderPath,
+    WebDavService? serviceOverride,
   }) async {
     if (state.isDownloading) {
       return const WebDavResult.failure(
@@ -354,7 +355,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
 
     String? currentItemId;
 
-    final result = await _service.downloadFolder(
+    final result = await (serviceOverride ?? _service).downloadFolder(
       remoteFolderName,
       localFolderPath,
       onFilesCollected: (files) {

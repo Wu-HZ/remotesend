@@ -4,12 +4,10 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
-import '../services/download_path_service.dart';
+import 'download_path_provider.dart';
 import '../services/webdav_service.dart';
 import 'app_visibility_provider.dart';
 import 'config_provider.dart';
@@ -508,14 +506,15 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
     }
 
     try {
-      final localPath = await _createLocalPath(
-        config.downloadLocation,
-        fileName,
+      final localPath = await _ref.read(downloadPathServiceProvider).downloadPath(
+        configuredDirectory: config.downloadLocation,
+        server: server,
+        fileName: fileName,
       );
       final relativeRemotePath = remotePath.substring(
         '/RemoteSend/Files/'.length,
       );
-      final serviceOverride = WebDavService()..initializeWithServer(server);
+      final serviceOverride = _ref.read(downloadSourceServiceProvider)(server);
 
       _setTransfer(event.eventId, status: 'downloading', localPath: localPath);
       final success = await _ref
@@ -635,26 +634,6 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
     final connectivity = await Connectivity().checkConnectivity();
     return connectivity.contains(ConnectivityResult.wifi) ||
         connectivity.contains(ConnectivityResult.ethernet);
-  }
-
-  static Future<String> _createLocalPath(
-    String configuredDirectory,
-    String unsafeFileName,
-  ) async {
-    Directory directory;
-    if (configuredDirectory.trim().isNotEmpty) {
-      directory = Directory(configuredDirectory.trim());
-    } else if (Platform.isAndroid) {
-      directory =
-          await getExternalStorageDirectory() ??
-          await getApplicationDocumentsDirectory();
-    } else {
-      directory = await getApplicationDocumentsDirectory();
-    }
-    await directory.create(recursive: true);
-
-    final fileName = p.basename(unsafeFileName);
-    return availableDownloadPath(p.join(directory.path, fileName));
   }
 
   static List<IncomingTransfer> _bounded(List<IncomingTransfer> transfers) {

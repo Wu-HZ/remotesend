@@ -33,8 +33,8 @@ class ServerListPanel extends ConsumerWidget {
     return AnimatedContainer(
       width: isCollapsed ? _collapsedWidth : _expandedWidth,
       duration: const Duration(milliseconds: 200),
-      color: colorScheme.surfaceContainerLow,
       decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
         border: Border(right: BorderSide(color: colorScheme.outlineVariant)),
       ),
       child: Column(

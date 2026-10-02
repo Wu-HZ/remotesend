@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:remote_send/models/server_config.dart';
 import 'package:remote_send/providers/download_cache_provider.dart';
 import 'package:remote_send/services/download_path_service.dart';
 import 'package:remote_send/services/webdav_service.dart';
@@ -132,6 +133,95 @@ void main() {
       );
     },
   );
+
+  test('启用服务器子目录后旧缓存仍引用原文件，不搬动或重下', () async {
+    final directory = await Directory.systemTemp.createTemp('legacy_download_');
+    addTearDown(() => directory.delete(recursive: true));
+    final old = File('${directory.path}/report.txt');
+    await old.writeAsString('old');
+    final remote = RemoteFile(
+      name: 'report.txt',
+      path: '/RemoteSend/Files/report.txt',
+      size: 3,
+      isDirectory: false,
+    );
+    final entry = DownloadCacheEntry(
+      localPath: old.path,
+      isDirectory: false,
+      remoteSize: 3,
+    );
+    SharedPreferences.setMockInitialValues({
+      'download_cache': jsonEncode({'a::${remote.path}': entry.toJson()}),
+    });
+    final notifier = DownloadCacheNotifier();
+    addTearDown(notifier.dispose);
+    await notifier.ready;
+    final server = ServerConfig(
+      id: 'a',
+      name: '服务器',
+      serverUrl: 'https://example.invalid',
+      username: 'test',
+      password: 'test',
+      createdAt: DateTime(2026),
+    );
+    await DownloadPathService().serverDirectory(
+      configuredDirectory: directory.path,
+      server: server,
+    );
+    expect(notifier.state.localPathFor(serverId: 'a', file: remote), old.path);
+    expect(await old.readAsString(), 'old');
+    expect(notifier.state.localPathFor(serverId: 'b', file: remote), isNull);
+  });
+
+  test('不同服务器的同一路径缓存分别保留真实本地路径', () async {
+    SharedPreferences.setMockInitialValues({});
+    final directory = await Directory.systemTemp.createTemp(
+      'isolated_download_',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final notifier = DownloadCacheNotifier();
+    addTearDown(notifier.dispose);
+    await notifier.ready;
+    final paths = DownloadPathService();
+    final remote = RemoteFile(
+      name: 'report.txt',
+      path: '/RemoteSend/Files/report.txt',
+      size: 3,
+      isDirectory: false,
+    );
+    final saved = <String, String>{};
+    for (final id in ['a', 'b']) {
+      final server = ServerConfig(
+        id: id,
+        name: '服务器',
+        serverUrl: 'https://example.invalid',
+        username: 'test',
+        password: 'test',
+        createdAt: DateTime(2026),
+      );
+      final path = await paths.downloadPath(
+        configuredDirectory: directory.path,
+        server: server,
+        fileName: remote.name,
+      );
+      await File(path).writeAsString(id * 3);
+      await notifier.markDownloaded(
+        serverId: id,
+        file: remote,
+        localPath: path,
+      );
+      saved[id] = path;
+    }
+    expect(saved['a'], isNot(saved['b']));
+    expect(
+      notifier.state.localPathFor(serverId: 'a', file: remote),
+      saved['a'],
+    );
+    expect(
+      notifier.state.localPathFor(serverId: 'b', file: remote),
+      saved['b'],
+    );
+  });
 
   test('available download path never overwrites an existing file', () async {
     final directory = await Directory.systemTemp.createTemp(

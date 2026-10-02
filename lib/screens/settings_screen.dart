@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,6 +10,7 @@ import '../models/app_config.dart';
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
+import '../providers/download_path_provider.dart';
 import '../providers/gotify_coordinator_provider.dart';
 import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -45,26 +45,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
     // If no download location set, get system default
     if (_downloadLocation.isEmpty) {
-      final defaultPath = await _getSystemDownloadDirectory();
-      if (mounted && defaultPath != null) {
+      final defaultPath = await ref.read(downloadPathServiceProvider).rootPath('');
+      if (mounted) {
         setState(() => _downloadLocation = defaultPath);
       }
     }
-  }
-
-  Future<String?> _getSystemDownloadDirectory() async {
-    if (Platform.isWindows) {
-      final userProfile = Platform.environment['USERPROFILE'];
-      if (userProfile != null) {
-        return p.join(userProfile, 'Downloads');
-      }
-    } else if (Platform.isLinux || Platform.isMacOS) {
-      final home = Platform.environment['HOME'];
-      if (home != null) {
-        return p.join(home, 'Downloads');
-      }
-    }
-    return null;
   }
 
   @override
