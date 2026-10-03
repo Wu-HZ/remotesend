@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/upload_queue.dart';
@@ -10,6 +8,7 @@ import '../models/download_queue.dart';
 import '../providers/config_provider.dart';
 import '../providers/upload_queue_provider.dart';
 import '../providers/download_state_provider.dart';
+import '../providers/download_path_provider.dart';
 
 /// Screen for viewing and managing the transfer queue (uploads and downloads).
 class TransferQueueScreen extends ConsumerStatefulWidget {
@@ -29,37 +28,13 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
   }
 
   Future<void> _initDownloadLocation() async {
-    final config = ref.read(configProvider).valueOrNull;
-    if (config != null && config.downloadLocation.isNotEmpty) {
-      _downloadLocation = config.downloadLocation;
-    } else {
-      _downloadLocation = await _getSystemDownloadDirectory();
+    final configured = ref.read(configProvider).valueOrNull?.downloadLocation ?? '';
+    try {
+      final location = await ref.read(downloadPathServiceProvider).rootPath(configured);
+      if (mounted) setState(() => _downloadLocation = location);
+    } catch (_) {
+      // The configured location may not be supported on this platform.
     }
-    if (mounted) setState(() {});
-  }
-
-  Future<String?> _getSystemDownloadDirectory() async {
-    if (Platform.isWindows) {
-      final userProfile = Platform.environment['USERPROFILE'];
-      if (userProfile != null) {
-        return p.join(userProfile, 'Downloads');
-      }
-    } else if (Platform.isLinux) {
-      final home = Platform.environment['HOME'];
-      if (home != null) {
-        return p.join(home, 'Downloads');
-      }
-    } else if (Platform.isMacOS) {
-      final home = Platform.environment['HOME'];
-      if (home != null) {
-        return p.join(home, 'Downloads');
-      }
-    } else if (Platform.isAndroid) {
-      final dir = await getExternalStorageDirectory();
-      return dir?.path;
-    }
-    final dir = await getApplicationDocumentsDirectory();
-    return dir.path;
   }
 
   Future<void> _openFolderAndroid(String path) async {

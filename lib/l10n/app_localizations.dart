@@ -1350,6 +1350,42 @@ abstract class AppLocalizations {
   /// **'Download location'**
   String get downloadLocation;
 
+  /// No description provided for @systemDownloadsOption.
+  ///
+  /// In en, this message translates to:
+  /// **'System Downloads (default)'**
+  String get systemDownloadsOption;
+
+  /// No description provided for @portableDownloadsOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads next to app (USB-friendly)'**
+  String get portableDownloadsOption;
+
+  /// No description provided for @customDownloadsOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom folder'**
+  String get customDownloadsOption;
+
+  /// No description provided for @effectiveDownloadPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Current download path'**
+  String get effectiveDownloadPath;
+
+  /// No description provided for @downloadServerSubdirectoryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Files are stored in a subfolder for each server. Changing location does not move existing downloads.'**
+  String get downloadServerSubdirectoryNote;
+
+  /// No description provided for @portableDownloadsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Portable Mode too, so this setting travels with the app.'**
+  String get portableDownloadsHint;
+
   /// No description provided for @systemDefault.
   ///
   /// In en, this message translates to:

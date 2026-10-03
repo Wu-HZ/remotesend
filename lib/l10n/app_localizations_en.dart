@@ -721,6 +721,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadLocation => 'Download location';
 
   @override
+  String get systemDownloadsOption => 'System Downloads (default)';
+
+  @override
+  String get portableDownloadsOption => 'Downloads next to app (USB-friendly)';
+
+  @override
+  String get customDownloadsOption => 'Custom folder';
+
+  @override
+  String get effectiveDownloadPath => 'Current download path';
+
+  @override
+  String get downloadServerSubdirectoryNote =>
+      'Files are stored in a subfolder for each server. Changing location does not move existing downloads.';
+
+  @override
+  String get portableDownloadsHint =>
+      'Enable Portable Mode too, so this setting travels with the app.';
+
+  @override
   String get systemDefault => 'System default';
 
   @override

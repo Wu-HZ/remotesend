@@ -10,16 +10,22 @@ import '../models/server_config.dart';
 
 class DownloadPathService {
   static const foldersPreferenceKey = 'download_server_folders';
+  // Stored in config instead of an absolute path, so moving the app (e.g. on a
+  // USB drive) also moves the download root without editing the config.
+  static const portableDownloadsLocation = 'portable://Downloads';
   final Future<Directory> Function() _defaultDirectory;
   final Future<SharedPreferences> Function() _preferences;
+  final String Function() _executablePath;
   Map<String, String>? _folders;
   Future<void> _pending = Future.value();
 
   DownloadPathService({
     Future<Directory> Function()? defaultDirectory,
     Future<SharedPreferences> Function()? preferences,
+    String Function()? executablePath,
   }) : _defaultDirectory = defaultDirectory ?? _systemDirectory,
-       _preferences = preferences ?? SharedPreferences.getInstance;
+       _preferences = preferences ?? SharedPreferences.getInstance,
+       _executablePath = executablePath ?? (() => Platform.resolvedExecutable);
 
   static Future<Directory> _systemDirectory() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -37,6 +43,12 @@ class DownloadPathService {
 
   Future<String> rootPath(String configuredDirectory) async {
     final configured = configuredDirectory.trim();
+    if (configured == portableDownloadsLocation) {
+      if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) {
+        throw UnsupportedError('程序目录下载仅支持桌面平台');
+      }
+      return p.normalize(p.absolute(p.join(p.dirname(_executablePath()), 'Downloads')));
+    }
     final root = configured.isNotEmpty
         ? configured
         : (await _defaultDirectory()).path;

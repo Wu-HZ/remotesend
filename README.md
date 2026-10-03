@@ -143,6 +143,8 @@ flutter build apk --release --target-platform android-arm64
 }
 ```
 
+设置中的「下载位置」可选系统下载文件夹（默认）、程序旁的 Downloads（适合 U 盘）或自定义文件夹。选程序旁下载时，请同时启用便携模式保存配置；`downloadLocation` 会保存为 `portable://Downloads`，每次运行时按当前程序位置解析。实际文件存放在 `程序目录/Downloads/服务器子目录/`；切换位置不会移动已有文件。
+
 ## 技术栈
 
 - Flutter / Dart

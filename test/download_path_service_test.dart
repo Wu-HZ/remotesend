@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:remote_send/models/app_config.dart';
 import 'package:remote_send/models/server_config.dart';
 import 'package:remote_send/services/download_path_service.dart';
 
@@ -62,6 +63,55 @@ void main() {
       fileName: 'file.txt',
     );
     expect(p.isWithin(root.path, target), isTrue);
+  });
+
+  test('便携下载目录跟随程序移动，且保留服务器子目录隔离', () async {
+    var executable = p.join(root.path, 'usb-a', 'RemoteSend.exe');
+    final portable = DownloadPathService(executablePath: () => executable);
+    final stored = AppConfig(
+      downloadLocation: DownloadPathService.portableDownloadsLocation,
+    );
+    final restored = AppConfig.fromJsonString(stored.toJsonString());
+    expect(
+      restored.downloadLocation,
+      DownloadPathService.portableDownloadsLocation,
+    );
+
+    final first = await portable.downloadPath(
+      configuredDirectory: restored.downloadLocation,
+      server: server('a'),
+      fileName: 'report.txt',
+    );
+    expect(
+      p.dirname(p.dirname(first)),
+      p.join(root.path, 'usb-a', 'Downloads'),
+    );
+    await File(first).writeAsString('old copy');
+
+    executable = p.join(root.path, 'usb-b', 'RemoteSend.exe');
+    final second = await portable.downloadPath(
+      configuredDirectory: restored.downloadLocation,
+      server: server('a'),
+      fileName: 'report.txt',
+    );
+    expect(
+      p.dirname(p.dirname(second)),
+      p.join(root.path, 'usb-b', 'Downloads'),
+    );
+    expect(p.basename(p.dirname(second)), p.basename(p.dirname(first)));
+    expect(await File(first).readAsString(), 'old copy');
+  });
+
+  test('未选择便携位置时继续使用默认或用户选择的目录', () async {
+    final portable = DownloadPathService(
+      defaultDirectory: () async => root,
+      executablePath: () => p.join(root.path, 'app', 'RemoteSend.exe'),
+    );
+    expect(await portable.rootPath(''), root.path);
+    expect(
+      await portable.rootPath(p.join(root.path, 'custom')),
+      p.join(root.path, 'custom'),
+    );
   });
 
   test('服务器改名与重新加载后仍使用首次分配的目录', () async {

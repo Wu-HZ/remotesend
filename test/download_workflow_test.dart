@@ -291,16 +291,20 @@ void main() {
     expect(opened, [p.dirname(saved)]);
   });
 
-  testWidgets('设置页只显示总下载位置，不显示额外分目录说明', (tester) async {
+  testWidgets('设置页区分三种下载位置并显示实际路径与服务器子目录说明', (tester) async {
     await show(tester, const SettingsScreen());
     await tester.scrollUntilVisible(
-      find.text(root.path),
+      find.text('自动下载'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.text(root.path), findsOneWidget);
-    expect(find.text('新下载的文件将按服务器分别保存到子文件夹，已有文件保持原位。'), findsNothing);
+    await tester.tap(find.text('自定义文件夹'));
+    await tester.pumpAndSettle();
+    expect(find.text('系统下载文件夹（默认）'), findsOneWidget);
+    expect(find.text('程序旁的 Downloads（适合 U 盘）'), findsOneWidget);
+    expect(find.text(root.path), findsWidgets);
+    expect(find.text('文件将保存在所选位置的服务器子目录中；切换位置不会移动已有文件。'), findsOneWidget);
   });
 
   test('整文件夹下载使用固定来源服务并保留内部层级', () async {

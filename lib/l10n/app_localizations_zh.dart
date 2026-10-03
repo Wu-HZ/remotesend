@@ -706,6 +706,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadLocation => '下载位置';
 
   @override
+  String get systemDownloadsOption => '系统下载文件夹（默认）';
+
+  @override
+  String get portableDownloadsOption => '程序旁的 Downloads（适合 U 盘）';
+
+  @override
+  String get customDownloadsOption => '自定义文件夹';
+
+  @override
+  String get effectiveDownloadPath => '当前实际下载位置';
+
+  @override
+  String get downloadServerSubdirectoryNote =>
+      '文件将保存在所选位置的服务器子目录中；切换位置不会移动已有文件。';
+
+  @override
+  String get portableDownloadsHint => '请同时启用便携模式，让此设置随程序一起移动。';
+
+  @override
   String get systemDefault => '系统默认';
 
   @override
