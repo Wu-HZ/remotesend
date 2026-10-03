@@ -81,7 +81,10 @@ class _Files extends FileListNotifier {
     state = FileListState(files: [file]);
   }
   @override
-  Future<bool> refresh() async => true;
+  Future<bool> refresh({
+    bool retryTransient = true,
+    Duration retryDelay = const Duration(seconds: 1),
+  }) async => true;
 }
 
 class _Connection extends ConnectionNotifier {

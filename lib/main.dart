@@ -185,7 +185,11 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
       next.whenData((config) {
         if (!_autoConnectAttempted && config.isConfigured) {
           _autoConnectAttempted = true;
-          _autoConnect();
+          // Let server providers observe the loaded config before testing either
+          // connection. Otherwise the files server can still appear null here.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _autoConnect();
+          });
         }
       });
     });
@@ -514,22 +518,31 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
     final config = ref.read(configProvider).valueOrNull;
     if (config == null) return;
 
-    // Connect text service if configured
-    if (config.isTextConfigured) {
-      final textConnectionNotifier = ref.read(textConnectionStatusProvider.notifier);
-      final textSuccess = await textConnectionNotifier.testConnection();
-      if (textSuccess) {
-        await textConnectionNotifier.initializeFolderStructure();
-      }
-    }
+    // The two services are independent; a slow/unreachable text server must
+    // not postpone the first connection attempt for the files server.
+    await Future.wait([
+      if (config.isTextConfigured)
+        _connectAtStartup(forText: true, serverId: config.activeTextServer!.id),
+      if (config.isFilesConfigured)
+        _connectAtStartup(forText: false, serverId: config.activeFilesServer!.id),
+    ]);
+  }
 
-    // Connect files service if configured
-    if (config.isFilesConfigured) {
-      final filesConnectionNotifier = ref.read(filesConnectionStatusProvider.notifier);
-      final filesSuccess = await filesConnectionNotifier.testConnection();
-      if (filesSuccess) {
-        await filesConnectionNotifier.initializeFolderStructure();
-      }
+  Future<void> _connectAtStartup({
+    required bool forText,
+    required String serverId,
+  }) async {
+    final provider = forText
+        ? textConnectionStatusProvider
+        : filesConnectionStatusProvider;
+    final notifier = ref.read(provider.notifier);
+    final connected = await notifier.testConnection(maxAttempts: 3);
+    if (!connected || !mounted) return;
+    final currentServerId = forText
+        ? ref.read(activeTextServerProvider)?.id
+        : ref.read(activeFilesServerProvider)?.id;
+    if (serverId == currentServerId) {
+      await notifier.initializeFolderStructure();
     }
   }
 }

@@ -915,6 +915,15 @@ class WebDavService {
         }
       }
 
+      // A dropped TLS handshake is a connection failure, not an unknown
+      // server/application error. This can happen transiently on mobile data.
+      if (error.error is HandshakeException || error.error is SocketException) {
+        return WebDavConnectionException(
+          message: error.error.toString(),
+          originalError: error,
+        );
+      }
+
       // Map Dio error types
       switch (error.type) {
         case DioExceptionType.connectionTimeout:
@@ -944,9 +953,9 @@ class WebDavService {
       }
     }
 
-    if (error is SocketException) {
+    if (error is SocketException || error is HandshakeException) {
       return WebDavConnectionException(
-        message: error.message,
+        message: error.toString(),
         originalError: error,
       );
     }

@@ -226,7 +226,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     child: Column(
                       children: [
                         if (!canSync)
-                          _buildWarningBanner(isConfigured, isConnected, l10n),
+                          _buildWarningBanner(isConfigured, connectionStatus.state, l10n),
                         Expanded(
                           child:
                               historyState.isLoading &&
@@ -452,7 +452,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   Widget _buildWarningBanner(
     bool isConfigured,
-    bool isConnected,
+    WebDavConnectionState connectionState,
     AppLocalizations l10n,
   ) {
     String message;
@@ -461,7 +461,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     if (!isConfigured) {
       message = l10n.configureWebDavToSync;
       icon = Icons.settings;
-    } else if (!isConnected) {
+    } else if (connectionState == WebDavConnectionState.connecting) {
+      message = l10n.connectionStatusConnecting;
+      icon = Icons.sync;
+    } else if (connectionState != WebDavConnectionState.connected) {
       message = l10n.notConnectedTestInSettings;
       icon = Icons.cloud_off;
     } else {

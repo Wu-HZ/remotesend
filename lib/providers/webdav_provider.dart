@@ -90,33 +90,53 @@ class ConnectionStatus {
 /// Notifier for managing connection status.
 class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
   final WebDavService _service;
+  int _generation = 0;
 
   ConnectionNotifier(this._service)
     : super(const ConnectionStatus.disconnected());
 
-  /// Test the connection and update status.
-  Future<bool> testConnection() async {
+  /// Test the connection and update status. Startup retries transient failures
+  /// without replacing a newer connection attempt or a server switch.
+  Future<bool> testConnection({
+    int maxAttempts = 1,
+    Duration retryDelay = const Duration(seconds: 2),
+  }) async {
+    if (maxAttempts < 1) throw ArgumentError.value(maxAttempts, 'maxAttempts');
+    final generation = ++_generation;
     state = ConnectionStatus(
       state: WebDavConnectionState.connecting,
       lastChecked: state.lastChecked,
     );
 
-    final result = await _service.testConnection();
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      final result = await _service.testConnection();
+      if (!mounted || generation != _generation) return false;
 
-    if (result.isSuccess) {
-      state = ConnectionStatus(
-        state: WebDavConnectionState.connected,
-        lastChecked: DateTime.now(),
-      );
-      return true;
-    } else {
+      if (result.isSuccess) {
+        state = ConnectionStatus(
+          state: WebDavConnectionState.connected,
+          lastChecked: DateTime.now(),
+        );
+        return true;
+      }
+      final error = result.error;
+      final transient = error is WebDavConnectionException ||
+          error is WebDavTimeoutException ||
+          error is WebDavServerException ||
+          error is WebDavUnknownException;
+      if (attempt < maxAttempts && transient) {
+        await Future<void>.delayed(retryDelay);
+        if (!mounted || generation != _generation) return false;
+        continue;
+      }
       state = ConnectionStatus(
         state: WebDavConnectionState.error,
-        errorMessage: result.error?.userMessage,
+        errorMessage: error?.userMessage,
         lastChecked: DateTime.now(),
       );
       return false;
     }
+    return false;
   }
 
   /// Initialize the RemoteSend folder structure on the server.
@@ -126,6 +146,7 @@ class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
 
   /// Reset connection status.
   void reset() {
+    ++_generation;
     state = const ConnectionStatus.disconnected();
   }
 }
@@ -134,14 +155,22 @@ class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
 final textConnectionStatusProvider =
     StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
       final service = ref.watch(webDavTextServiceProvider);
-      return ConnectionNotifier(service);
+      final notifier = ConnectionNotifier(service);
+      ref.listen<ServerConfig?>(activeTextServerProvider, (previous, next) {
+        if (previous?.id != next?.id) notifier.reset();
+      });
+      return notifier;
     });
 
 /// Provider for connection status management for File Depot.
 final filesConnectionStatusProvider =
     StateNotifierProvider<ConnectionNotifier, ConnectionStatus>((ref) {
       final service = ref.watch(webDavFilesServiceProvider);
-      return ConnectionNotifier(service);
+      final notifier = ConnectionNotifier(service);
+      ref.listen<ServerConfig?>(activeFilesServerProvider, (previous, next) {
+        if (previous?.id != next?.id) notifier.reset();
+      });
+      return notifier;
     });
 
 /// Backward-compatible provider (uses text connection status).
@@ -306,40 +335,60 @@ class FileListState {
 /// Notifier for managing the file list.
 class FileListNotifier extends StateNotifier<FileListState> {
   final WebDavService _service;
+  int _generation = 0;
 
   FileListNotifier(this._service) : super(const FileListState());
 
-  /// Refresh the file list from the server.
-  Future<bool> refresh() async {
+  /// Refresh the file list from the server. A transient network failure gets
+  /// one retry; a newer refresh or server switch cancels the old result.
+  Future<bool> refresh({
+    bool retryTransient = true,
+    Duration retryDelay = const Duration(seconds: 1),
+  }) async {
+    final generation = ++_generation;
+    final path = state.currentPath;
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await _service.listFiles(state.currentPath);
+    for (var attempt = 0; attempt < (retryTransient ? 2 : 1); attempt++) {
+      final result = await _service.listFiles(path);
+      if (!mounted || generation != _generation) return false;
 
-    if (result.isSuccess) {
-      state = state.copyWith(
-        files: result.data ?? [],
-        isLoading: false,
-        lastRefresh: DateTime.now(),
-      );
-      return true;
-    } else {
-      state = state.copyWith(
-        isLoading: false,
-        error: result.error?.userMessage,
-      );
+      if (result.isSuccess) {
+        state = state.copyWith(
+          files: result.data ?? [],
+          isLoading: false,
+          lastRefresh: DateTime.now(),
+        );
+        return true;
+      }
+      final error = result.error;
+      final transient = error is WebDavConnectionException ||
+          error is WebDavTimeoutException ||
+          error is WebDavServerException ||
+          error is WebDavUnknownException;
+      if (attempt == 0 && retryTransient && transient) {
+        await Future<void>.delayed(retryDelay);
+        if (!mounted || generation != _generation) return false;
+        continue;
+      }
+      state = state.copyWith(isLoading: false, error: error?.userMessage);
       return false;
     }
+    return false;
   }
 
   /// Navigate into a folder.
   Future<bool> navigateToFolder(String folderName) async {
-    final newPath = state.currentPath.isEmpty
+    final previousPath = state.currentPath;
+    final newPath = previousPath.isEmpty
         ? folderName
-        : '${state.currentPath}/$folderName';
+        : '$previousPath/$folderName';
 
+    final generation = ++_generation;
     state = state.copyWith(isLoading: true, error: null, currentPath: newPath);
 
     final result = await _service.listFiles(newPath);
+    if (!mounted || generation != _generation) return false;
 
     if (result.isSuccess) {
       state = state.copyWith(
@@ -353,7 +402,7 @@ class FileListNotifier extends StateNotifier<FileListState> {
       state = state.copyWith(
         isLoading: false,
         error: result.error?.userMessage,
-        currentPath: state.currentPath,
+        currentPath: previousPath,
       );
       return false;
     }
@@ -367,9 +416,11 @@ class FileListNotifier extends StateNotifier<FileListState> {
     parts.removeLast();
     final newPath = parts.join('/');
 
+    final generation = ++_generation;
     state = state.copyWith(isLoading: true, error: null, currentPath: newPath);
 
     final result = await _service.listFiles(newPath.isEmpty ? null : newPath);
+    if (!mounted || generation != _generation) return false;
 
     if (result.isSuccess) {
       state = state.copyWith(
@@ -389,9 +440,11 @@ class FileListNotifier extends StateNotifier<FileListState> {
 
   /// Navigate to root.
   Future<bool> navigateToRoot() async {
+    final generation = ++_generation;
     state = state.copyWith(isLoading: true, error: null, currentPath: '');
 
     final result = await _service.listFiles();
+    if (!mounted || generation != _generation) return false;
 
     if (result.isSuccess) {
       state = state.copyWith(
@@ -411,7 +464,9 @@ class FileListNotifier extends StateNotifier<FileListState> {
 
   /// Delete a file from the server.
   Future<bool> deleteFile(String filePath) async {
+    final generation = _generation;
     final result = await _service.deleteFile(filePath);
+    if (!mounted || generation != _generation) return false;
 
     if (result.isSuccess) {
       // Remove from local list - extract file name from path for comparison
@@ -430,13 +485,16 @@ class FileListNotifier extends StateNotifier<FileListState> {
     String destinationPath, {
     Set<String> directoryPaths = const <String>{},
   }) async {
+    final generation = _generation;
     var success = true;
     for (final filePath in filePaths) {
+      if (!mounted || generation != _generation) return false;
       final result = await _service.moveFile(
         filePath,
         destinationPath,
         isDirectory: directoryPaths.contains(filePath),
       );
+      if (!mounted || generation != _generation) return false;
       if (result.isFailure) {
         success = false;
         break;
@@ -464,12 +522,14 @@ class FileListNotifier extends StateNotifier<FileListState> {
 
   /// Create a folder in the current directory.
   Future<bool> createFolder(String folderName) async {
+    final generation = _generation;
     final remotePath = state.currentPath.isEmpty
         ? folderName
         : '${state.currentPath}/$folderName';
     final result = await _service.createRemoteDirectory(
       '${_service.filesFolderPath}/$remotePath',
     );
+    if (!mounted || generation != _generation) return false;
 
     if (result.isSuccess) {
       // Refresh so the new folder appears with the server-provided metadata.
@@ -485,11 +545,13 @@ class FileListNotifier extends StateNotifier<FileListState> {
     String newName, {
     bool isDirectory = false,
   }) async {
+    final generation = _generation;
     final result = await _service.renameFile(
       filePath,
       newName,
       isDirectory: isDirectory,
     );
+    if (!mounted || generation != _generation) return false;
 
     if (result.isSuccess) {
       final oldName = filePath.split('/').last;
@@ -512,6 +574,7 @@ class FileListNotifier extends StateNotifier<FileListState> {
 
   /// Clear the file list.
   void clear() {
+    ++_generation;
     state = const FileListState();
   }
 }
@@ -520,7 +583,11 @@ class FileListNotifier extends StateNotifier<FileListState> {
 final fileListProvider = StateNotifierProvider<FileListNotifier, FileListState>(
   (ref) {
     final service = ref.watch(webDavFilesServiceProvider);
-    return FileListNotifier(service);
+    final notifier = FileListNotifier(service);
+    ref.listen<ServerConfig?>(activeFilesServerProvider, (previous, next) {
+      if (previous?.id != next?.id) notifier.clear();
+    });
+    return notifier;
   },
 );
 
