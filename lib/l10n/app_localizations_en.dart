@@ -101,6 +101,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectDate => 'Select Date';
 
   @override
+  String get previousDay => 'Previous day';
+
+  @override
+  String get nextDay => 'Next day';
+
+  @override
   String get refresh => 'Refresh';
 
   @override

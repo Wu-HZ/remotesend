@@ -272,6 +272,18 @@ abstract class AppLocalizations {
   /// **'Select Date'**
   String get selectDate;
 
+  /// No description provided for @previousDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous day'**
+  String get previousDay;
+
+  /// No description provided for @nextDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Next day'**
+  String get nextDay;
+
   /// No description provided for @refresh.
   ///
   /// In en, this message translates to:

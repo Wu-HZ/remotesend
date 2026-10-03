@@ -35,6 +35,8 @@
   "today": "今天",
   "yesterday": "昨天",
   "selectDate": "选择日期",
+  "previousDay": "前一天",
+  "nextDay": "后一天",
 
   "refresh": "刷新",
   "clearSelection": "清除选择",

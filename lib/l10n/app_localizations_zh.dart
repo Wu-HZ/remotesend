@@ -96,6 +96,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectDate => '选择日期';
 
   @override
+  String get previousDay => '前一天';
+
+  @override
+  String get nextDay => '后一天';
+
+  @override
   String get refresh => '刷新';
 
   @override

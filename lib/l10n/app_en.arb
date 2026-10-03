@@ -35,6 +35,8 @@
   "today": "Today",
   "yesterday": "Yesterday",
   "selectDate": "Select Date",
+  "previousDay": "Previous day",
+  "nextDay": "Next day",
 
   "refresh": "Refresh",
   "clearSelection": "Clear selection",

@@ -163,31 +163,88 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     },
                   ),
                 const Spacer(),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: canSync
-                        ? () =>
-                              _showDatePicker(historyState.availableDates, l10n)
-                        : null,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: const ValueKey('text-date-previous'),
+                      onPressed: canSync && !historyState.isLoading
+                          ? () => _changeSelectedDate(selectedDate, -1)
+                          : null,
+                      icon: const Icon(Icons.chevron_left),
+                      tooltip: l10n.previousDay,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 36,
+                        height: 36,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_formatDateForTitle(selectedDate, l10n)),
-                          if (canSync) ...[
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_drop_down, size: 20),
-                          ],
-                        ],
+                      padding: EdgeInsets.zero,
+                    ),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        key: const ValueKey('text-date-picker'),
+                        onTap: canSync
+                            ? () => _showDatePicker(
+                                historyState.availableDates,
+                                l10n,
+                              )
+                            : null,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          child: Transform.translate(
+                            offset: const Offset(0, 8),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Transform.translate(
+                                    offset: const Offset(0, 2),
+                                    child: Text(
+                                      _formatDateForTitle(selectedDate, l10n),
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+                                if (canSync) ...[
+                                  const SizedBox(height: 2),
+                                  Transform.translate(
+                                    offset: const Offset(0, -2),
+                                    child: const Icon(
+                                      Icons.arrow_drop_down,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    IconButton(
+                      key: const ValueKey('text-date-next'),
+                      onPressed:
+                          canSync &&
+                              !historyState.isLoading &&
+                              !_isToday(selectedDate)
+                          ? () => _changeSelectedDate(selectedDate, 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_right),
+                      tooltip: l10n.nextDay,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 36,
+                        height: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
                 ),
                 const Spacer(),
               ],
@@ -226,7 +283,11 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                     child: Column(
                       children: [
                         if (!canSync)
-                          _buildWarningBanner(isConfigured, connectionStatus.state, l10n),
+                          _buildWarningBanner(
+                            isConfigured,
+                            connectionStatus.state,
+                            l10n,
+                          ),
                         Expanded(
                           child:
                               historyState.isLoading &&
@@ -365,6 +426,14 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   void _selectDate(String date) {
     ref.read(selectedDateProvider.notifier).state = date;
     ref.read(messageHistoryProvider.notifier).loadMessagesForDate(date);
+  }
+
+  void _changeSelectedDate(String date, int days) {
+    final current = DateTime.parse(date);
+    final next = current.add(Duration(days: days));
+    final formatted =
+        '${next.year}-${next.month.toString().padLeft(2, '0')}-${next.day.toString().padLeft(2, '0')}';
+    _selectDate(formatted);
   }
 
   Future<void> _manualRefresh() async {
