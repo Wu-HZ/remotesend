@@ -328,6 +328,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotAccessFiles => 'Could not access files';
 
   @override
+  String get pasteClipboardFiles => 'Paste and send images or files';
+
+  @override
+  String get clipboardUnavailable => 'Clipboard is unavailable';
+
+  @override
+  String get clipboardNoFilesOrImages =>
+      'No sendable images or files found in the clipboard';
+
+  @override
   String addedFilesToQueue(Object count) {
     return 'Added $count file(s) to upload queue';
   }

@@ -108,6 +108,9 @@
   "daysAgo": "{days}天前",
 
   "couldNotAccessFiles": "无法访问文件",
+  "pasteClipboardFiles": "粘贴发送图片或文件",
+  "clipboardUnavailable": "剪贴板不可用",
+  "clipboardNoFilesOrImages": "剪贴板中没有可发送的图片或文件",
   "addedFilesToQueue": "已添加 {count} 个文件到上传队列",
   "selectFolderToUpload": "选择要上传的文件夹",
   "addedFolderToQueue": "已添加文件夹 {name} 到上传队列",

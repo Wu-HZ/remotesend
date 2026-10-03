@@ -319,6 +319,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get couldNotAccessFiles => '无法访问文件';
 
   @override
+  String get pasteClipboardFiles => '粘贴发送图片或文件';
+
+  @override
+  String get clipboardUnavailable => '剪贴板不可用';
+
+  @override
+  String get clipboardNoFilesOrImages => '剪贴板中没有可发送的图片或文件';
+
+  @override
   String addedFilesToQueue(Object count) {
     return '已添加 $count 个文件到上传队列';
   }

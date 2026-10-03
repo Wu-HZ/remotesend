@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../providers/config_provider.dart';
@@ -112,10 +116,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (directory == null) {
         final server = ref.read(activeFilesServerProvider);
         if (server == null) return;
-        directory = await ref.read(downloadPathServiceProvider).serverDirectory(
-          configuredDirectory: ref.read(configProvider).valueOrNull?.downloadLocation ?? '',
-          server: server,
-        );
+        directory = await ref
+            .read(downloadPathServiceProvider)
+            .serverDirectory(
+              configuredDirectory:
+                  ref.read(configProvider).valueOrNull?.downloadLocation ?? '',
+              server: server,
+            );
       }
       if (!await opener(directory) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -329,6 +336,24 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (Platform.isWindows ||
+                                  Platform.isMacOS ||
+                                  Platform.isLinux)
+                                Tooltip(
+                                  message: l10n.pasteClipboardFiles,
+                                  preferBelow: false,
+                                  verticalOffset: 36,
+                                  child: FloatingActionButton(
+                                    heroTag: 'paste-clipboard',
+                                    tooltip: null,
+                                    onPressed: _pasteClipboardFiles,
+                                    child: const Icon(Icons.content_paste),
+                                  ),
+                                ),
+                              if (Platform.isWindows ||
+                                  Platform.isMacOS ||
+                                  Platform.isLinux)
+                                const SizedBox(width: 12),
                               Tooltip(
                                 message: l10n.createFolder,
                                 preferBelow: false,
@@ -1317,8 +1342,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final currentPath = ref.read(fileListProvider).currentPath;
     final paths = <String>[];
     for (final item in _itemsForMove(source)) {
-      final localPath = await _ensureLocalCopy(l10n, item,
-        server: sourceServer, configuredDirectory: root, currentPath: currentPath);
+      final localPath = await _ensureLocalCopy(
+        l10n,
+        item,
+        server: sourceServer,
+        configuredDirectory: root,
+        currentPath: currentPath,
+      );
       if (localPath != null) paths.add(localPath);
     }
     if (!mounted) return;
@@ -1339,8 +1369,13 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final currentPath = ref.read(fileListProvider).currentPath;
     final paths = <String>[];
     for (final item in _itemsForMove(source)) {
-      final localPath = await _ensureLocalCopy(l10n, item,
-        server: sourceServer, configuredDirectory: root, currentPath: currentPath);
+      final localPath = await _ensureLocalCopy(
+        l10n,
+        item,
+        server: sourceServer,
+        configuredDirectory: root,
+        currentPath: currentPath,
+      );
       if (localPath != null) paths.add(localPath);
     }
     if (!mounted) return;
@@ -1384,14 +1419,26 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final cache = ref.read(downloadCacheProvider);
     final cachedPath = cache.localPathFor(serverId: server.id, file: file);
     if (cachedPath != null) return cachedPath;
-    final remoteName = currentPath.isEmpty ? file.name : '$currentPath/${file.name}';
+    final remoteName = currentPath.isEmpty
+        ? file.name
+        : '$currentPath/${file.name}';
 
     if (file.isDirectory) {
-      await _downloadFolder(l10n, file, sourceServer: server,
-        configuredDirectory: configuredDirectory, sourceRemoteName: remoteName);
+      await _downloadFolder(
+        l10n,
+        file,
+        sourceServer: server,
+        configuredDirectory: configuredDirectory,
+        sourceRemoteName: remoteName,
+      );
     } else {
-      await _downloadFile(l10n, file, sourceServer: server,
-        configuredDirectory: configuredDirectory, sourceRemoteName: remoteName);
+      await _downloadFile(
+        l10n,
+        file,
+        sourceServer: server,
+        configuredDirectory: configuredDirectory,
+        sourceRemoteName: remoteName,
+      );
     }
     if (!mounted) return null;
     return ref
@@ -1500,6 +1547,87 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
+  Future<void> _pasteClipboardFiles() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final clipboard = SystemClipboard.instance;
+      if (clipboard == null) throw UnsupportedError(l10n.clipboardUnavailable);
+      final reader = await clipboard.read();
+      final paths = <String>[];
+      final temp = await getTemporaryDirectory();
+      final clipboardDirectory = Directory(
+        p.join(temp.path, 'RemoteSendClipboard'),
+      );
+      var imageIndex = 0;
+
+      for (final item in reader.items) {
+        final uri = item.canProvide(Formats.fileUri)
+            ? await item.readValue(Formats.fileUri)
+            : null;
+        if (uri != null && uri.isScheme('file')) {
+          final filePath = uri.toFilePath(windows: Platform.isWindows);
+          if (await File(filePath).exists() && !paths.contains(filePath)) {
+            paths.add(filePath);
+          }
+          continue;
+        }
+
+        if (item.canProvide(Formats.png)) {
+          final bytes = await _readClipboardFile(item, Formats.png);
+          if (bytes != null && bytes.isNotEmpty) {
+            await clipboardDirectory.create(recursive: true);
+            final image = File(
+              p.join(
+                clipboardDirectory.path,
+                'clipboard_${DateTime.now().millisecondsSinceEpoch}_${imageIndex++}.png',
+              ),
+            );
+            await image.writeAsBytes(bytes, flush: true);
+            paths.add(image.path);
+          }
+        }
+      }
+
+      if (paths.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.clipboardNoFilesOrImages)),
+          );
+        }
+        return;
+      }
+
+      await ref.read(uploadQueueProvider.notifier).addFiles(paths);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.addedFilesToQueue(paths.length))),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.error(error.toString())),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<Uint8List?> _readClipboardFile(DataReader reader, FileFormat format) {
+    final completer = Completer<Uint8List?>();
+    final progress = reader.getFile(format, (file) async {
+      try {
+        completer.complete(await file.readAll());
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    }, onError: (error) => completer.completeError(error));
+    if (progress == null) return Future.value(null);
+    return completer.future;
+  }
+
   Future<void> _pickAndUploadFiles() async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -1576,7 +1704,11 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  void _showAlreadyDownloaded(AppLocalizations l10n, RemoteFile file, String localPath) {
+  void _showAlreadyDownloaded(
+    AppLocalizations l10n,
+    RemoteFile file,
+    String localPath,
+  ) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1591,25 +1723,34 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     );
   }
 
-  Future<void> _downloadFile(AppLocalizations l10n, RemoteFile file, {
+  Future<void> _downloadFile(
+    AppLocalizations l10n,
+    RemoteFile file, {
     ServerConfig? sourceServer,
     String? configuredDirectory,
     String? sourceRemoteName,
   }) async {
     try {
       final fileListState = ref.read(fileListProvider);
-      final remoteName = sourceRemoteName ?? (fileListState.currentPath.isEmpty
-          ? file.name
-          : '${fileListState.currentPath}/${file.name}');
+      final remoteName =
+          sourceRemoteName ??
+          (fileListState.currentPath.isEmpty
+              ? file.name
+              : '${fileListState.currentPath}/${file.name}');
       final server = sourceServer ?? ref.read(activeFilesServerProvider);
       if (server == null) return;
-      final root = configuredDirectory ?? ref.read(configProvider).valueOrNull?.downloadLocation ?? '';
+      final root =
+          configuredDirectory ??
+          ref.read(configProvider).valueOrNull?.downloadLocation ??
+          '';
       final paths = ref.read(downloadPathServiceProvider);
       final service = ref.read(downloadSourceServiceProvider)(server);
 
       await ref.read(downloadCacheProvider.notifier).ready;
       if (!mounted) return;
-      final cachedPath = ref.read(downloadCacheProvider).localPathFor(serverId: server.id, file: file);
+      final cachedPath = ref
+          .read(downloadCacheProvider)
+          .localPathFor(serverId: server.id, file: file);
       if (cachedPath != null) {
         _showAlreadyDownloaded(l10n, file, cachedPath);
         return;
@@ -1656,7 +1797,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                     child: Text(l10n.downloaded(p.basename(downloadPath))),
                   ),
                   GestureDetector(
-                    onTap: () => _openDownloadLocation(directory: p.dirname(downloadPath)),
+                    onTap: () => _openDownloadLocation(
+                      directory: p.dirname(downloadPath),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.only(left: 12),
                       child: Text(
@@ -1698,7 +1841,9 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     }
   }
 
-  Future<void> _downloadFolder(AppLocalizations l10n, RemoteFile folder, {
+  Future<void> _downloadFolder(
+    AppLocalizations l10n,
+    RemoteFile folder, {
     ServerConfig? sourceServer,
     String? configuredDirectory,
     String? sourceRemoteName,
@@ -1709,17 +1854,24 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
     final fileListState = ref.read(fileListProvider);
     final server = sourceServer ?? ref.read(activeFilesServerProvider);
     if (server == null) return;
-    final root = configuredDirectory ?? ref.read(configProvider).valueOrNull?.downloadLocation ?? '';
-    final remoteFolderName = sourceRemoteName ?? (fileListState.currentPath.isEmpty
-        ? folder.name
-        : '${fileListState.currentPath}/${folder.name}');
+    final root =
+        configuredDirectory ??
+        ref.read(configProvider).valueOrNull?.downloadLocation ??
+        '';
+    final remoteFolderName =
+        sourceRemoteName ??
+        (fileListState.currentPath.isEmpty
+            ? folder.name
+            : '${fileListState.currentPath}/${folder.name}');
     final paths = ref.read(downloadPathServiceProvider);
     final service = ref.read(downloadSourceServiceProvider)(server);
 
     try {
       await ref.read(downloadCacheProvider.notifier).ready;
       if (!mounted) return;
-      final cachedPath = ref.read(downloadCacheProvider).localPathFor(serverId: server.id, file: folder);
+      final cachedPath = ref
+          .read(downloadCacheProvider)
+          .localPathFor(serverId: server.id, file: folder);
       if (cachedPath != null) {
         _showAlreadyDownloaded(l10n, folder, cachedPath);
         return;
@@ -1765,7 +1917,8 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => _openDownloadLocation(directory: localFolderPath),
+                    onTap: () =>
+                        _openDownloadLocation(directory: localFolderPath),
                     child: Padding(
                       padding: const EdgeInsets.only(left: 12),
                       child: Text(

@@ -642,6 +642,24 @@ abstract class AppLocalizations {
   /// **'Could not access files'**
   String get couldNotAccessFiles;
 
+  /// No description provided for @pasteClipboardFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste and send images or files'**
+  String get pasteClipboardFiles;
+
+  /// No description provided for @clipboardUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard is unavailable'**
+  String get clipboardUnavailable;
+
+  /// No description provided for @clipboardNoFilesOrImages.
+  ///
+  /// In en, this message translates to:
+  /// **'No sendable images or files found in the clipboard'**
+  String get clipboardNoFilesOrImages;
+
   /// No description provided for @addedFilesToQueue.
   ///
   /// In en, this message translates to:

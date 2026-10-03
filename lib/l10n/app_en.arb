@@ -207,6 +207,9 @@
   },
 
   "couldNotAccessFiles": "Could not access files",
+  "pasteClipboardFiles": "Paste and send images or files",
+  "clipboardUnavailable": "Clipboard is unavailable",
+  "clipboardNoFilesOrImages": "No sendable images or files found in the clipboard",
   "addedFilesToQueue": "Added {count} file(s) to upload queue",
   "@addedFilesToQueue": {
     "placeholders": {
