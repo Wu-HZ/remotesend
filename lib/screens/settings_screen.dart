@@ -705,11 +705,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final config = ref.read(configProvider).valueOrNull;
     if (config == null) return;
     final current = config.gotify;
-    final urlController = TextEditingController(text: current.serverUrl);
-    final appTokenController = TextEditingController(text: current.appToken);
-    final clientTokenController = TextEditingController(
-      text: current.clientToken,
-    );
+    // TextFormField owns its controller until the dialog route is fully disposed.
+    // showDialog completes when pop starts, before the exit animation finishes.
+    var serverUrl = current.serverUrl;
+    var appToken = current.appToken;
+    var clientToken = current.clientToken;
     var testing = false;
     String? testMessage;
     var testSucceeded = false;
@@ -726,8 +726,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: urlController,
+                TextFormField(
+                  initialValue: serverUrl,
+                  onChanged: (value) => serverUrl = value,
                   decoration: InputDecoration(
                     labelText: l10n.gotifyServerUrl,
                     hintText: l10n.gotifyServerUrlHint,
@@ -735,8 +736,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   keyboardType: TextInputType.url,
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: appTokenController,
+                TextFormField(
+                  initialValue: appToken,
+                  onChanged: (value) => appToken = value,
                   decoration: InputDecoration(
                     labelText: l10n.gotifyAppToken,
                     suffixIcon: IconButton(
@@ -753,8 +755,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   obscureText: obscureAppToken,
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: clientTokenController,
+                TextFormField(
+                  initialValue: clientToken,
+                  onChanged: (value) => clientToken = value,
                   decoration: InputDecoration(
                     labelText: l10n.gotifyClientToken,
                     suffixIcon: IconButton(
@@ -808,9 +811,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   : () async {
                       final draft = current.copyWith(
                         enabled: true,
-                        serverUrl: urlController.text.trim(),
-                        appToken: appTokenController.text.trim(),
-                        clientToken: clientTokenController.text.trim(),
+                        serverUrl: serverUrl.trim(),
+                        appToken: appToken.trim(),
+                        clientToken: clientToken.trim(),
                       );
                       if (!draft.hasCredentials) {
                         setDialogState(() {
@@ -852,9 +855,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   : () async {
                       final updated = current.copyWith(
                         enabled: enableOnSave || current.enabled,
-                        serverUrl: urlController.text.trim(),
-                        appToken: appTokenController.text.trim(),
-                        clientToken: clientTokenController.text.trim(),
+                        serverUrl: serverUrl.trim(),
+                        appToken: appToken.trim(),
+                        clientToken: clientToken.trim(),
                       );
                       if (!updated.hasCredentials) {
                         setDialogState(() {
@@ -877,9 +880,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
 
-    urlController.dispose();
-    appTokenController.dispose();
-    clientTokenController.dispose();
   }
 
   Future<void> _showGotifyLookbackDialog(
