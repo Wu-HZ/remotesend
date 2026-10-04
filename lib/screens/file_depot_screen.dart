@@ -304,56 +304,24 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
               ),
             ),
           ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
           floatingActionButton: canOperate || (cameraSupported && isConfigured)
               ? IgnorePointer(
                   ignoring: !_fabVisible || cameraBusy,
                   child: AnimatedSlide(
                     offset: _fabVisible ? Offset.zero : const Offset(0, 1.5),
                     duration: const Duration(milliseconds: 200),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (cameraSupported && isConfigured) ...[
-                          Tooltip(
-                            message: l10n.takePhoto,
-                            preferBelow: false,
-                            verticalOffset: 36,
-                            child: FloatingActionButton(
-                              heroTag: 'camera',
-                              tooltip: null,
-                              onPressed: cameraBusy
-                                  ? null
-                                  : () => ref
-                                        .read(cameraCaptureProvider.notifier)
-                                        .capture(),
-                              child: const Icon(Icons.camera_alt_outlined),
-                            ),
-                          ),
-                          if (canOperate) const SizedBox(height: 12),
-                        ],
-                        if (canOperate)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (Platform.isWindows ||
-                                  Platform.isMacOS ||
-                                  Platform.isLinux)
-                                Tooltip(
-                                  message: l10n.pasteClipboardFiles,
-                                  preferBelow: false,
-                                  verticalOffset: 36,
-                                  child: FloatingActionButton(
-                                    heroTag: 'paste-clipboard',
-                                    tooltip: null,
-                                    onPressed: _pasteClipboardFiles,
-                                    child: const Icon(Icons.content_paste),
-                                  ),
-                                ),
-                              if (Platform.isWindows ||
-                                  Platform.isMacOS ||
-                                  Platform.isLinux)
-                                const SizedBox(width: 12),
+                    child: SizedBox(
+                      width: MediaQuery.sizeOf(context).width,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: MediaQuery.paddingOf(context).left + 16,
+                          right: MediaQuery.paddingOf(context).right + 16,
+                        ),
+                        child: Row(
+                          children: [
+                            if (canOperate)
                               Tooltip(
                                 message: l10n.createFolder,
                                 preferBelow: false,
@@ -365,33 +333,82 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
                                   child: const Icon(Icons.create_new_folder),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Tooltip(
-                                message: l10n.folder,
-                                preferBelow: false,
-                                verticalOffset: 36,
-                                child: FloatingActionButton(
-                                  heroTag: 'folder',
-                                  tooltip: null,
-                                  onPressed: _pickAndUploadFolder,
-                                  child: const Icon(Icons.folder),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Tooltip(
-                                message: l10n.file,
-                                preferBelow: false,
-                                verticalOffset: 36,
-                                child: FloatingActionButton(
-                                  heroTag: 'file',
-                                  tooltip: null,
-                                  onPressed: _pickAndUploadFiles,
-                                  child: const Icon(Icons.insert_drive_file),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
+                            const Spacer(),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (canOperate &&
+                                    (Platform.isWindows ||
+                                        Platform.isMacOS ||
+                                        Platform.isLinux)) ...[
+                                  Tooltip(
+                                    message: l10n.pasteClipboardFiles,
+                                    preferBelow: false,
+                                    verticalOffset: 36,
+                                    child: FloatingActionButton(
+                                      heroTag: 'paste-clipboard',
+                                      tooltip: null,
+                                      onPressed: _pasteClipboardFiles,
+                                      child: const Icon(Icons.content_paste),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                if (cameraSupported && isConfigured) ...[
+                                  Tooltip(
+                                    message: l10n.takePhoto,
+                                    preferBelow: false,
+                                    verticalOffset: 36,
+                                    child: FloatingActionButton(
+                                      heroTag: 'camera',
+                                      tooltip: null,
+                                      onPressed: cameraBusy
+                                          ? null
+                                          : () => ref
+                                                .read(
+                                                  cameraCaptureProvider
+                                                      .notifier,
+                                                )
+                                                .capture(),
+                                      child: const Icon(
+                                        Icons.camera_alt_outlined,
+                                      ),
+                                    ),
+                                  ),
+                                  if (canOperate) const SizedBox(width: 12),
+                                ],
+                                if (canOperate) ...[
+                                  Tooltip(
+                                    message: l10n.folder,
+                                    preferBelow: false,
+                                    verticalOffset: 36,
+                                    child: FloatingActionButton(
+                                      heroTag: 'folder',
+                                      tooltip: null,
+                                      onPressed: _pickAndUploadFolder,
+                                      child: const Icon(Icons.folder),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Tooltip(
+                                    message: l10n.file,
+                                    preferBelow: false,
+                                    verticalOffset: 36,
+                                    child: FloatingActionButton(
+                                      heroTag: 'file',
+                                      tooltip: null,
+                                      onPressed: _pickAndUploadFiles,
+                                      child: const Icon(
+                                        Icons.insert_drive_file,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 )
