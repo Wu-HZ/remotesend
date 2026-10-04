@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "webdav": {
+      "command": "python",
+      "args": ["tools/webdav_mcp_server.py"],
+      "env": {
+        "WEBDAV_URL": "REPLACE_ME",
+        "WEBDAV_USERNAME": "REPLACE_ME",
+        "WEBDAV_PASSWORD": "REPLACE_ME"
+      },
+      "lifecycle": "lazy",
+      "requestTimeoutMs": 120000
+    }
+  }
+}
