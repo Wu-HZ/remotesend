@@ -59,6 +59,11 @@
 
   "copiedToClipboard": "Copied to clipboard",
   "sendClipboardContent": "Send clipboard content",
+  "startClipboardAutoSend": "Temporarily auto-send clipboard text",
+  "stopClipboardAutoSend": "Auto-sending · Click to stop",
+  "clipboardAutoSendHint": "Temporary auto-send is on for newly copied text only. Leaving the text page turns it off. On desktop, copy in any app; on mobile, return to this page.",
+  "clipboardAutoSendReadFailed": "Cannot read the clipboard. Auto-send stopped. Check clipboard access permissions.",
+  "clipboardAutoSendFailed": "Sending failed. Auto-send stopped. Check the connection and retry manually.",
   "messageMarkedForDeletion": "Message marked for deletion",
   "undo": "Undo",
   "couldNotOpenLink": "Could not open link",

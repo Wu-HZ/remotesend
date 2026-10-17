@@ -291,6 +291,25 @@ class WebDavService {
     }
   }
 
+  /// Read the same version metadata used by the file list for one file.
+  /// [remoteName] is relative to the Files folder and may include subfolders.
+  Future<WebDavResult<RemoteFile>> readFileInfo(String remoteName) async {
+    final parent = p.posix.dirname(remoteName);
+    final result = await listFiles(parent == '.' ? null : parent);
+    if (result.isFailure) {
+      return WebDavResult.failure(result.error!);
+    }
+    final name = p.posix.basename(remoteName);
+    for (final file in result.data ?? <RemoteFile>[]) {
+      if (!file.isDirectory && file.name == name) {
+        return WebDavResult.success(file);
+      }
+    }
+    return const WebDavResult.failure(
+      WebDavNotFoundException(message: 'Remote file not found'),
+    );
+  }
+
   /// Upload a file to the Files folder.
   ///
   /// [localPath] - Path to the local file.

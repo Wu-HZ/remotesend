@@ -223,10 +223,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildBody() {
     return IndexedStack(
       index: _selectedIndex,
-      children: const [
-        TextBridgeScreen(),
-        FileDepotScreen(),
-        SettingsScreen(),
+      children: [
+        TextBridgeScreen(isActive: _selectedIndex == 0),
+        const FileDepotScreen(),
+        const SettingsScreen(),
       ],
     );
   }

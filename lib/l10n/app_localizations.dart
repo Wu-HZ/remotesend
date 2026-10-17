@@ -362,6 +362,36 @@ abstract class AppLocalizations {
   /// **'Send clipboard content'**
   String get sendClipboardContent;
 
+  /// No description provided for @startClipboardAutoSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily auto-send clipboard text'**
+  String get startClipboardAutoSend;
+
+  /// No description provided for @stopClipboardAutoSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sending · Click to stop'**
+  String get stopClipboardAutoSend;
+
+  /// No description provided for @clipboardAutoSendHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary auto-send is on for newly copied text only. Leaving the text page turns it off. On desktop, copy in any app; on mobile, return to this page.'**
+  String get clipboardAutoSendHint;
+
+  /// No description provided for @clipboardAutoSendReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot read the clipboard. Auto-send stopped. Check clipboard access permissions.'**
+  String get clipboardAutoSendReadFailed;
+
+  /// No description provided for @clipboardAutoSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending failed. Auto-send stopped. Check the connection and retry manually.'**
+  String get clipboardAutoSendFailed;
+
   /// No description provided for @messageMarkedForDeletion.
   ///
   /// In en, this message translates to:

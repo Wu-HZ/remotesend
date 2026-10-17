@@ -39,7 +39,24 @@ class _Config extends ConfigNotifier {
 
 class _Source extends WebDavService {
   final String id;
-  _Source(this.id);
+  _Source(this.id, {this.includeETag = true});
+  final bool includeETag;
+
+  @override
+  Future<WebDavResult<List<RemoteFile>>> listFiles([String? subPath]) async {
+    return WebDavResult.success([
+      RemoteFile(
+        name: 'report.txt',
+        path:
+            '/RemoteSend/Files/${subPath == null ? '' : '$subPath/'}report.txt',
+        size: 3,
+        modifiedTime: DateTime.utc(2026, 9, 1),
+        eTag: includeETag ? '"version-1"' : null,
+        isDirectory: false,
+      ),
+    ]);
+  }
+
   @override
   Future<WebDavResult<bool>> downloadFile(
     String remoteName,
@@ -80,6 +97,10 @@ class _Files extends FileListNotifier {
   _Files(RemoteFile file) : super(_Source('unused')) {
     state = FileListState(files: [file]);
   }
+  void showFile(RemoteFile file) {
+    state = state.copyWith(files: [file]);
+  }
+
   @override
   Future<bool> refresh({
     bool retryTransient = true,
@@ -135,6 +156,7 @@ void main() {
   late _Paths paths;
   late ProviderContainer container;
   late _Config config;
+  late bool useETags;
   final opened = <String>[];
   final sources = <String>[];
   final a = ServerConfig(
@@ -146,10 +168,12 @@ void main() {
     createdAt: DateTime(2026),
   );
   final b = a.copyWith(id: 'b', serverUrl: 'https://example.invalid/b');
-  const file = RemoteFile(
+  final file = RemoteFile(
     name: 'report.txt',
     path: '/RemoteSend/Files/report.txt',
     size: 3,
+    modifiedTime: DateTime.utc(2026, 9, 1),
+    eTag: '"version-1"',
     isDirectory: false,
   );
 
@@ -159,6 +183,7 @@ void main() {
     paths = _Paths(root);
     opened.clear();
     sources.clear();
+    useETags = true;
     config = _Config(
       AppConfig(
         servers: [a, b],
@@ -174,7 +199,7 @@ void main() {
         downloadPathServiceProvider.overrideWithValue(paths),
         downloadSourceServiceProvider.overrideWithValue((server) {
           sources.add(server.id);
-          return _Source(server.id);
+          return _Source(server.id, includeETag: useETags);
         }),
         openLocalDirectoryProvider.overrideWithValue((path) async {
           opened.add(path);
@@ -332,7 +357,11 @@ void main() {
     );
   });
 
-  test('Gotify 非当前服务器自动下载与手动下载使用同一目录规则', () async {
+  Future<IncomingTransfer> receiveFile(
+    ServerConfig server, {
+    String remotePath = '/RemoteSend/Files/report.txt',
+    int fileSize = 3,
+  }) async {
     const statusChannel = MethodChannel(
       'dev.fluttercommunity.plus/connectivity_status',
     );
@@ -343,19 +372,19 @@ void main() {
           .setMockMethodCallHandler(statusChannel, null),
     );
     final gotify = _Gotify();
-    addTearDown(gotify.controller.close);
     final coordinatorProvider =
         StateNotifierProvider<
           GotifyCoordinatorNotifier,
           GotifyCoordinatorState
         >((ref) => GotifyCoordinatorNotifier(gotify, ref));
-    final finished = Completer<void>();
+    final finished = Completer<IncomingTransfer>();
     final subscription = container.listen(coordinatorProvider, (_, next) {
       if (next.lastReceivedFile != null && !finished.isCompleted) {
-        finished.complete();
+        finished.complete(next.lastReceivedFile);
+      } else if (next.lastError != null && !finished.isCompleted) {
+        finished.completeError(StateError(next.lastError!));
       }
     });
-    addTearDown(subscription.close);
     container.read(appForegroundProvider.notifier).state = true;
     gotify.controller.add(
       RemoteSendEvent(
@@ -363,14 +392,24 @@ void main() {
         senderDeviceId: 'other',
         senderName: 'test',
         payload: {
-          'serverKey': webDavServerKey(b),
+          'serverKey': webDavServerKey(server),
           'fileName': file.name,
-          'remotePath': file.path,
-          'fileSize': 3,
+          'remotePath': remotePath,
+          'fileSize': fileSize,
         },
       ),
     );
-    await finished.future.timeout(const Duration(seconds: 5));
+    try {
+      return await finished.future.timeout(const Duration(seconds: 5));
+    } finally {
+      subscription.close();
+      container.invalidate(coordinatorProvider);
+      await gotify.controller.close();
+    }
+  }
+
+  test('Gotify 非当前服务器自动下载与手动下载使用同一目录规则', () async {
+    await receiveFile(b);
     final saved = container
         .read(downloadCacheProvider)
         .localPathFor(serverId: 'b', file: file)!;
@@ -381,5 +420,94 @@ void main() {
     );
     expect(await File(saved).readAsString(), 'bbb');
     expect(container.read(activeFilesServerProvider)?.id, 'a');
+    final entry = container
+        .read(downloadCacheProvider)
+        .entries[DownloadCacheState.keyFor('b', file)]!;
+    expect(entry.remoteETag, file.eTag);
+    expect(entry.remoteModifiedTime, file.modifiedTime);
+  });
+
+  testWidgets('Gotify 自动下载后列表立即显示已下载，远端同名更新后取消标记', (tester) async {
+    await show(tester, const FileDepotScreen());
+    expect(find.textContaining(' • 已下载'), findsNothing);
+    await tester.runAsync(() => receiveFile(a));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(' • 已下载'), findsOneWidget);
+    final local = container
+        .read(downloadCacheProvider)
+        .localPathFor(serverId: 'a', file: file)!;
+    expect(File(local).existsSync(), isTrue);
+
+    (container.read(fileListProvider.notifier) as _Files).showFile(
+      RemoteFile(
+        name: file.name,
+        path: file.path,
+        size: file.size,
+        modifiedTime: file.modifiedTime,
+        eTag: '"version-2"',
+        isDirectory: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining(' • 已下载'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('非当前服务器自动下载不串状态，切到来源服务器后显示已下载', (tester) async {
+    await show(tester, const FileDepotScreen());
+    await tester.runAsync(() => receiveFile(b));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(' • 已下载'), findsNothing);
+    config.select('b');
+    await tester.pumpAndSettle();
+    expect(find.textContaining(' • 已下载'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  test('Gotify 自动下载保留子目录缓存键，通知缺少大小时使用远端大小', () async {
+    const remotePath = '/RemoteSend/Files/docs/report.txt';
+    await receiveFile(b, remotePath: remotePath, fileSize: 0);
+    final remote = RemoteFile(
+      name: file.name,
+      path: remotePath,
+      size: file.size,
+      modifiedTime: file.modifiedTime,
+      eTag: file.eTag,
+      isDirectory: false,
+    );
+    expect(
+      container
+          .read(downloadCacheProvider)
+          .isDownloaded(serverId: 'b', file: remote),
+      isTrue,
+    );
+    expect(
+      container
+          .read(downloadCacheProvider)
+          .isDownloaded(serverId: 'b', file: file),
+      isFalse,
+    );
+  });
+
+  test('Gotify 自动下载在没有 ETag 时按远端修改时间识别版本', () async {
+    useETags = false;
+    await receiveFile(b);
+    final remote = RemoteFile(
+      name: file.name,
+      path: file.path,
+      size: file.size,
+      modifiedTime: file.modifiedTime,
+      isDirectory: false,
+    );
+    final cache = container.read(downloadCacheProvider);
+    expect(cache.isDownloaded(serverId: 'b', file: remote), isTrue);
+    final changed = RemoteFile(
+      name: file.name,
+      path: file.path,
+      size: file.size,
+      modifiedTime: file.modifiedTime!.add(const Duration(seconds: 1)),
+      isDirectory: false,
+    );
+    expect(cache.isDownloaded(serverId: 'b', file: changed), isFalse);
   });
 }

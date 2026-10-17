@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/server_config.dart';
 import '../models/text_message.dart';
+import '../services/clipboard_auto_send_session.dart';
+import '../services/text_clipboard_service.dart';
 import '../providers/config_provider.dart';
 import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
@@ -14,7 +16,9 @@ import '../widgets/storage_usage_widget.dart';
 
 /// Text Bridge screen with chat-like interface.
 class TextBridgeScreen extends ConsumerStatefulWidget {
-  const TextBridgeScreen({super.key});
+  const TextBridgeScreen({super.key, this.isActive = true});
+
+  final bool isActive;
 
   @override
   ConsumerState<TextBridgeScreen> createState() => _TextBridgeScreenState();
@@ -24,6 +28,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
+  late final ClipboardAutoSendSession _clipboardAutoSend;
   bool _initialized = false;
   final Set<String> _expandedMessages = {};
   final Set<String> _deletingMessages = {};
@@ -37,11 +42,46 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   void initState() {
     super.initState();
     _textController.addListener(_onTextChanged);
+    final clipboard = ref.read(textClipboardServiceProvider);
+    _clipboardAutoSend = ClipboardAutoSendSession(
+      readText: clipboard.readText,
+      sendText: (text) =>
+          ref.read(messageHistoryProvider.notifier).sendMessage(text),
+      canSend: () => !ref.read(messageHistoryProvider).isSending,
+      canRead: () {
+        // Desktop must keep polling while the user copies in another window.
+        final mobile =
+            defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS;
+        return !mobile ||
+            WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+      },
+      isInternalText: clipboard.isInternalText,
+      onError: (error) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error == ClipboardAutoSendError.read
+                  ? l10n.clipboardAutoSendReadFailed
+                  : l10n.clipboardAutoSendFailed,
+            ),
+          ),
+        );
+      },
+    )..addListener(_onTextChanged);
     Future.microtask(_initialize);
   }
 
+  @override
+  void didUpdateWidget(covariant TextBridgeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isActive) _clipboardAutoSend.stop();
+  }
+
   Future<void> _initialize() async {
-    if (_initialized) return;
+    if (!mounted || _initialized) return;
     _initialized = true;
 
     final status = ref.read(textConnectionStatusProvider);
@@ -60,6 +100,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   @override
   void dispose() {
+    _clipboardAutoSend.removeListener(_onTextChanged);
+    _clipboardAutoSend.dispose();
     _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _scrollController.dispose();
@@ -109,6 +151,15 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final ownOnLeft =
         ref.watch(configProvider).valueOrNull?.chatOwnMessageLeft ?? false;
     final l10n = AppLocalizations.of(context)!;
+
+    ref.listen(textConnectionStatusProvider, (previous, next) {
+      if (next.state != WebDavConnectionState.connected) {
+        _clipboardAutoSend.stop();
+      }
+    });
+    ref.listen(activeTextServerProvider, (previous, next) {
+      if (previous != next) _clipboardAutoSend.stop();
+    });
 
     ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
       if ((previous?.messages.length ?? 0) < next.messages.length) {
@@ -956,8 +1007,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     return spans;
   }
 
-  void _copyMessage(String content, AppLocalizations l10n) {
-    Clipboard.setData(ClipboardData(text: content));
+  Future<void> _copyMessage(String content, AppLocalizations l10n) async {
+    await ref.read(textClipboardServiceProvider).writeText(content);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(l10n.copiedToClipboard),
@@ -1037,68 +1089,109 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           ),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              focusNode: _focusNode,
-              maxLines: 4,
-              minLines: 1,
-              textInputAction: TextInputAction.send,
-              decoration: InputDecoration(
-                hintText: l10n.typeAMessage,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+          if (_clipboardAutoSend.isActive)
+            Tooltip(
+              message: l10n.clipboardAutoSendHint,
+              child: TextButton.icon(
+                onPressed: _clipboardAutoSend.stop,
+                icon: const Icon(Icons.sync, size: 16),
+                label: Text(l10n.stopClipboardAutoSend),
+              ),
+            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  focusNode: _focusNode,
+                  maxLines: 4,
+                  minLines: 1,
+                  textInputAction: TextInputAction.send,
+                  decoration: InputDecoration(
+                    hintText: l10n.typeAMessage,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onSubmitted:
+                      canSync &&
+                          !isSending &&
+                          _textController.text.trim().isNotEmpty
+                      ? (_) => _sendMessage()
+                      : null,
                 ),
               ),
-              onSubmitted:
-                  canSync &&
-                      !isSending &&
-                      _textController.text.trim().isNotEmpty
-                  ? (_) => _sendMessage()
-                  : null,
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: canSync && !isSending ? _sendClipboard : null,
-            icon: const Icon(Icons.content_paste),
-            tooltip: l10n.sendClipboardContent,
-          ),
-          const SizedBox(width: 4),
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: IconButton(
-              onPressed:
-                  canSync &&
-                      !isSending &&
-                      _textController.text.trim().isNotEmpty
-                  ? _sendMessage
-                  : null,
-              icon: isSending
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.send),
-            ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: canSync && !isSending ? _sendClipboard : null,
+                icon: const Icon(Icons.content_paste),
+                tooltip: l10n.sendClipboardContent,
+              ),
+              IconButton(
+                key: const ValueKey('clipboard-auto-send-toggle'),
+                onPressed:
+                    _clipboardAutoSend.isActive || (canSync && widget.isActive)
+                    ? _toggleClipboardAutoSend
+                    : null,
+                isSelected: _clipboardAutoSend.isActive,
+                selectedIcon: const Icon(Icons.sync),
+                icon: const Icon(Icons.sync_disabled),
+                style: IconButton.styleFrom(
+                  backgroundColor: _clipboardAutoSend.isActive
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : null,
+                ),
+                tooltip: _clipboardAutoSend.isActive
+                    ? l10n.stopClipboardAutoSend
+                    : l10n.startClipboardAutoSend,
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton(
+                  onPressed:
+                      canSync &&
+                          !isSending &&
+                          _textController.text.trim().isNotEmpty
+                      ? _sendMessage
+                      : null,
+                  icon: isSending
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  void _toggleClipboardAutoSend() {
+    if (_clipboardAutoSend.isActive) {
+      _clipboardAutoSend.stop();
+      return;
+    }
+    _clipboardAutoSend.start();
   }
 
   Future<void> _sendMessage() async {
@@ -1107,13 +1200,18 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
     _textController.clear();
     await ref.read(messageHistoryProvider.notifier).sendMessage(text);
-    _focusNode.requestFocus();
+    if (mounted) _focusNode.requestFocus();
   }
 
   Future<void> _sendClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text?.trim();
-    if (text == null || text.isEmpty) return;
+    final text = (await ref.read(textClipboardServiceProvider).readText())
+        ?.trim();
+    if (!mounted ||
+        text == null ||
+        text.isEmpty ||
+        ref.read(messageHistoryProvider).isSending) {
+      return;
+    }
 
     await ref.read(messageHistoryProvider.notifier).sendMessage(text);
   }

@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 
+import '../services/text_clipboard_service.dart';
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import 'download_path_provider.dart';
@@ -325,7 +325,9 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
           : null;
       if (clipboardText != null) {
         try {
-          await Clipboard.setData(ClipboardData(text: clipboardText));
+          await _ref
+              .read(textClipboardServiceProvider)
+              .writeText(clipboardText);
           if (!mounted) return;
           state = state.copyWith(
             clipboardCopyRevision: state.clipboardCopyRevision + 1,
@@ -506,15 +508,36 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
     }
 
     try {
+      final relativeRemotePath = remotePath.substring(
+        '/RemoteSend/Files/'.length,
+      );
+      final serviceOverride = _ref.read(downloadSourceServiceProvider)(server);
+      // Notifications contain no ETag/mtime. Capture the source version before
+      // downloading, rather than caching an incomplete event-derived file.
+      // Use this server's service, not the currently visible file list.
+      final infoResult = await serviceOverride.readFileInfo(relativeRemotePath);
+      if (!mounted) return;
+      if (infoResult.isFailure) {
+        throw Exception(
+          infoResult.error?.userMessage ?? 'Cannot read file info',
+        );
+      }
+      final remoteFile = infoResult.data!;
+      final expectedSize = remoteFile.size ?? (fileSize > 0 ? fileSize : null);
+      if (gotify.maxAutoDownloadBytes > 0 &&
+          expectedSize != null &&
+          expectedSize > gotify.maxAutoDownloadBytes) {
+        _waitForPolicy(
+          event,
+          error: 'File exceeds this device auto-download limit',
+        );
+        return;
+      }
       final localPath = await _ref.read(downloadPathServiceProvider).downloadPath(
         configuredDirectory: config.downloadLocation,
         server: server,
         fileName: fileName,
       );
-      final relativeRemotePath = remotePath.substring(
-        '/RemoteSend/Files/'.length,
-      );
-      final serviceOverride = _ref.read(downloadSourceServiceProvider)(server);
 
       _setTransfer(event.eventId, status: 'downloading', localPath: localPath);
       final success = await _ref
@@ -522,7 +545,7 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
           .downloadFile(
             remoteName: relativeRemotePath,
             localPath: localPath,
-            fileSize: fileSize,
+            fileSize: expectedSize ?? 0,
             serviceOverride: serviceOverride,
           );
       if (!mounted) return;
@@ -531,24 +554,19 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
       }
 
       final downloaded = File(localPath);
-      if (fileSize > 0 && await downloaded.length() != fileSize) {
+      if (expectedSize != null && await downloaded.length() != expectedSize) {
         await downloaded.delete();
-        throw Exception('Downloaded file size does not match the sender');
+        throw Exception('Downloaded file size does not match the remote file');
       }
 
-      final remoteFile = RemoteFile(
-        name: fileName,
-        path: remotePath,
-        size: fileSize,
-        isDirectory: false,
+      final cache = _ref.read(downloadCacheProvider.notifier);
+      await cache.ready;
+      if (!mounted) return;
+      await cache.markDownloaded(
+        serverId: server.id,
+        file: remoteFile,
+        localPath: localPath,
       );
-      await _ref
-          .read(downloadCacheProvider.notifier)
-          .markDownloaded(
-            serverId: server.id,
-            file: remoteFile,
-            localPath: localPath,
-          );
 
       final completed = _setTransfer(
         event.eventId,

@@ -151,6 +151,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendClipboardContent => 'Send clipboard content';
 
   @override
+  String get startClipboardAutoSend => 'Temporarily auto-send clipboard text';
+
+  @override
+  String get stopClipboardAutoSend => 'Auto-sending · Click to stop';
+
+  @override
+  String get clipboardAutoSendHint =>
+      'Temporary auto-send is on for newly copied text only. Leaving the text page turns it off. On desktop, copy in any app; on mobile, return to this page.';
+
+  @override
+  String get clipboardAutoSendReadFailed =>
+      'Cannot read the clipboard. Auto-send stopped. Check clipboard access permissions.';
+
+  @override
+  String get clipboardAutoSendFailed =>
+      'Sending failed. Auto-send stopped. Check the connection and retry manually.';
+
+  @override
   String get messageMarkedForDeletion => 'Message marked for deletion';
 
   @override

@@ -143,6 +143,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sendClipboardContent => '发送剪贴板内容';
 
   @override
+  String get startClipboardAutoSend => '临时自动发送剪贴板文本';
+
+  @override
+  String get stopClipboardAutoSend => '正在自动发送 · 点击停止';
+
+  @override
+  String get clipboardAutoSendHint =>
+      '已开启临时自动发送，仅发送新复制的文本。离开文本页自动关闭；桌面可切到其他应用复制，手机需返回本页。';
+
+  @override
+  String get clipboardAutoSendReadFailed => '无法读取剪贴板，自动发送已停止。请检查剪贴板访问权限。';
+
+  @override
+  String get clipboardAutoSendFailed => '发送失败，自动发送已停止。请检查连接后手动重试。';
+
+  @override
   String get messageMarkedForDeletion => '消息已标记删除';
 
   @override
