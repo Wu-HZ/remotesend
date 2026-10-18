@@ -19,6 +19,15 @@ class AppLocalizationsZh extends AppLocalizations {
       '成功记录保留 5 分钟，队列空闲时清理；失败任务保留，不删除文件。';
 
   @override
+  String get openFileAccessDenied => '无法读取此文件。请在来源应用中重新选择打开方式，并允许文件访问。';
+
+  @override
+  String get openFileUnavailable => '文件已不存在或来源应用无法提供文件，请重新选择文件。';
+
+  @override
+  String get openFileImportFailed => '无法导入文件，请检查剩余存储空间后重试。';
+
+  @override
   String get takePhoto => '拍照';
 
   @override

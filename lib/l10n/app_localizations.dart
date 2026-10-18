@@ -116,6 +116,24 @@ abstract class AppLocalizations {
   /// **'Keep successful records for 5 minutes, then clear when idle. Failed tasks and files are kept.'**
   String get autoClearTransferHistoryHint;
 
+  /// No description provided for @openFileAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot read this file. Open it again from the source app and allow file access.'**
+  String get openFileAccessDenied;
+
+  /// No description provided for @openFileUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is missing or the source app cannot provide it. Please select it again.'**
+  String get openFileUnavailable;
+
+  /// No description provided for @openFileImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import the file. Check available storage and try again.'**
+  String get openFileImportFailed;
+
   /// No description provided for @takePhoto.
   ///
   /// In en, this message translates to:

@@ -5,6 +5,10 @@
   "autoClearTransferHistory": "Auto-clear successful transfers",
   "autoClearTransferHistoryHint": "Keep successful records for 5 minutes, then clear when idle. Failed tasks and files are kept.",
 
+  "openFileAccessDenied": "Cannot read this file. Open it again from the source app and allow file access.",
+  "openFileUnavailable": "The file is missing or the source app cannot provide it. Please select it again.",
+  "openFileImportFailed": "Could not import the file. Check available storage and try again.",
+
   "takePhoto": "Take photo",
   "takeAnotherPhoto": "Take another photo",
   "addPendingFiles": "Add files",

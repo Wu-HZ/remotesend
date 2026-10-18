@@ -5,6 +5,8 @@ import '../providers/config_provider.dart';
 import '../providers/camera_capture_provider.dart';
 import '../providers/gotify_coordinator_provider.dart';
 import '../providers/message_history_provider.dart';
+import '../providers/opened_file_provider.dart';
+import '../services/opened_file_service.dart';
 import '../providers/webdav_provider.dart';
 import '../util/theme_ext.dart';
 import 'file_depot_screen.dart';
@@ -30,6 +32,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(openedFileProvider, (previous, next) {
+      if (next.openedCount > (previous?.openedCount ?? 0)) {
+        ref.read(selectedTabProvider.notifier).state = 1;
+      }
+      if (next.errorRevision > (previous?.errorRevision ?? 0) && next.error != null) {
+        final l10n = AppLocalizations.of(context)!;
+        final message = switch (next.error!) {
+          OpenedFileError.permissionDenied => l10n.openFileAccessDenied,
+          OpenedFileError.unavailable => l10n.openFileUnavailable,
+          OpenedFileError.failed => l10n.openFileImportFailed,
+        };
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
     ref.listen(cameraCaptureProvider, (previous, next) {
       if (next.recoveredCount > (previous?.recoveredCount ?? 0)) {
         ref.read(selectedTabProvider.notifier).state = 1;

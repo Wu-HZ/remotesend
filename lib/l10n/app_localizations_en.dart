@@ -19,6 +19,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep successful records for 5 minutes, then clear when idle. Failed tasks and files are kept.';
 
   @override
+  String get openFileAccessDenied =>
+      'Cannot read this file. Open it again from the source app and allow file access.';
+
+  @override
+  String get openFileUnavailable =>
+      'The file is missing or the source app cannot provide it. Please select it again.';
+
+  @override
+  String get openFileImportFailed =>
+      'Could not import the file. Check available storage and try again.';
+
+  @override
   String get takePhoto => 'Take photo';
 
   @override
