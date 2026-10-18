@@ -20,6 +20,7 @@ class TransferQueueScreen extends ConsumerStatefulWidget {
 
 class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
   String? _downloadLocation;
+  bool _savingAutoCleanup = false;
 
   @override
   void initState() {
@@ -121,11 +122,29 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     }
   }
 
+  Future<void> _setAutoCleanup(bool enabled) async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config == null || _savingAutoCleanup) return;
+    setState(() => _savingAutoCleanup = true);
+    final saved = await ref
+        .read(configProvider.notifier)
+        .updateConfig(config.copyWith(autoClearTransferHistory: enabled));
+    if (!mounted) return;
+    setState(() => _savingAutoCleanup = false);
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.failedToSave)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final uploadState = ref.watch(uploadQueueProvider);
     final downloadState = ref.watch(downloadStateProvider);
+    final autoCleanup = ref.watch(autoClearTransferHistoryProvider);
+    final configReady = ref.watch(configProvider).valueOrNull != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -151,7 +170,19 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
             ),
         ],
       ),
-      body: _buildBody(context, l10n, uploadState, downloadState),
+      body: Column(
+        children: [
+          SwitchListTile(
+            key: const ValueKey('transfer-history-auto-cleanup-toggle'),
+            title: Text(l10n.autoClearTransferHistory),
+            subtitle: Text(l10n.autoClearTransferHistoryHint),
+            value: autoCleanup,
+            onChanged: configReady && !_savingAutoCleanup ? _setAutoCleanup : null,
+          ),
+          const Divider(height: 1),
+          Expanded(child: _buildBody(context, l10n, uploadState, downloadState)),
+        ],
+      ),
     );
   }
 

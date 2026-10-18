@@ -12,6 +12,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'RemoteSend';
 
   @override
+  String get autoClearTransferHistory => 'Auto-clear successful transfers';
+
+  @override
+  String get autoClearTransferHistoryHint =>
+      'Keep successful records for 5 minutes, then clear when idle. Failed tasks and files are kept.';
+
+  @override
   String get takePhoto => 'Take photo';
 
   @override

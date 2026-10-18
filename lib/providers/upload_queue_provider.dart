@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/upload_queue.dart';
 import '../services/webdav_service.dart';
+import '../services/transfer_history_retention.dart';
 import '../services/webdav_exceptions.dart';
 import '../screens/home_screen.dart' show selectedTabProvider;
 import 'config_provider.dart';
@@ -19,8 +20,26 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   DateTime? _lastProgressTime;
   int _lastUploadedBytes = 0;
   CancelToken? _cancelToken;
+  int _nextItemId = 0;
+  late final TransferHistoryRetention _historyRetention;
 
-  UploadQueueNotifier(this._service, this._ref) : super(const UploadQueueState());
+  UploadQueueNotifier(this._service, this._ref) : super(const UploadQueueState()) {
+    _historyRetention = TransferHistoryRetention(
+      canPrune: () => !state.isProcessing,
+      onExpired: _removeCompleted,
+    );
+    addListener((next) {
+      _historyRetention.update(
+        next.items
+            .where((item) => item.status == UploadStatus.completed)
+            .map((item) => item.id),
+      );
+    }, fireImmediately: false);
+  }
+
+  void setAutoCleanupEnabled(bool enabled) {
+    _historyRetention.setEnabled(enabled);
+  }
 
   /// Add files to the upload queue.
   Future<void> addFiles(List<String> localPaths, {String? remoteBasePath}) async {
@@ -37,7 +56,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
             : '/RemoteSend/Files/$fileName';
 
         newItems.add(UploadItem(
-          id: '${DateTime.now().millisecondsSinceEpoch}_${newItems.length}',
+          id: 'upload_${_nextItemId++}',
           localPath: localPath,
           remotePath: remotePath,
           fileName: fileName,
@@ -88,7 +107,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
         }
 
         newItems.add(UploadItem(
-          id: '${DateTime.now().millisecondsSinceEpoch}_${newItems.length}',
+          id: 'upload_${_nextItemId++}',
           localPath: entity.path,
           remotePath: remotePath,
           fileName: fileName,
@@ -237,11 +256,15 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
                 (i.status == UploadStatus.failed && i.localPath != item.localPath))
             .toList();
 
+        _isRunning = false;
         if (remaining.isEmpty) {
-          _isRunning = false;
           state = state.clear();
         } else {
-          state = state.copyWith(items: remaining);
+          state = state.copyWith(
+            items: remaining,
+            isProcessing: false,
+            currentSpeed: 0,
+          );
         }
         return;
       }
@@ -269,20 +292,41 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 
   /// Clear completed items from the queue.
   void clearCompleted() {
-    final remaining = state.items.where((i) => i.status != UploadStatus.completed).toList();
-    final removedBytes = state.items
-        .where((i) => i.status == UploadStatus.completed)
-        .fold<int>(0, (sum, i) => sum + i.fileSize);
-
-    state = state.copyWith(
-      items: remaining,
-      totalBytes: state.totalBytes - removedBytes,
-      uploadedBytes: state.uploadedBytes - removedBytes,
+    if (state.isProcessing) return;
+    _removeCompleted(
+      state.items
+          .where((item) => item.status == UploadStatus.completed)
+          .map((item) => item.id)
+          .toSet(),
     );
+  }
 
-    if (remaining.isEmpty) {
-      state = state.clear();
-    }
+  void _removeCompleted(Set<String> ids) {
+    if (!mounted || state.isProcessing || ids.isEmpty) return;
+    final remaining = state.items
+        .where((item) =>
+            item.status != UploadStatus.completed || !ids.contains(item.id))
+        .toList();
+    if (remaining.length == state.items.length) return;
+    final total = remaining.fold<int>(0, (sum, item) => sum + item.fileSize);
+    final removedBytes = state.items
+        .where((item) =>
+            ids.contains(item.id) && item.status == UploadStatus.completed)
+        .fold<int>(0, (sum, item) => sum + item.fileSize);
+    state = remaining.isEmpty
+        ? state.clear()
+        : state.copyWith(
+            items: remaining,
+            totalBytes: total,
+            uploadedBytes: (state.uploadedBytes - removedBytes).clamp(0, total),
+          );
+    _lastUploadedBytes = state.uploadedBytes;
+  }
+
+  @override
+  void dispose() {
+    _historyRetention.dispose();
+    super.dispose();
   }
 
   /// Clear all items from the queue (cancels current upload).
@@ -323,5 +367,10 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 final uploadQueueProvider =
     StateNotifierProvider<UploadQueueNotifier, UploadQueueState>((ref) {
   final service = ref.watch(webDavFilesServiceProvider);
-  return UploadQueueNotifier(service, ref);
+  final notifier = UploadQueueNotifier(service, ref);
+  notifier.setAutoCleanupEnabled(ref.read(autoClearTransferHistoryProvider));
+  ref.listen<bool>(autoClearTransferHistoryProvider, (_, enabled) {
+    notifier.setAutoCleanupEnabled(enabled);
+  });
+  return notifier;
 });

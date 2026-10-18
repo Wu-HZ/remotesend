@@ -314,6 +314,15 @@ void main() {
     await tester.tap(find.text('打开文件夹'));
     await tester.pump();
     expect(opened, [p.dirname(saved)]);
+    await tester.pump(const Duration(minutes: 5));
+    expect(container.read(downloadStateProvider).items, isEmpty);
+    expect(
+      container
+          .read(downloadCacheProvider)
+          .localPathFor(serverId: 'a', file: file),
+      saved,
+    );
+    expect(File(saved).existsSync(), isTrue);
   });
 
   testWidgets('设置页区分三种下载位置并显示实际路径与服务器子目录说明', (tester) async {

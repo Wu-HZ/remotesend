@@ -12,6 +12,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'RemoteSend';
 
   @override
+  String get autoClearTransferHistory => '自动清理成功记录';
+
+  @override
+  String get autoClearTransferHistoryHint =>
+      '成功记录保留 5 分钟，队列空闲时清理；失败任务保留，不删除文件。';
+
+  @override
   String get takePhoto => '拍照';
 
   @override

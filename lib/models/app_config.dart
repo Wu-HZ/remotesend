@@ -64,7 +64,8 @@ class AppConfig {
   // Versions 4 and 5 contained the retired polling and S3 settings.
   // Version 10 adds per-device background text/file receive policies.
   // Version 11 adds the configurable startup page.
-  static const int currentVersion = 11;
+  // Version 12 adds the transfer-history auto-cleanup preference.
+  static const int currentVersion = 12;
 
   static const String startPageText = 'text';
   static const String startPageFiles = 'files';
@@ -87,6 +88,7 @@ class AppConfig {
   final String startPage; // 'text' or 'files'
   final bool chatOwnMessageLeft; // show own messages on left side too
   final GotifyConfig gotify;
+  final bool autoClearTransferHistory;
 
   AppConfig({
     this.version = currentVersion,
@@ -103,6 +105,7 @@ class AppConfig {
     this.dragMode = 'instant',
     this.startPage = startPageText,
     this.chatOwnMessageLeft = false,
+    this.autoClearTransferHistory = true,
     GotifyConfig? gotify,
   }) : localName = localName ?? _generateRandomName(),
        gotify = gotify ?? GotifyConfig();
@@ -167,6 +170,7 @@ class AppConfig {
     String? dragMode,
     String? startPage,
     bool? chatOwnMessageLeft,
+    bool? autoClearTransferHistory,
     GotifyConfig? gotify,
   }) {
     return AppConfig(
@@ -185,6 +189,8 @@ class AppConfig {
       startPage: startPage ?? this.startPage,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
       gotify: gotify ?? this.gotify,
+      autoClearTransferHistory:
+          autoClearTransferHistory ?? this.autoClearTransferHistory,
     );
   }
 
@@ -202,6 +208,7 @@ class AppConfig {
     String? dragMode,
     String? startPage,
     bool? chatOwnMessageLeft,
+    bool? autoClearTransferHistory,
     GotifyConfig? gotify,
     bool clearText = false,
     bool clearFiles = false,
@@ -222,6 +229,8 @@ class AppConfig {
       startPage: startPage ?? this.startPage,
       chatOwnMessageLeft: chatOwnMessageLeft ?? this.chatOwnMessageLeft,
       gotify: gotify ?? this.gotify,
+      autoClearTransferHistory:
+          autoClearTransferHistory ?? this.autoClearTransferHistory,
     );
   }
 
@@ -243,6 +252,7 @@ class AppConfig {
       'startPage': startPage,
       'chatOwnMessageLeft': chatOwnMessageLeft,
       'gotify': gotify.toJson(),
+      'autoClearTransferHistory': autoClearTransferHistory,
     };
   }
 
@@ -285,6 +295,8 @@ class AppConfig {
           ? startPageFiles
           : startPageText,
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
+      autoClearTransferHistory:
+          json['autoClearTransferHistory'] as bool? ?? true,
       gotify: GotifyConfig.fromJson(
         json['gotify'] is Map
             ? Map<String, dynamic>.from(json['gotify'] as Map)
@@ -394,6 +406,7 @@ class AppConfig {
         other.dragMode != dragMode ||
         other.startPage != startPage ||
         other.chatOwnMessageLeft != chatOwnMessageLeft ||
+        other.autoClearTransferHistory != autoClearTransferHistory ||
         other.gotify != gotify ||
         other.servers.length != servers.length) {
       return false;
@@ -422,6 +435,7 @@ class AppConfig {
       startPage,
       chatOwnMessageLeft,
       gotify,
+      autoClearTransferHistory,
     );
   }
 

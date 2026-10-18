@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/download_queue.dart';
 import '../services/webdav_service.dart';
+import '../services/transfer_history_retention.dart';
 import '../services/webdav_exceptions.dart';
 import 'webdav_provider.dart';
+import 'config_provider.dart';
 
 /// State for tracking current download.
 class DownloadState {
@@ -121,7 +123,7 @@ class DownloadState {
   }
 
   String get statusText {
-    if (!isDownloading && error != null) return 'Failed';
+    if (!isDownloading && (error != null || failedCount > 0)) return 'Failed';
     if (!isDownloading && progress >= 1.0 && items.isNotEmpty) return 'Completed';
     if (isDownloading) return 'Downloading';
     return 'Idle';
@@ -169,8 +171,26 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
   final List<_DownloadTask> _queue = [];
   bool _processing = false;
   CancelToken? _cancelToken;
+  int _nextItemId = 0;
+  late final TransferHistoryRetention _historyRetention;
 
-  DownloadStateNotifier(this._service) : super(const DownloadState());
+  DownloadStateNotifier(this._service) : super(const DownloadState()) {
+    _historyRetention = TransferHistoryRetention(
+      canPrune: () => !state.isDownloading,
+      onExpired: _removeCompleted,
+    );
+    addListener((next) {
+      _historyRetention.update(
+        next.items
+            .where((item) => item.status == DownloadStatus.completed)
+            .map((item) => item.id),
+      );
+    }, fireImmediately: false);
+  }
+
+  void setAutoCleanupEnabled(bool enabled) {
+    _historyRetention.setEnabled(enabled);
+  }
 
   /// Download a single file. Returns true on success.
   Future<bool> downloadFile({
@@ -189,7 +209,7 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
     ));
 
     // Add pending item to state
-    final itemId = DateTime.now().millisecondsSinceEpoch.toString();
+    final itemId = 'download_${_nextItemId++}';
     final fileName = p.basename(localPath);
     final total = fileSize ?? 0;
     final item = DownloadItem(
@@ -360,11 +380,9 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
       localFolderPath,
       onFilesCollected: (files) {
         if (!mounted) return;
-        final items = files.asMap().entries.map((entry) {
-          final index = entry.key;
-          final file = entry.value;
+        final items = files.map((file) {
           return DownloadItem(
-            id: '${DateTime.now().millisecondsSinceEpoch}_$index',
+            id: 'download_${_nextItemId++}',
             remotePath: file.remotePath,
             localPath: p.join(localFolderPath, file.relativePath),
             fileName: file.fileName,
@@ -530,15 +548,45 @@ class DownloadStateNotifier extends StateNotifier<DownloadState> {
   /// Remove completed items from the list.
   void clearCompleted() {
     if (state.isDownloading) return;
+    _removeCompleted(
+      state.items
+          .where((item) => item.status == DownloadStatus.completed)
+          .map((item) => item.id)
+          .toSet(),
+    );
+  }
+
+  void _removeCompleted(Set<String> ids) {
+    if (!mounted || state.isDownloading || ids.isEmpty) return;
     final remaining = state.items
-        .where((i) => i.status != DownloadStatus.completed)
+        .where((item) =>
+            item.status != DownloadStatus.completed || !ids.contains(item.id))
         .toList();
+    if (remaining.length == state.items.length) return;
+    final total = remaining.fold<int>(0, (sum, item) => sum + item.fileSize);
+    final downloaded = remaining.fold<int>(
+      0,
+      (sum, item) => sum + (item.fileSize * item.progress.clamp(0, 1)).round(),
+    );
     state = remaining.isEmpty
         ? state.clear()
         : state.copyWith(
             items: remaining,
-            error: remaining.any((i) => i.status == DownloadStatus.failed) ? state.error : null,
+            totalFiles: remaining.length,
+            totalBytes: total,
+            downloadedBytes: downloaded,
+            progress: total > 0 ? downloaded / total : 0,
+            currentFileIndex: state.currentFileIndex.clamp(0, remaining.length),
+            fileName: remaining.last.fileName,
+            error: state.error,
           );
+    _lastDownloadedBytes = 0;
+  }
+
+  @override
+  void dispose() {
+    _historyRetention.dispose();
+    super.dispose();
   }
 
   /// Remove failed items from the list.
@@ -581,5 +629,10 @@ class _DownloadTask {
 final downloadStateProvider =
     StateNotifierProvider<DownloadStateNotifier, DownloadState>((ref) {
   final service = ref.watch(webDavFilesServiceProvider);
-  return DownloadStateNotifier(service);
+  final notifier = DownloadStateNotifier(service);
+  notifier.setAutoCleanupEnabled(ref.read(autoClearTransferHistoryProvider));
+  ref.listen<bool>(autoClearTransferHistoryProvider, (_, enabled) {
+    notifier.setAutoCleanupEnabled(enabled);
+  });
+  return notifier;
 });

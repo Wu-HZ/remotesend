@@ -104,6 +104,18 @@ abstract class AppLocalizations {
   /// **'RemoteSend'**
   String get appTitle;
 
+  /// No description provided for @autoClearTransferHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-clear successful transfers'**
+  String get autoClearTransferHistory;
+
+  /// No description provided for @autoClearTransferHistoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep successful records for 5 minutes, then clear when idle. Failed tasks and files are kept.'**
+  String get autoClearTransferHistoryHint;
+
   /// No description provided for @takePhoto.
   ///
   /// In en, this message translates to:

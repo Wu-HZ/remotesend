@@ -310,6 +310,11 @@ final isConfiguredProvider = Provider<bool>((ref) {
   );
 });
 
+/// Whether successful transfer records are automatically removed after 5 minutes.
+final autoClearTransferHistoryProvider = Provider<bool>((ref) {
+  return ref.watch(configProvider).valueOrNull?.autoClearTransferHistory ?? true;
+});
+
 /// Provider for portable mode status.
 final isPortableModeProvider = Provider<bool>((ref) {
   final configAsync = ref.watch(configProvider);
