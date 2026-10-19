@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_config.dart';
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
+import '../models/server_endpoint.dart';
 import '../services/config_service.dart';
 
 /// Provider for the ConfigService singleton.
@@ -21,7 +22,7 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
     try {
       await _configService.initialize();
       final config = await _configService.loadConfig();
-      state = AsyncValue.data(config);
+      state = AsyncValue.data(config.normalizeServerSelections());
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -30,6 +31,7 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
   /// Update and persist configuration.
   Future<bool> updateConfig(AppConfig newConfig) async {
     final previousState = state;
+    newConfig = newConfig.normalizeServerSelections();
 
     try {
       state = AsyncValue.data(newConfig);
@@ -112,9 +114,13 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
   Future<bool> switchTextServer(String serverId) async {
     final currentConfig = state.valueOrNull;
     if (currentConfig == null) return false;
+    if (serverId == gotifyTextServerId) {
+      if (!currentConfig.gotify.registerAsTextServer) return false;
+      return updateConfig(currentConfig.copyWith(activeTextServerId: serverId));
+    }
 
     // Verify the server exists
-    final serverExists = currentConfig.servers.any((s) => s.id == serverId);
+    final serverExists = currentConfig.servers.any((s) => s.id == serverId && s.enabled);
     if (!serverExists) return false;
 
     // Update lastUsed timestamp for the server
@@ -135,6 +141,7 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
 
   /// Switch the active server for File Depot.
   Future<bool> switchFilesServer(String serverId) async {
+    if (serverId == gotifyTextServerId) return false;
     final currentConfig = state.valueOrNull;
     if (currentConfig == null) return false;
 
@@ -160,6 +167,10 @@ class ConfigNotifier extends StateNotifier<AsyncValue<AppConfig>> {
 
   /// Set server for a specific feature (text or files).
   Future<bool> setServerForFeature(String serverId, {required bool forText, required bool forFiles}) async {
+    if (serverId == gotifyTextServerId) {
+      if (forFiles || !forText) return false;
+      return switchTextServer(serverId);
+    }
     final currentConfig = state.valueOrNull;
     if (currentConfig == null) return false;
 
@@ -351,7 +362,7 @@ final serversListProvider = Provider<List<ServerConfig>>((ref) {
 /// Provider for the list of enabled servers only (used in selector dropdowns).
 final enabledServersProvider = Provider<List<ServerConfig>>((ref) {
   final allServers = ref.watch(serversListProvider);
-  return allServers.where((s) => s.enabled).toList();
+  return allServers.where((s) => s.enabled && s.id != gotifyTextServerId).toList();
 });
 
 /// Provider for the active server for Text Bridge.

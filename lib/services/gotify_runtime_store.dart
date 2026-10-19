@@ -87,9 +87,13 @@ class GotifyRuntimeData {
     // Active inbound work is session-only; intentionally deferred background
     // notifications are persisted so Android can recover after process death.
     'deferredInboundEvents': deferredInboundEvents
+        .where((event) => event.type != RemoteSendEvent.textDirect)
         .map((event) => event.toJson())
         .toList(),
-    'outbox': outbox.map((item) => item.toJson()).toList(),
+    'outbox': outbox
+        .where((item) => item.event.type != RemoteSendEvent.textDirect)
+        .map((item) => item.toJson())
+        .toList(),
   };
 
   factory GotifyRuntimeData.fromJson(Map<String, dynamic> json) {
@@ -113,9 +117,12 @@ class GotifyRuntimeData {
     if (rawDeferredInbound is List) {
       for (final item in rawDeferredInbound.whereType<Map>()) {
         try {
-          deferredInboundEvents.add(
-            RemoteSendEvent.fromJson(Map<String, dynamic>.from(item)),
+          final event = RemoteSendEvent.fromJson(
+            Map<String, dynamic>.from(item),
           );
+          if (event.type != RemoteSendEvent.textDirect) {
+            deferredInboundEvents.add(event);
+          }
         } catch (_) {
           // Ignore malformed deferred events.
         }
@@ -127,9 +134,12 @@ class GotifyRuntimeData {
     if (rawOutbox is List) {
       for (final item in rawOutbox.whereType<Map>()) {
         try {
-          outbox.add(
-            PendingGotifyEvent.fromJson(Map<String, dynamic>.from(item)),
+          final pending = PendingGotifyEvent.fromJson(
+            Map<String, dynamic>.from(item),
           );
+          if (pending.event.type != RemoteSendEvent.textDirect) {
+            outbox.add(pending);
+          }
         } catch (_) {
           // Ignore malformed pending events.
         }

@@ -14,6 +14,7 @@ import 'config_provider.dart';
 import 'download_cache_provider.dart';
 import 'download_state_provider.dart';
 import 'gotify_provider.dart';
+import 'gotify_text_session_provider.dart';
 import 'message_history_provider.dart';
 import 'webdav_provider.dart';
 
@@ -186,6 +187,10 @@ class GotifyCoordinatorNotifier extends StateNotifier<GotifyCoordinatorState> {
   final Set<String> _downloadedFileEventIds = {};
 
   void _handleEvent(RemoteSendEvent event) {
+    if (event.type == RemoteSendEvent.textDirect) {
+      _ref.read(gotifyTextSessionProvider.notifier).receive(event);
+      return;
+    }
     if (_shouldDeferInBackground(event)) {
       unawaited(_gotify.deferEvent(event));
       return;

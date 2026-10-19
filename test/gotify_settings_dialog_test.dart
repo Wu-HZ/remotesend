@@ -63,7 +63,7 @@ void main() {
       await tester.tap(find.text('已关闭'));
       await tester.pumpAndSettle();
 
-      final urlField = find.byType(TextFormField).first;
+      final urlField = find.byKey(const ValueKey('gotify-server-url'));
       await tester.tap(urlField);
       await tester.pump();
       await tester.tap(find.text('取消').last);
@@ -72,22 +72,30 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byType(TextFormField), findsNothing);
 
-      // Reopening and saving still reads the latest values from all three fields.
+      // Reopening and saving reads current values by field identity, not order.
       await tester.tap(find.text('已关闭'));
       await tester.pumpAndSettle();
-      final fields = find.byType(TextFormField);
-      await tester.enterText(fields.at(0), 'https://gotify.example.com');
-      await tester.enterText(fields.at(1), 'app-token');
-      await tester.enterText(fields.at(2), 'client-token');
+      await tester.enterText(
+        find.byKey(const ValueKey('gotify-server-emoji')),
+        '⚡',
+      );
+      await tester.enterText(urlField, 'https://gotify.example.com');
+      await tester.enterText(
+        find.byKey(const ValueKey('gotify-app-token')),
+        'app-token',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('gotify-client-token')),
+        'client-token',
+      );
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(
-        config.debugState.valueOrNull?.gotify.serverUrl,
-        'https://gotify.example.com',
-      );
-      expect(config.debugState.valueOrNull?.gotify.appToken, 'app-token');
-      expect(config.debugState.valueOrNull?.gotify.clientToken, 'client-token');
+      final saved = config.state.requireValue.gotify;
+      expect(saved.serverUrl, 'https://gotify.example.com');
+      expect(saved.emoji, '⚡');
+      expect(saved.appToken, 'app-token');
+      expect(saved.clientToken, 'client-token');
     },
   );
 }

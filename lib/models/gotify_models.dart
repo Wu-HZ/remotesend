@@ -9,6 +9,8 @@ const _uuid = Uuid();
 class GotifyConfig {
   GotifyConfig({
     this.enabled = false,
+    this.registerAsTextServer = false,
+    this.emoji = '',
     this.serverUrl = '',
     this.appToken = '',
     this.clientToken = '',
@@ -27,6 +29,10 @@ class GotifyConfig {
        historyLookbackMinutes = historyLookbackMinutes.clamp(1, 5);
 
   final bool enabled;
+  final bool registerAsTextServer;
+
+  /// Local server icon; empty uses the default cloud, not part of connection identity.
+  final String emoji;
   final String serverUrl;
   final String appToken;
   final String clientToken;
@@ -73,6 +79,8 @@ class GotifyConfig {
 
   GotifyConfig copyWith({
     bool? enabled,
+    bool? registerAsTextServer,
+    String? emoji,
     String? serverUrl,
     String? appToken,
     String? clientToken,
@@ -88,6 +96,8 @@ class GotifyConfig {
   }) {
     return GotifyConfig(
       enabled: enabled ?? this.enabled,
+      registerAsTextServer: registerAsTextServer ?? this.registerAsTextServer,
+      emoji: emoji ?? this.emoji,
       serverUrl: serverUrl ?? this.serverUrl,
       appToken: appToken ?? this.appToken,
       clientToken: clientToken ?? this.clientToken,
@@ -109,6 +119,8 @@ class GotifyConfig {
   Map<String, dynamic> toJson() {
     return {
       'enabled': enabled,
+      'registerAsTextServer': registerAsTextServer,
+      'emoji': emoji,
       'serverUrl': serverUrl,
       'appToken': appToken,
       'clientToken': clientToken,
@@ -129,6 +141,8 @@ class GotifyConfig {
 
     return GotifyConfig(
       enabled: json['enabled'] as bool? ?? false,
+      registerAsTextServer: json['registerAsTextServer'] as bool? ?? false,
+      emoji: json['emoji'] as String? ?? '',
       serverUrl: json['serverUrl'] as String? ?? '',
       appToken: json['appToken'] as String? ?? '',
       clientToken: json['clientToken'] as String? ?? '',
@@ -152,6 +166,8 @@ class GotifyConfig {
   bool operator ==(Object other) {
     return other is GotifyConfig &&
         other.enabled == enabled &&
+        other.registerAsTextServer == registerAsTextServer &&
+        other.emoji == emoji &&
         other.serverUrl == serverUrl &&
         other.appToken == appToken &&
         other.clientToken == clientToken &&
@@ -169,6 +185,8 @@ class GotifyConfig {
   @override
   int get hashCode => Object.hash(
     enabled,
+    registerAsTextServer,
+    emoji,
     serverUrl,
     appToken,
     clientToken,
@@ -191,7 +209,8 @@ bool shouldDeferRemoteEventInBackground(
 }) {
   if (isForeground) return false;
   return switch (event.type) {
-    RemoteSendEvent.textChanged => !config.receiveTextInBackground,
+    RemoteSendEvent.textChanged ||
+    RemoteSendEvent.textDirect => !config.receiveTextInBackground,
     RemoteSendEvent.fileReady => !config.receiveFilesInBackground,
     _ => false,
   };
@@ -203,18 +222,21 @@ class RemoteDevice {
     required this.name,
     required this.platform,
     required this.lastSeen,
+    this.capabilities = const [],
   });
 
   final String id;
   final String name;
   final String platform;
   final DateTime lastSeen;
+  final List<String> capabilities;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'platform': platform,
     'lastSeen': lastSeen.toUtc().toIso8601String(),
+    'capabilities': capabilities,
   };
 
   factory RemoteDevice.fromJson(Map<String, dynamic> json) {
@@ -222,6 +244,9 @@ class RemoteDevice {
       id: json['id'] as String,
       name: json['name'] as String? ?? 'Unknown',
       platform: json['platform'] as String? ?? 'unknown',
+      capabilities: (json['capabilities'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(),
       lastSeen:
           DateTime.tryParse(json['lastSeen'] as String? ?? '')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -279,6 +304,7 @@ class RemoteSendEvent {
 
   static const deviceAnnounce = 'device_announce';
   static const textChanged = 'text_changed';
+  static const textDirect = 'text_direct';
   static const fileReady = 'file_ready';
   static const fileReceived = 'file_received';
 

@@ -104,6 +104,102 @@ abstract class AppLocalizations {
   /// **'RemoteSend'**
   String get appTitle;
 
+  /// No description provided for @gotifyTextServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Gotify · Live text'**
+  String get gotifyTextServer;
+
+  /// No description provided for @gotifyRegisterTextServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Register as a text server'**
+  String get gotifyRegisterTextServer;
+
+  /// No description provided for @gotifyRegisterTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Live text only. No files, history, or dates. Enable this option on both devices using compatible RemoteSend versions.'**
+  String get gotifyRegisterTextHint;
+
+  /// No description provided for @gotifySessionNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This session is kept in memory only. No local history or offline delivery. Gotify may still retain message content on its server.'**
+  String get gotifySessionNotice;
+
+  /// No description provided for @gotifyRealtimeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No live text yet'**
+  String get gotifyRealtimeEmpty;
+
+  /// No description provided for @gotifyClearSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear current session'**
+  String get gotifyClearSession;
+
+  /// No description provided for @gotifyTextNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Gotify is disabled, unconfigured, or not connected yet.'**
+  String get gotifyTextNotReady;
+
+  /// No description provided for @gotifyTextEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter some text to send.'**
+  String get gotifyTextEmpty;
+
+  /// No description provided for @gotifyTextTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Text exceeds the 32 KiB UTF-8 limit or the server request limit.'**
+  String get gotifyTextTooLarge;
+
+  /// No description provided for @gotifyTextQueueFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The live text queue is full. Wait and retry; new text was not sent.'**
+  String get gotifyTextQueueFull;
+
+  /// No description provided for @gotifyTextSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send to Gotify. Check the connection or credentials and retry.'**
+  String get gotifyTextSendFailed;
+
+  /// No description provided for @gotifyTextUncertain.
+  ///
+  /// In en, this message translates to:
+  /// **'The request timed out. Gotify may have accepted it; retrying uses the same message ID.'**
+  String get gotifyTextUncertain;
+
+  /// No description provided for @gotifyTextCapabilityUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Live text support is unconfirmed. Check the version and registration on this device; WebDAV notifications are unaffected.'**
+  String get gotifyTextCapabilityUnknown;
+
+  /// No description provided for @gotifyTextSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get gotifyTextSending;
+
+  /// No description provided for @gotifyTextSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to Gotify'**
+  String get gotifyTextSent;
+
+  /// No description provided for @gotifyDroppedTexts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} background messages expired or exceeded the memory limit.'**
+  String gotifyDroppedTexts(int count);
+
   /// No description provided for @autoClearTransferHistory.
   ///
   /// In en, this message translates to:

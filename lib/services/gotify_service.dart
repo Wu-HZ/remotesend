@@ -7,9 +7,10 @@ import 'package:dio/dio.dart';
 import '../models/gotify_models.dart';
 
 class GotifyException implements Exception {
-  const GotifyException(this.message);
+  const GotifyException(this.message, {this.code});
 
   final String message;
+  final String? code;
 
   @override
   String toString() => message;
@@ -154,7 +155,18 @@ class GotifyService {
       );
       return GotifyMessage.fromJson(response.data ?? const {});
     } on DioException catch (error) {
-      throw GotifyException(_dioMessage(error));
+      final timeout =
+          error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.sendTimeout ||
+          error.type == DioExceptionType.receiveTimeout;
+      throw GotifyException(
+        'Gotify request failed${error.response?.statusCode == null ? '' : ' (HTTP ${error.response!.statusCode})'}',
+        code: timeout
+            ? 'timeout'
+            : error.response?.statusCode == 413
+            ? 'too_large'
+            : 'send_failed',
+      );
     }
   }
 
@@ -187,9 +199,11 @@ class GotifyService {
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
+    // Abort in-flight POSTs immediately on identity change, without waiting
+    // for a remote WebSocket peer to finish its close handshake.
+    _dio.close(force: true);
     await _socketSubscription?.cancel();
     await _socket?.close();
-    _dio.close(force: true);
     if (!_messages.isClosed) {
       await _messages.close();
     }

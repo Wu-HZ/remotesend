@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
-import '../models/server_config.dart';
+import '../models/server_endpoint.dart';
 import '../models/text_message.dart';
 import '../services/clipboard_auto_send_session.dart';
 import '../services/text_clipboard_service.dart';
@@ -11,20 +11,57 @@ import '../providers/config_provider.dart';
 import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/message_history_provider.dart';
-import '../widgets/server_list_panel.dart';
+import '../widgets/text_endpoint_selector.dart';
+import '../providers/text_endpoint_provider.dart';
+import '../providers/text_send_provider.dart';
+import '../models/gotify_text_message.dart';
+import '../providers/gotify_text_session_provider.dart';
 import '../widgets/storage_usage_widget.dart';
 
-/// Text Bridge screen with chat-like interface.
-class TextBridgeScreen extends ConsumerStatefulWidget {
+String _realtimeFailureLabel(
+  RealtimeTextFailure failure,
+  AppLocalizations l10n,
+) => switch (failure) {
+  RealtimeTextFailure.notReady => l10n.gotifyTextNotReady,
+  RealtimeTextFailure.empty => l10n.gotifyTextEmpty,
+  RealtimeTextFailure.tooLarge => l10n.gotifyTextTooLarge,
+  RealtimeTextFailure.queueFull => l10n.gotifyTextQueueFull,
+  RealtimeTextFailure.sendFailed => l10n.gotifyTextSendFailed,
+  RealtimeTextFailure.uncertain => l10n.gotifyTextUncertain,
+};
+
+/// Shared text presentation; transport capabilities only hide unsupported controls.
+class TextBridgeScreen extends ConsumerWidget {
   const TextBridgeScreen({super.key, this.isActive = true});
-
   final bool isActive;
-
   @override
-  ConsumerState<TextBridgeScreen> createState() => _TextBridgeScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final endpoint = ref.watch(activeTextEndpointProvider);
+    if (endpoint == null && ref.watch(textServerEndpointsProvider).isNotEmpty) {
+      return const ChooseTextEndpointScreen();
+    }
+    final realtime = endpoint is GotifyTextEndpoint;
+    return _TextBridgePage(
+      key: ValueKey(realtime),
+      isActive: isActive,
+      realtime: realtime,
+    );
+  }
 }
 
-class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
+class _TextBridgePage extends ConsumerStatefulWidget {
+  const _TextBridgePage({
+    super.key,
+    required this.isActive,
+    required this.realtime,
+  });
+  final bool isActive;
+  final bool realtime;
+  @override
+  ConsumerState<_TextBridgePage> createState() => _TextBridgeScreenState();
+}
+
+class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
@@ -45,9 +82,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final clipboard = ref.read(textClipboardServiceProvider);
     _clipboardAutoSend = ClipboardAutoSendSession(
       readText: clipboard.readText,
-      sendText: (text) =>
-          ref.read(messageHistoryProvider.notifier).sendMessage(text),
-      canSend: () => !ref.read(messageHistoryProvider).isSending,
+      sendText: (text) => ref.read(textSendControllerProvider).send(text),
+      canSend: () => !ref.read(textSendingProvider),
       canRead: () {
         // Desktop must keep polling while the user copies in another window.
         final mobile =
@@ -71,17 +107,17 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         );
       },
     )..addListener(_onTextChanged);
-    Future.microtask(_initialize);
+    if (!widget.realtime) Future.microtask(_initialize);
   }
 
   @override
-  void didUpdateWidget(covariant TextBridgeScreen oldWidget) {
+  void didUpdateWidget(covariant _TextBridgePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.isActive) _clipboardAutoSend.stop();
   }
 
   Future<void> _initialize() async {
-    if (!mounted || _initialized) return;
+    if (!mounted || widget.realtime || _initialized) return;
     _initialized = true;
 
     final status = ref.read(textConnectionStatusProvider);
@@ -141,39 +177,108 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isConfigured = ref.watch(isTextConfiguredProvider);
-    final connectionStatus = ref.watch(textConnectionStatusProvider);
-    final historyState = ref.watch(messageHistoryProvider);
+    final gotify = widget.realtime ? ref.watch(gotifyConfigProvider) : null;
+    final gotifyConnection = widget.realtime ? ref.watch(gotifyProvider) : null;
+    final realtime = widget.realtime
+        ? ref.watch(gotifyTextSessionProvider)
+        : null;
+    final isConfigured = widget.realtime
+        ? gotify!.hasCredentials && gotify.registerAsTextServer
+        : ref.watch(isTextConfiguredProvider);
+    final connectionStatus = widget.realtime
+        ? const ConnectionStatus.disconnected()
+        : ref.watch(textConnectionStatusProvider);
+    final historyState = widget.realtime
+        ? const MessageHistoryState()
+        : ref.watch(messageHistoryProvider);
     final localName = ref.watch(localNameProvider);
-    final selectedDate = ref.watch(selectedDateProvider);
-    final activeServer = ref.watch(activeTextServerProvider);
-    final servers = ref.watch(enabledServersProvider);
+    final selectedDate = widget.realtime ? '' : ref.watch(selectedDateProvider);
+    final activeServer = widget.realtime
+        ? null
+        : ref.watch(activeTextServerProvider);
+    final realtimeMessages = {
+      for (final message in realtime?.messages ?? <GotifyTextMessage>[])
+        message.id: message,
+    };
+    final messages = realtime == null
+        ? historyState.messages
+        : realtime.messages
+              .map(
+                (message) => TextMessage(
+                  id: message.id,
+                  content: message.content,
+                  senderName: message.event.senderName,
+                  isLocal: message.isLocal,
+                  timestamp: message.event.createdAt,
+                ),
+              )
+              .toList();
+    final isSending = realtime?.isSending ?? historyState.isSending;
+    String? error = realtime?.failure == null
+        ? historyState.error
+        : _realtimeFailureLabel(
+            realtime!.failure!,
+            AppLocalizations.of(context)!,
+          );
+    if ((realtime?.droppedCount ?? 0) > 0) {
+      error = [
+        if (error != null) error,
+        AppLocalizations.of(
+          context,
+        )!.gotifyDroppedTexts(realtime!.droppedCount),
+      ].join('\n');
+    }
+    final servers = ref.watch(textServerEndpointsProvider);
     final ownOnLeft =
         ref.watch(configProvider).valueOrNull?.chatOwnMessageLeft ?? false;
     final l10n = AppLocalizations.of(context)!;
 
-    ref.listen(textConnectionStatusProvider, (previous, next) {
-      if (next.state != WebDavConnectionState.connected) {
-        _clipboardAutoSend.stop();
-      }
-    });
-    ref.listen(activeTextServerProvider, (previous, next) {
-      if (previous != next) _clipboardAutoSend.stop();
-    });
+    if (widget.realtime) {
+      ref.listen(gotifyProvider, (_, next) {
+        if (!next.isConnected || next.applicationId == null) {
+          _clipboardAutoSend.stop();
+        }
+      });
+      ref.listen(gotifyConfigProvider, (previous, next) {
+        if (!next.registerAsTextServer ||
+            !next.enabled ||
+            (previous != null &&
+                gotifyTextIdentity(previous) != gotifyTextIdentity(next))) {
+          _clipboardAutoSend.stop();
+        }
+      });
+      ref.listen(gotifyTextSessionProvider, (previous, next) {
+        if (previous?.messages.lastOrNull?.id != next.messages.lastOrNull?.id) {
+          _scrollToBottomIfNearEnd();
+        }
+      });
+    } else {
+      ref.listen(textConnectionStatusProvider, (previous, next) {
+        if (next.state != WebDavConnectionState.connected) {
+          _clipboardAutoSend.stop();
+        }
+      });
+      ref.listen(activeTextServerProvider, (previous, next) {
+        if (previous != next) _clipboardAutoSend.stop();
+      });
+      ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
+        if ((previous?.messages.length ?? 0) < next.messages.length) {
+          _scrollToBottomIfNearEnd();
+        }
+      });
+    }
 
-    ref.listen<MessageHistoryState>(messageHistoryProvider, (previous, next) {
-      if ((previous?.messages.length ?? 0) < next.messages.length) {
-        _scrollToBottomIfNearEnd();
-      }
-    });
-
-    if (!_initialized &&
+    if (!widget.realtime &&
+        !_initialized &&
         connectionStatus.state == WebDavConnectionState.connected) {
       Future.microtask(_initialize);
     }
 
-    final isConnected =
-        connectionStatus.state == WebDavConnectionState.connected;
+    final isConnected = widget.realtime
+        ? gotify!.isConfigured &&
+              gotifyConnection!.isConnected &&
+              gotifyConnection.applicationId != null
+        : connectionStatus.state == WebDavConnectionState.connected;
     final canSync = isConfigured && isConnected;
 
     return LayoutBuilder(
@@ -187,7 +292,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             surfaceTintColor: Colors.transparent,
             title: Row(
               children: [
-                if (canSync)
+                if (!widget.realtime && canSync)
                   StorageUsageWidget(
                     provider: textStorageUsageProvider,
                     clearDescription: l10n.clearAllTexts(
@@ -213,98 +318,108 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                       return result.isSuccess;
                     },
                   ),
+                if (widget.realtime)
+                  IconButton(
+                    key: const ValueKey('gotify-clear-session'),
+                    tooltip: l10n.gotifyClearSession,
+                    onPressed: isSending || (messages.isEmpty && error == null)
+                        ? null
+                        : ref.read(gotifyTextSessionProvider.notifier).clear,
+                    icon: const Icon(Icons.delete_outline),
+                  ),
                 const Spacer(),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      key: const ValueKey('text-date-previous'),
-                      onPressed: canSync && !historyState.isLoading
-                          ? () => _changeSelectedDate(selectedDate, -1)
-                          : null,
-                      icon: const Icon(Icons.chevron_left),
-                      tooltip: l10n.previousDay,
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints.tightFor(
-                        width: 36,
-                        height: 36,
-                      ),
-                      padding: EdgeInsets.zero,
-                    ),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        key: const ValueKey('text-date-picker'),
-                        onTap: canSync
-                            ? () => _showDatePicker(
-                                historyState.availableDates,
-                                l10n,
-                              )
+                if (!widget.realtime)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        key: const ValueKey('text-date-previous'),
+                        onPressed: canSync && !historyState.isLoading
+                            ? () => _changeSelectedDate(selectedDate, -1)
                             : null,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          child: Transform.translate(
-                            offset: const Offset(0, 8),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Transform.translate(
-                                    offset: const Offset(0, 2),
-                                    child: Text(
-                                      _formatDateForTitle(selectedDate, l10n),
-                                      maxLines: 1,
+                        icon: const Icon(Icons.chevron_left),
+                        tooltip: l10n.previousDay,
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 36,
+                          height: 36,
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          key: const ValueKey('text-date-picker'),
+                          onTap: canSync
+                              ? () => _showDatePicker(
+                                  historyState.availableDates,
+                                  l10n,
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            child: Transform.translate(
+                              offset: const Offset(0, 8),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Transform.translate(
+                                      offset: const Offset(0, 2),
+                                      child: Text(
+                                        _formatDateForTitle(selectedDate, l10n),
+                                        maxLines: 1,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (canSync) ...[
-                                  const SizedBox(height: 2),
-                                  Transform.translate(
-                                    offset: const Offset(0, -2),
-                                    child: const Icon(
-                                      Icons.arrow_drop_down,
-                                      size: 18,
+                                  if (canSync) ...[
+                                    const SizedBox(height: 2),
+                                    Transform.translate(
+                                      offset: const Offset(0, -2),
+                                      child: const Icon(
+                                        Icons.arrow_drop_down,
+                                        size: 18,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      key: const ValueKey('text-date-next'),
-                      onPressed:
-                          canSync &&
-                              !historyState.isLoading &&
-                              !_isToday(selectedDate)
-                          ? () => _changeSelectedDate(selectedDate, 1)
-                          : null,
-                      icon: const Icon(Icons.chevron_right),
-                      tooltip: l10n.nextDay,
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints.tightFor(
-                        width: 36,
-                        height: 36,
+                      IconButton(
+                        key: const ValueKey('text-date-next'),
+                        onPressed:
+                            canSync &&
+                                !historyState.isLoading &&
+                                !_isToday(selectedDate)
+                            ? () => _changeSelectedDate(selectedDate, 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                        tooltip: l10n.nextDay,
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 36,
+                          height: 36,
+                        ),
+                        padding: EdgeInsets.zero,
                       ),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const Spacer(),
               ],
             ),
             actions: [
-              if (servers.isNotEmpty)
-                _buildServerSelector(activeServer, servers, l10n),
-              if (canSync)
+              if (servers.isNotEmpty) const TextEndpointSelector(),
+              if (widget.realtime || canSync)
                 IconButton(
+                  key: const ValueKey('text-refresh'),
                   onPressed: historyState.isLoading ? null : _manualRefresh,
                   icon: historyState.isLoading
                       ? const SizedBox(
@@ -323,13 +438,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (showServerList)
-                    ServerListPanel(
-                      l10n: l10n,
-                      servers: servers,
-                      activeServer: activeServer,
-                      onServerSelected: _switchTextServer,
-                    ),
+                  if (showServerList) const TextEndpointPanel(),
                   Expanded(
                     child: Column(
                       children: [
@@ -340,20 +449,20 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                             l10n,
                           ),
                         Expanded(
-                          child:
-                              historyState.isLoading &&
-                                  historyState.messages.isEmpty
+                          child: historyState.isLoading && messages.isEmpty
                               ? const Center(child: CircularProgressIndicator())
-                              : historyState.messages.isEmpty
+                              : messages.isEmpty
                               ? _buildEmptyState(selectedDate, l10n)
                               : _buildMessageList(
-                                  historyState.messages,
+                                  messages,
                                   localName,
                                   l10n,
                                   ownOnLeft,
+                                  realtimeMessages: realtimeMessages,
+                                  canRetry: canSync && !isSending,
                                 ),
                         ),
-                        if (historyState.error != null)
+                        if (error != null)
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -371,7 +480,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    historyState.error!,
+                                    error,
                                     style: const TextStyle(
                                       color: Colors.red,
                                       fontSize: 14,
@@ -380,21 +489,27 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.close, size: 16),
-                                  onPressed: () => ref
-                                      .read(messageHistoryProvider.notifier)
-                                      .clearError(),
+                                  onPressed: () {
+                                    if (widget.realtime) {
+                                      ref
+                                          .read(
+                                            gotifyTextSessionProvider.notifier,
+                                          )
+                                          .clearError();
+                                    } else {
+                                      ref
+                                          .read(messageHistoryProvider.notifier)
+                                          .clearError();
+                                    }
+                                  },
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                 ),
                               ],
                             ),
                           ),
-                        if (_isToday(selectedDate))
-                          _buildInputArea(
-                            canSync,
-                            historyState.isSending,
-                            l10n,
-                          ),
+                        if (widget.realtime || _isToday(selectedDate))
+                          _buildInputArea(canSync, isSending, l10n),
                       ],
                     ),
                   ),
@@ -488,86 +603,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Future<void> _manualRefresh() async {
+    // Keep the same toolbar for both transports; Gotify has no history to fetch.
+    if (widget.realtime) return;
     await ref.read(messageHistoryProvider.notifier).refresh();
-  }
-
-  Future<void> _switchTextServer(ServerConfig server) async {
-    if (server.id == ref.read(activeTextServerProvider)?.id) return;
-
-    await ref.read(configProvider.notifier).switchTextServer(server.id);
-    if (!mounted) return;
-    await ref.read(textConnectionStatusProvider.notifier).testConnection();
-    ref.read(messageHistoryProvider.notifier).refresh();
-  }
-
-  Widget _buildServerSelector(
-    ServerConfig? activeServer,
-    List<ServerConfig> servers,
-    AppLocalizations l10n,
-  ) {
-    return PopupMenuButton<String>(
-      tooltip: l10n.switchServer,
-      icon: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (activeServer != null && activeServer!.emoji.isNotEmpty)
-            Text(activeServer!.emoji, style: const TextStyle(fontSize: 16))
-          else
-            Icon(
-              Icons.cloud,
-              size: 18,
-              color: activeServer != null
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey,
-            ),
-          const SizedBox(width: 2),
-          const Icon(Icons.arrow_drop_down, size: 16),
-        ],
-      ),
-      onSelected: (serverId) {
-        final server = servers.firstWhere((server) => server.id == serverId);
-        _switchTextServer(server);
-      },
-      itemBuilder: (context) => servers.map((server) {
-        final isActive = server.id == activeServer?.id;
-        return PopupMenuItem<String>(
-          value: server.id,
-          child: Row(
-            children: [
-              Icon(
-                isActive ? Icons.check_circle : Icons.circle_outlined,
-                size: 18,
-                color: isActive ? Theme.of(context).colorScheme.primary : null,
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 24,
-                child: server.emoji.isNotEmpty
-                    ? Text(
-                        server.emoji,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16),
-                      )
-                    : Icon(
-                        Icons.cloud,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  server.name,
-                  style: TextStyle(
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
   }
 
   Widget _buildWarningBanner(
@@ -578,7 +616,19 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     String message;
     IconData icon;
 
-    if (!isConfigured) {
+    if (widget.realtime) {
+      final config = ref.read(gotifyConfigProvider);
+      final status = ref.read(gotifyProvider);
+      final connecting =
+          config.isConfigured &&
+          (status.status == GotifyConnectionStatus.connecting ||
+              status.status == GotifyConnectionStatus.reconnecting ||
+              (status.isConnected && status.applicationId == null));
+      message = connecting
+          ? l10n.connectionStatusConnecting
+          : l10n.gotifyTextNotReady;
+      icon = connecting ? Icons.sync : Icons.cloud_off;
+    } else if (!isConfigured) {
       message = l10n.configureWebDavToSync;
       icon = Icons.settings;
     } else if (connectionState == WebDavConnectionState.connecting) {
@@ -608,7 +658,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Widget _buildEmptyState(String selectedDate, AppLocalizations l10n) {
-    final isToday = _isToday(selectedDate);
+    final isToday = widget.realtime || _isToday(selectedDate);
 
     return Center(
       child: Column(
@@ -646,8 +696,10 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     List<TextMessage> messages,
     String localName,
     AppLocalizations l10n,
-    bool ownOnLeft,
-  ) {
+    bool ownOnLeft, {
+    Map<String, GotifyTextMessage> realtimeMessages = const {},
+    bool canRetry = false,
+  }) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -660,6 +712,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
           l10n,
           ownOnLeft,
           key: ValueKey(message.id),
+          realtime: realtimeMessages[message.id],
+          canRetry: canRetry,
         );
       },
     );
@@ -671,6 +725,8 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     AppLocalizations l10n,
     bool ownOnLeft, {
     Key? key,
+    GotifyTextMessage? realtime,
+    bool canRetry = false,
   }) {
     final isLocal = message.isLocal;
     final showRight = isLocal && !ownOnLeft; // own messages on right side
@@ -688,12 +744,36 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
         : message.content;
 
     final textColor = isLocal ? Colors.white : colorScheme.onSurface;
+    final messageStyle = TextStyle(
+      fontSize: 14,
+      color: textColor,
+      fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+    );
     final timeColor = isLocal
         ? Colors.white.withAlpha(150)
         : colorScheme.outline;
     final linkColor = isLocal
         ? Colors.white.withAlpha(230)
         : colorScheme.primary;
+    final timeText = Text(
+      message.formattedTime,
+      style: TextStyle(fontSize: 10, color: timeColor),
+    );
+    final timeLabel = realtime == null || !isLocal
+        ? timeText
+        : Tooltip(
+            message: switch (realtime.status) {
+              RealtimeTextStatus.sent => l10n.gotifyTextSent,
+              RealtimeTextStatus.sending => l10n.gotifyTextSending,
+              RealtimeTextStatus.failed ||
+              RealtimeTextStatus.uncertain => _realtimeFailureLabel(
+                realtime.failure ?? RealtimeTextFailure.sendFailed,
+                l10n,
+              ),
+              RealtimeTextStatus.received => '',
+            },
+            child: timeText,
+          );
     final senderName = message.senderName.trim();
     final senderInitial = senderName.isNotEmpty
         ? senderName[0].toUpperCase()
@@ -703,10 +783,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
     final bubbleMaxWidth =
         MediaQuery.of(context).size.width * 0.75 - 24; // padding
     final painter = TextPainter(
-      text: TextSpan(
-        text: displayContent,
-        style: const TextStyle(fontSize: 14),
-      ),
+      text: TextSpan(text: displayContent, style: messageStyle),
       maxLines: 1,
       textDirection: TextDirection.ltr,
     )..layout();
@@ -738,8 +815,11 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             ],
             Flexible(
               child: GestureDetector(
+                key: ValueKey('text-message-bubble-${message.id}'),
                 onTap: () => _copyMessage(message.content, l10n),
-                onLongPress: () => _markForDeletion(message, l10n),
+                onLongPress: widget.realtime
+                    ? null
+                    : () => _markForDeletion(message, l10n),
                 child: Container(
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -773,10 +853,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                   Flexible(
                                     child: RichText(
                                       text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: textColor,
-                                        ),
+                                        style: messageStyle,
                                         children: urls.isNotEmpty
                                             ? _buildInlineSpans(
                                                 displayContent,
@@ -792,13 +869,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(
-                                    message.formattedTime,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: timeColor,
-                                    ),
-                                  ),
+                                  timeLabel,
                                 ],
                               )
                             : Column(
@@ -807,10 +878,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                 children: [
                                   RichText(
                                     text: TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: textColor,
-                                      ),
+                                      style: messageStyle,
                                       children: urls.isNotEmpty
                                           ? _buildInlineSpans(
                                               displayContent,
@@ -826,21 +894,12 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                   ),
                                   Align(
                                     alignment: Alignment.centerRight,
-                                    child: Text(
-                                      message.formattedTime,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: timeColor,
-                                      ),
-                                    ),
+                                    child: timeLabel,
                                   ),
                                 ],
                               )
                       else
-                        Text(
-                          displayContent,
-                          style: TextStyle(fontSize: 14, color: textColor),
-                        ),
+                        Text(displayContent, style: messageStyle),
                       if (needsExpand && !isExpanded)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
@@ -859,15 +918,30 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                                   ),
                                 ),
                                 const Spacer(),
-                                Text(
-                                  message.formattedTime,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: timeColor,
-                                  ),
-                                ),
+                                timeLabel,
                               ],
                             ),
+                          ),
+                        ),
+                      if (realtime?.status == RealtimeTextStatus.failed ||
+                          realtime?.status == RealtimeTextStatus.uncertain)
+                        TextButton.icon(
+                          key: ValueKey('text-message-retry-${message.id}'),
+                          onPressed: canRetry
+                              ? () => ref
+                                    .read(textSendControllerProvider)
+                                    .retry(message.id)
+                              : null,
+                          style: TextButton.styleFrom(
+                            foregroundColor: linkColor,
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(Icons.refresh, size: 12),
+                          label: Text(
+                            l10n.retry,
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ),
                       if (needsExpand && isExpanded)
@@ -1019,6 +1093,7 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   void _markForDeletion(TextMessage message, AppLocalizations l10n) {
+    final sourceId = ref.read(activeTextEndpointProvider)?.id;
     setState(() => _deletingMessages.add(message.id));
 
     final cachedContent = message.content;
@@ -1034,9 +1109,11 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
               action: SnackBarAction(
                 label: l10n.undo,
                 onPressed: () {
-                  ref
-                      .read(messageHistoryProvider.notifier)
-                      .sendMessage(cachedContent);
+                  if (!mounted ||
+                      ref.read(activeTextEndpointProvider)?.id != sourceId) {
+                    return;
+                  }
+                  ref.read(textSendControllerProvider).send(cachedContent);
                 },
               ),
             ),
@@ -1107,6 +1184,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
             children: [
               Expanded(
                 child: TextField(
+                  key: ValueKey(
+                    widget.realtime ? 'gotify-text-input' : 'webdav-text-input',
+                  ),
                   controller: _textController,
                   focusNode: _focusNode,
                   maxLines: 4,
@@ -1164,6 +1244,9 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
                 width: 44,
                 height: 44,
                 child: IconButton(
+                  key: ValueKey(
+                    widget.realtime ? 'gotify-text-send' : 'webdav-text-send',
+                  ),
                   onPressed:
                       canSync &&
                           !isSending &&
@@ -1195,24 +1278,28 @@ class _TextBridgeScreenState extends ConsumerState<TextBridgeScreen> {
   }
 
   Future<void> _sendMessage() async {
-    final text = _textController.text.trim();
-    if (text.isEmpty) return;
-
-    _textController.clear();
-    await ref.read(messageHistoryProvider.notifier).sendMessage(text);
-    if (mounted) _focusNode.requestFocus();
+    final text = widget.realtime
+        ? _textController.text
+        : _textController.text.trim();
+    if (text.trim().isEmpty) return;
+    if (!widget.realtime) _textController.clear();
+    final sent = await ref.read(textSendControllerProvider).send(text);
+    if (!mounted) return;
+    if (widget.realtime && sent && _textController.text == text) {
+      _textController.clear();
+    }
+    _focusNode.requestFocus();
   }
 
   Future<void> _sendClipboard() async {
-    final text = (await ref.read(textClipboardServiceProvider).readText())
-        ?.trim();
+    final text = await ref.read(textClipboardServiceProvider).readText();
     if (!mounted ||
         text == null ||
-        text.isEmpty ||
-        ref.read(messageHistoryProvider).isSending) {
+        text.trim().isEmpty ||
+        ref.read(textSendingProvider)) {
       return;
     }
 
-    await ref.read(messageHistoryProvider.notifier).sendMessage(text);
+    await ref.read(textSendControllerProvider).send(text);
   }
 }

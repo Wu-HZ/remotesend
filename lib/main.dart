@@ -11,7 +11,7 @@ import 'l10n/app_localizations.dart';
 import 'providers/app_visibility_provider.dart';
 import 'providers/config_provider.dart';
 import 'providers/gotify_coordinator_provider.dart';
-import 'providers/message_history_provider.dart';
+import 'providers/text_send_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
 import 'providers/pending_upload_provider.dart';
@@ -76,6 +76,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
     with WidgetsBindingObserver, WindowListener {
   bool _autoConnectAttempted = false;
   bool _isDragging = false;
+  final List<SharedMedia> _pendingSharedMedia = [];
 
   @override
   void initState() {
@@ -142,14 +143,17 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
   }
 
   void _processSharedMedia(SharedMedia media) {
+    if (!mounted) return;
+    if (ref.read(configProvider).valueOrNull == null) {
+      _pendingSharedMedia.add(media);
+      return;
+    }
     bool hasText = false;
     bool hasFiles = false;
 
     // Text shares → TextBridge
     if (media.content != null && media.content!.trim().isNotEmpty) {
-      ref.read(messageHistoryProvider.notifier).sendMessage(
-        media.content!.trim(),
-      );
+      ref.read(textSendControllerProvider).send(media.content!);
       hasText = true;
     }
 
@@ -185,6 +189,15 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
     // Watch config and auto-connect when configured
     ref.listen<AsyncValue<dynamic>>(configProvider, (previous, next) {
       next.whenData((config) {
+        if (_pendingSharedMedia.isNotEmpty) {
+          final pending = List<SharedMedia>.of(_pendingSharedMedia);
+          _pendingSharedMedia.clear();
+          Future.microtask(() {
+            if (mounted) {
+              for (final media in pending) { _processSharedMedia(media); }
+            }
+          });
+        }
         if (!_autoConnectAttempted && config.isConfigured) {
           _autoConnectAttempted = true;
           // Let server providers observe the loaded config before testing either
@@ -523,7 +536,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
     // The two services are independent; a slow/unreachable text server must
     // not postpone the first connection attempt for the files server.
     await Future.wait([
-      if (config.isTextConfigured)
+      if (config.activeTextServer?.isConfigured ?? false)
         _connectAtStartup(forText: true, serverId: config.activeTextServer!.id),
       if (config.isFilesConfigured)
         _connectAtStartup(forText: false, serverId: config.activeFilesServer!.id),

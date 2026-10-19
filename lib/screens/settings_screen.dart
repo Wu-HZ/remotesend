@@ -10,6 +10,8 @@ import '../l10n/app_localizations.dart';
 import '../models/app_config.dart';
 import '../models/gotify_models.dart';
 import '../models/server_config.dart';
+import '../models/server_endpoint.dart';
+import '../providers/text_endpoint_provider.dart';
 import '../providers/config_provider.dart';
 import '../providers/download_path_provider.dart';
 import '../providers/gotify_coordinator_provider.dart';
@@ -192,25 +194,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Configured Servers Section
         Row(
           children: [
-            Text(
-              l10n.configuredServers,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            Expanded(
+              child: Text(
+                l10n.configuredServers,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
             ),
-            const Spacer(),
-            Text(
-              l10n.longPressToEditDelete,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-                fontSize: 11,
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                l10n.longPressToEditDelete,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                  fontSize: 11,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
 
-        ...servers.map((server) => _buildServerTile(l10n, server, null)),
+        ...servers.map(
+          (server) => _buildServerTile(l10n, WebDavEndpoint(server)),
+        ),
+        if (config?.gotify.registerAsTextServer ?? false)
+          _buildServerTile(l10n, GotifyTextEndpoint(config!.gotify)),
 
         Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -270,25 +285,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildServerTile(
-    AppLocalizations l10n,
-    ServerConfig server,
-    ServerConfig? activeServer,
-  ) {
+  Widget _buildServerTile(AppLocalizations l10n, ServerEndpoint endpoint) {
     final config = ref.watch(configProvider).valueOrNull;
-    final isTextServer = config?.activeTextServerId == server.id;
-    final isFilesServer = config?.activeFilesServerId == server.id;
+    final server = endpoint is WebDavEndpoint ? endpoint.server : null;
+    final gotify = ref.watch(gotifyConfigProvider);
+    final enabled = server?.enabled ?? gotify.enabled;
+    final isTextServer = config?.activeTextServerId == endpoint.id;
+    final isFilesServer = config?.activeFilesServerId == endpoint.id;
+    final supportsFiles = endpoint.capabilities.files;
 
     return Card(
+      key: ValueKey('server-tile-${endpoint.id}'),
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onLongPress: () => _showServerActions(l10n, server),
+        onLongPress: () => _showServerActions(l10n, endpoint),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Server info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,9 +313,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         SizedBox(
                           width: 24,
-                          child: server.emoji.isNotEmpty
+                          child: endpoint.emoji.isNotEmpty
                               ? Text(
-                                  server.emoji,
+                                  endpoint.emoji,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(fontSize: 18),
                                 )
@@ -311,20 +326,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ),
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          server.name,
-                          style: TextStyle(
-                            fontWeight: (isTextServer || isFilesServer)
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            fontSize: 15,
+                        Flexible(
+                          child: Text(
+                            endpoint.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: (isTextServer || isFilesServer)
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      server.serverUrl,
+                      server?.serverUrl ?? gotify.serverUrl,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.outline,
@@ -333,33 +351,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
-              // Enable/disable toggle
               _buildFeatureToggle(
-                label: server.enabled ? l10n.enabledLabel : l10n.disabledLabel,
-                isSelected: server.enabled,
-                onTap: () => ref
-                    .read(configProvider.notifier)
-                    .toggleServerEnabled(server.id),
+                key: ValueKey('server-enabled-${endpoint.id}'),
+                label: enabled ? l10n.enabledLabel : l10n.disabledLabel,
+                isSelected: enabled,
+                onTap: server != null
+                    ? () => ref
+                          .read(configProvider.notifier)
+                          .toggleServerEnabled(endpoint.id)
+                    : () => _toggleGotify(l10n, !enabled),
               ),
-              const SizedBox(width: 4),
-              // Text/Files toggle buttons
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               _buildFeatureToggle(
+                key: ValueKey('server-text-${endpoint.id}'),
                 label: l10n.textLabel,
                 isSelected: isTextServer,
-                onTap: server.enabled
-                    ? () => _setServerForFeature(server.id, forText: true)
+                onTap: enabled
+                    ? () => _setServerForFeature(endpoint.id, forText: true)
                     : null,
-                enabled: server.enabled,
+                enabled: enabled,
               ),
               const SizedBox(width: 4),
               _buildFeatureToggle(
+                key: ValueKey('server-files-${endpoint.id}'),
                 label: l10n.filesLabel,
                 isSelected: isFilesServer,
-                onTap: server.enabled
-                    ? () => _setServerForFeature(server.id, forFiles: true)
+                onTap: enabled && supportsFiles
+                    ? () => _setServerForFeature(endpoint.id, forFiles: true)
                     : null,
-                enabled: server.enabled,
+                enabled: enabled && supportsFiles,
               ),
             ],
           ),
@@ -369,6 +389,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildFeatureToggle({
+    Key? key,
     required String label,
     required bool isSelected,
     required VoidCallback? onTap,
@@ -378,6 +399,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final effectiveSelected = isSelected && enabled;
 
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Opacity(
         opacity: enabled ? 1.0 : 0.4,
@@ -411,7 +433,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showServerActions(AppLocalizations l10n, ServerConfig server) {
+  void _showServerActions(AppLocalizations l10n, ServerEndpoint server) {
     showModalBottomSheet(
       context: context,
       builder: (sheetContext) => SafeArea(
@@ -423,7 +445,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: Text(l10n.edit),
               onTap: () {
                 Navigator.pop(sheetContext);
-                _showServerDialog(l10n, server: server);
+                if (server is WebDavEndpoint) {
+                  _showServerDialog(l10n, server: server.server);
+                } else {
+                  _showGotifyDialog(l10n);
+                }
               },
             ),
             ListTile(
@@ -457,7 +483,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (success && mounted) {
         // Test connection for the updated service
-        if (forText) {
+        if (forText && serverId != gotifyTextServerId) {
           ref.read(textConnectionStatusProvider.notifier).testConnection();
         }
         if (forFiles) {
@@ -476,20 +502,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ServerConfig? textServer,
     ServerConfig? filesServer,
   ) {
+    final endpoint = ref.watch(activeTextEndpointProvider);
+    var displayedTextStatus = textStatus;
+    var textName = textServer?.name;
+    if (endpoint is GotifyTextEndpoint) {
+      final gotify = ref.watch(gotifyProvider);
+      final configured = ref.watch(gotifyConfigProvider).isConfigured;
+      displayedTextStatus = ConnectionStatus(
+        state: !configured
+            ? WebDavConnectionState.disconnected
+            : switch (gotify.status) {
+                GotifyConnectionStatus.disabled =>
+                  WebDavConnectionState.disconnected,
+                GotifyConnectionStatus.connecting ||
+                GotifyConnectionStatus.reconnecting =>
+                  WebDavConnectionState.connecting,
+                GotifyConnectionStatus.connected =>
+                  gotify.applicationId == null
+                      ? WebDavConnectionState.connecting
+                      : WebDavConnectionState.connected,
+                GotifyConnectionStatus.error => WebDavConnectionState.error,
+              },
+      );
+      textName = endpoint.name;
+    }
     return Column(
       children: [
         _buildSingleConnectionStatus(
           l10n,
           l10n.textLabel,
-          textStatus,
-          textServer,
+          displayedTextStatus,
+          textName,
         ),
         const SizedBox(height: 8),
         _buildSingleConnectionStatus(
           l10n,
           l10n.filesLabel,
           filesStatus,
-          filesServer,
+          filesServer?.name,
         ),
       ],
     );
@@ -499,7 +549,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     AppLocalizations l10n,
     String label,
     ConnectionStatus status,
-    ServerConfig? server,
+    String? serverName,
   ) {
     Color color;
     IconData icon;
@@ -509,7 +559,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case WebDavConnectionState.connected:
         color = Colors.green;
         icon = Icons.check_circle;
-        text = server != null ? server.name : l10n.connectionStatusConnected;
+        text = serverName ?? l10n.connectionStatusConnected;
       case WebDavConnectionState.connecting:
         color = Colors.blue;
         icon = Icons.sync;
@@ -525,6 +575,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
 
     return Container(
+      key: ValueKey(
+        label == l10n.textLabel
+            ? 'connection-status-text'
+            : 'connection-status-files',
+      ),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withAlpha(20),
@@ -651,6 +706,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           buttonLabel: _gotifyStatusLabel(l10n, gotifyState),
           onTap: () => _showGotifyDialog(l10n),
         ),
+        _BooleanEntry(
+          label: l10n.gotifyRegisterTextServer,
+          value: gotify.registerAsTextServer,
+          onChanged: (value) =>
+              _saveGotifyConfig(gotify.copyWith(registerAsTextServer: value)),
+        ),
         if (gotify.enabled)
           _ButtonEntry(
             label: l10n.gotifyTargets,
@@ -760,6 +821,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final current = config.gotify;
     // TextFormField owns its controller until the dialog route is fully disposed.
     // showDialog completes when pop starts, before the exit animation finishes.
+    var emoji = current.emoji;
     var serverUrl = current.serverUrl;
     var appToken = current.appToken;
     var clientToken = current.clientToken;
@@ -780,6 +842,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
+                  key: const ValueKey('gotify-server-emoji'),
+                  initialValue: emoji,
+                  onChanged: (value) => emoji = value,
+                  decoration: InputDecoration(
+                    labelText: 'Emoji',
+                    prefixIcon: const Icon(Icons.emoji_emotions),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.emojiHint,
+                    helperMaxLines: 1,
+                  ),
+                  maxLength: 2,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const ValueKey('gotify-server-url'),
                   initialValue: serverUrl,
                   onChanged: (value) => serverUrl = value,
                   decoration: InputDecoration(
@@ -790,6 +869,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  key: const ValueKey('gotify-app-token'),
                   initialValue: appToken,
                   onChanged: (value) => appToken = value,
                   decoration: InputDecoration(
@@ -809,6 +889,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  key: const ValueKey('gotify-client-token'),
                   initialValue: clientToken,
                   onChanged: (value) => clientToken = value,
                   decoration: InputDecoration(
@@ -906,6 +987,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   : () async {
                       final updated = current.copyWith(
                         enabled: enableOnSave || current.enabled,
+                        emoji: emoji.trim(),
                         serverUrl: serverUrl.trim(),
                         appToken: appToken.trim(),
                         clientToken: clientToken.trim(),
@@ -1018,7 +1100,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     (device) => CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(device.name),
-                      subtitle: Text(device.platform),
+                      subtitle: Text(
+                        config.gotify.registerAsTextServer &&
+                                !device.capabilities.contains('text_direct_v1')
+                            ? '${device.platform}\n${l10n.gotifyTextCapabilityUnknown}'
+                            : device.platform,
+                      ),
                       value: selected.contains(device.id),
                       onChanged: (value) {
                         setDialogState(() {
@@ -1563,9 +1650,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _saveGotifyConfig(GotifyConfig gotify) async {
     final config = ref.read(configProvider).valueOrNull;
     if (config == null) return;
-    await ref
+    final saved = await ref
         .read(configProvider.notifier)
         .updateConfig(config.copyWith(gotify: gotify));
+    if (!saved && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.failedToSave)),
+      );
+    }
   }
 
   String _formatAutoDownloadLimit(AppLocalizations l10n, int bytes) {
@@ -1766,7 +1858,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _confirmDeleteServer(AppLocalizations l10n, ServerConfig server) {
+  void _confirmDeleteServer(AppLocalizations l10n, ServerEndpoint server) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1780,9 +1872,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              final success = await ref
-                  .read(configProvider.notifier)
-                  .deleteServer(server.id);
+              final current = ref.read(configProvider).valueOrNull;
+              final notifier = ref.read(configProvider.notifier);
+              final success = server is WebDavEndpoint
+                  ? await notifier.deleteServer(server.id)
+                  : current != null &&
+                        await notifier.updateConfig(
+                          current.copyWith(
+                            gotify: current.gotify.copyWith(
+                              registerAsTextServer: false,
+                            ),
+                          ),
+                        );
 
               if (!mounted) return;
 

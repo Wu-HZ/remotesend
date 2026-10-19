@@ -4,6 +4,9 @@ import '../l10n/app_localizations.dart';
 import '../providers/config_provider.dart';
 import '../providers/camera_capture_provider.dart';
 import '../providers/gotify_coordinator_provider.dart';
+import '../providers/gotify_text_session_provider.dart';
+import '../providers/text_endpoint_provider.dart';
+import '../models/server_endpoint.dart';
 import '../providers/message_history_provider.dart';
 import '../providers/opened_file_provider.dart';
 import '../services/opened_file_service.dart';
@@ -78,6 +81,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       },
     );
+
+    ref.listen<int>(gotifyTextSessionProvider.select((state) => state.clipboardCopyRevision), (previous, next) {
+      if (previous == null || next <= previous) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!.copiedToClipboard),
+        duration: const Duration(seconds: 1),
+      ));
+    });
 
     final configAsync = ref.watch(configProvider);
     final isConfigured = ref.watch(isConfiguredProvider);
@@ -228,7 +239,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _refreshTab(int index) {
     switch (index) {
       case 0:
-        ref.read(messageHistoryProvider.notifier).refresh();
+        if (ref.read(activeTextEndpointProvider) is WebDavEndpoint) {
+          ref.read(messageHistoryProvider.notifier).refresh();
+        }
       case 1:
         try {
           ref.read(fileListProvider.notifier).refresh();

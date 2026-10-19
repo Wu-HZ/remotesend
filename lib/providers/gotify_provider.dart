@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/gotify_models.dart';
+import '../models/gotify_text_message.dart';
 import '../models/server_config.dart';
 import '../services/gotify_runtime_store.dart';
 import '../services/gotify_service.dart';
@@ -25,6 +26,7 @@ class GotifyState {
     this.devices = const {},
     this.lastMessageId = 0,
     this.outboxCount = 0,
+    this.applicationId,
     this.error,
   });
 
@@ -32,6 +34,7 @@ class GotifyState {
   final Map<String, RemoteDevice> devices;
   final int lastMessageId;
   final int outboxCount;
+  final int? applicationId;
   final String? error;
 
   bool get isConnected => status == GotifyConnectionStatus.connected;
@@ -47,6 +50,8 @@ class GotifyState {
     Map<String, RemoteDevice>? devices,
     int? lastMessageId,
     int? outboxCount,
+    int? applicationId,
+    bool clearApplication = false,
     String? error,
     bool clearError = false,
   }) {
@@ -55,10 +60,16 @@ class GotifyState {
       devices: devices ?? this.devices,
       lastMessageId: lastMessageId ?? this.lastMessageId,
       outboxCount: outboxCount ?? this.outboxCount,
+      applicationId: clearApplication
+          ? null
+          : applicationId ?? this.applicationId,
       error: clearError ? null : error ?? this.error,
     );
   }
 }
+
+final gotifyServiceFactoryProvider =
+    Provider<GotifyService Function(GotifyConfig)>((ref) => GotifyService.new);
 
 /// Maintains one Gotify WebSocket while the app is running. WebDAV is never
 /// polled here; reconnect history is accepted only inside the configured short
@@ -139,7 +150,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
     _catchUpBuffer.clear();
 
     await _closeService();
-    final service = GotifyService(_config);
+    final service = _ref.read(gotifyServiceFactoryProvider)(_config);
     _service = service;
     _messageSubscription = service.messages.listen(
       (message) {
@@ -165,6 +176,27 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
       );
       await service.connect();
       if (_disposed || service != _service) return;
+      // Resolve application identity from an authenticated POST response, never
+      // from an inbound event's self-reported payload.
+      final announcement = await service.send(
+        event: RemoteSendEvent(
+          type: RemoteSendEvent.deviceAnnounce,
+          senderDeviceId: _config.deviceId,
+          senderName: _localName,
+          payload: {
+            'platform': Platform.operatingSystem,
+            'capabilities': ['text_direct_v1'],
+          },
+        ),
+        title: 'RemoteSend device',
+        message: '$_localName is online',
+        priority: -2,
+      );
+      if (_disposed || service != _service) return;
+      if (announcement.applicationId <= 0) {
+        throw const GotifyException('Gotify application identity is unavailable');
+      }
+      state = state.copyWith(applicationId: announcement.applicationId);
 
       final baseline = _runtime.lastMessageId;
       final historyCutoff = DateTime.now().subtract(
@@ -175,31 +207,36 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
         notBefore: historyCutoff,
         maxPages: 20,
       );
+      if (_disposed || service != _service) return;
       fetched.sort((a, b) => a.id.compareTo(b.id));
       for (final message in fetched) {
         await _processMessage(
           message,
           notBefore: historyCutoff,
           persist: false,
+          live: false,
         );
       }
 
-      final bufferedById = <int, GotifyMessage>{
-        for (final message in _catchUpBuffer) message.id: message,
-      };
-      final buffered = bufferedById.values.toList()
-        ..sort((a, b) => a.id.compareTo(b.id));
-      _catchUpBuffer.clear();
-      for (final message in buffered) {
-        await _processMessage(
-          message,
-          notBefore: historyCutoff,
-          persist: false,
-        );
+      while (_catchUpBuffer.isNotEmpty) {
+        final bufferedById = <int, GotifyMessage>{
+          for (final message in _catchUpBuffer) message.id: message,
+        };
+        final buffered = bufferedById.values.toList()
+          ..sort((a, b) => a.id.compareTo(b.id));
+        _catchUpBuffer.clear();
+        for (final message in buffered) {
+          await _processMessage(
+            message,
+            notBefore: historyCutoff,
+            persist: false,
+          );
+        }
       }
-
-      await _saveRuntime();
+      // No await between draining live frames and switching to live dispatch.
       _catchingUp = false;
+      await _saveRuntime();
+      if (_disposed || service != _service) return;
       _reconnectAttempt = 0;
       state = state.copyWith(
         status: GotifyConnectionStatus.connected,
@@ -207,7 +244,6 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
       );
       replayPendingEvents();
 
-      await _announceDevice();
       await _flushOutbox();
     } catch (error) {
       _catchingUp = false;
@@ -257,8 +293,37 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
     GotifyMessage message, {
     DateTime? notBefore,
     bool persist = true,
+    bool live = true,
   }) async {
+    if (_disposed) return;
     final event = RemoteSendEvent.fromGotifyMessage(message);
+    if (event?.type == RemoteSendEvent.textDirect) {
+      final direct = event!;
+      final seen = _runtime.processedEventIds.contains(direct.eventId);
+      // Backfill advances the cursor but must not consume the ID of an actual
+      // live frame also buffered during connection establishment.
+      _runtime = _runtime.copyWith(
+        lastMessageId: message.id > _runtime.lastMessageId
+            ? message.id
+            : _runtime.lastMessageId,
+        processedEventIds:
+            live && !seen && message.applicationId == state.applicationId
+            ? _appendProcessed(_runtime.processedEventIds, direct.eventId)
+            : _runtime.processedEventIds,
+      );
+      state = state.copyWith(lastMessageId: _runtime.lastMessageId);
+      if (live &&
+          !seen &&
+          _currentConfig.registerAsTextServer &&
+          message.applicationId == state.applicationId &&
+          direct.isForDevice(_config.deviceId) &&
+          isValidRealtimeText(direct)) {
+        _events.add(direct);
+      }
+      // Only cursor/IDs persist. No direct body enters pending/deferred/outbox.
+      if (persist) await _saveRuntime();
+      return;
+    }
     final historyCutoff =
         notBefore ?? DateTime.now().subtract(_currentConfig.historyLookback);
     final deliver = event == null || !event.createdAt.isBefore(historyCutoff);
@@ -287,6 +352,10 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
             id: event.senderDeviceId,
             name: event.senderName,
             platform: event.payload['platform'] as String? ?? 'unknown',
+            capabilities:
+                (event.payload['capabilities'] as List<dynamic>? ?? const [])
+                    .whereType<String>()
+                    .toList(),
             lastSeen: event.createdAt,
           );
           devices = updated;
@@ -353,6 +422,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
   }
 
   Future<void> deferEvent(RemoteSendEvent event) async {
+    if (event.type == RemoteSendEvent.textDirect) return;
     if (_disposed || isDeferredEvent(event.eventId)) return;
     _runtime = _runtime.copyWith(
       deferredInboundEvents: [..._runtime.deferredInboundEvents, event],
@@ -393,6 +463,37 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
     return updated.length <= 500
         ? updated
         : updated.sublist(updated.length - 500);
+  }
+
+  /// Live-only POST. Never enqueue into the persisted notification outbox.
+  Future<void> sendRealtimeText(RemoteSendEvent event) async {
+    final service = _service;
+    if (_disposed ||
+        service == null ||
+        !state.isConnected ||
+        state.applicationId == null ||
+        !_currentConfig.registerAsTextServer ||
+        !_currentConfig.isConfigured ||
+        !isValidRealtimeText(event) ||
+        event.senderDeviceId != _config.deviceId) {
+      throw const RealtimeTextException(RealtimeTextFailure.notReady);
+    }
+    try {
+      await service.send(
+        event: event,
+        title: 'RemoteSend · $_localName',
+        message: 'RemoteSend real-time text',
+        priority: 1,
+      );
+    } on GotifyException catch (error) {
+      throw RealtimeTextException(switch (error.code) {
+        'timeout' => RealtimeTextFailure.uncertain,
+        'too_large' => RealtimeTextFailure.tooLarge,
+        _ => RealtimeTextFailure.sendFailed,
+      });
+    } catch (_) {
+      throw const RealtimeTextException(RealtimeTextFailure.sendFailed);
+    }
   }
 
   Future<bool> publishTextChanged({
@@ -579,7 +680,10 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
         type: RemoteSendEvent.deviceAnnounce,
         senderDeviceId: _config.deviceId,
         senderName: _localName,
-        payload: {'platform': Platform.operatingSystem},
+        payload: {
+          'platform': Platform.operatingSystem,
+          'capabilities': ['text_direct_v1'],
+        },
       ),
       title: 'RemoteSend device',
       message: '$_localName is online',
@@ -606,6 +710,7 @@ class GotifyNotifier extends StateNotifier<GotifyState> {
     final seconds = (1 << exponent).clamp(1, 30).toInt();
     state = state.copyWith(
       status: GotifyConnectionStatus.reconnecting,
+      clearApplication: true,
       error: error,
     );
     _reconnectTimer = Timer(Duration(seconds: seconds), _openConnection);

@@ -12,6 +12,58 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'RemoteSend';
 
   @override
+  String get gotifyTextServer => 'Gotify · 实时文本';
+
+  @override
+  String get gotifyRegisterTextServer => '注册为文本服务器';
+
+  @override
+  String get gotifyRegisterTextHint => '仅实时文本，不支持文件、历史和日期。两端均需升级到支持版本，并开启此开关。';
+
+  @override
+  String get gotifySessionNotice =>
+      '仅保留本次运行的内存会话，无本地历史和离线投递；Gotify 服务端仍可能留存文本。';
+
+  @override
+  String get gotifyRealtimeEmpty => '暂无实时文本';
+
+  @override
+  String get gotifyClearSession => '清空当前会话';
+
+  @override
+  String get gotifyTextNotReady => 'Gotify 未启用、未配置或尚未连接。';
+
+  @override
+  String get gotifyTextEmpty => '请输入要发送的文本。';
+
+  @override
+  String get gotifyTextTooLarge => '文本超过 32 KiB UTF-8 上限，或超出服务端请求限制。';
+
+  @override
+  String get gotifyTextQueueFull => '实时文本队列已满，请稍后重试；新文本尚未发送。';
+
+  @override
+  String get gotifyTextSendFailed => '发送至 Gotify 失败，请检查连接或令牌后重试。';
+
+  @override
+  String get gotifyTextUncertain => '请求超时，Gotify 可能已经接收；重试将复用原消息 ID。';
+
+  @override
+  String get gotifyTextCapabilityUnknown =>
+      '尚未确认支持实时文本，请检查该设备的版本与注册开关；WebDAV 通知不受影响。';
+
+  @override
+  String get gotifyTextSending => '发送中…';
+
+  @override
+  String get gotifyTextSent => '已发送至 Gotify';
+
+  @override
+  String gotifyDroppedTexts(int count) {
+    return '有 $count 条后台消息已过期或超过内存上限。';
+  }
+
+  @override
   String get autoClearTransferHistory => '自动清理成功记录';
 
   @override

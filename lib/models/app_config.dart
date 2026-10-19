@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'gotify_models.dart';
 import 'server_config.dart';
+import 'server_endpoint.dart';
 
 /// Generate a random local name.
 String _generateRandomName() {
@@ -65,7 +66,8 @@ class AppConfig {
   // Version 10 adds per-device background text/file receive policies.
   // Version 11 adds the configurable startup page.
   // Version 12 adds the transfer-history auto-cleanup preference.
-  static const int currentVersion = 12;
+  // Version 13 adds the optional Gotify real-time text endpoint.
+  static const int currentVersion = 13;
 
   static const String startPageText = 'text';
   static const String startPageFiles = 'files';
@@ -112,7 +114,11 @@ class AppConfig {
 
   /// Get the active server for Text Bridge.
   ServerConfig? get activeTextServer {
-    if (activeTextServerId == null || servers.isEmpty) return null;
+    if (activeTextServerId == null ||
+        activeTextServerId == gotifyTextServerId ||
+        servers.isEmpty) {
+      return null;
+    }
     try {
       return servers.firstWhere((s) => s.id == activeTextServerId);
     } catch (e) {
@@ -122,7 +128,11 @@ class AppConfig {
 
   /// Get the active server for File Depot.
   ServerConfig? get activeFilesServer {
-    if (activeFilesServerId == null || servers.isEmpty) return null;
+    if (activeFilesServerId == null ||
+        activeFilesServerId == gotifyTextServerId ||
+        servers.isEmpty) {
+      return null;
+    }
     try {
       return servers.firstWhere((s) => s.id == activeFilesServerId);
     } catch (e) {
@@ -143,13 +153,36 @@ class AppConfig {
   String get password => activeServer?.password ?? '';
 
   /// Check if the configuration has valid credentials for text.
-  bool get isTextConfigured => activeTextServer?.isConfigured ?? false;
+  bool get isTextConfigured => activeTextServerId == gotifyTextServerId
+      ? gotify.registerAsTextServer && gotify.hasCredentials
+      : activeTextServer?.isConfigured ?? false;
 
   /// Check if the configuration has valid credentials for files.
   bool get isFilesConfigured => activeFilesServer?.isConfigured ?? false;
 
   /// Check if either is configured (backward-compatible).
-  bool get isConfigured => isTextConfigured || isFilesConfigured;
+  bool get isConfigured =>
+      isTextConfigured ||
+      isFilesConfigured ||
+      (gotify.registerAsTextServer && gotify.hasCredentials);
+
+  /// Virtual endpoints never become WebDAV configs or file targets.
+  AppConfig normalizeServerSelections() {
+    final webDav = servers.where((s) => s.id != gotifyTextServerId).toList();
+    final removeText =
+        activeTextServerId == gotifyTextServerId &&
+        !gotify.registerAsTextServer;
+    final invalidFiles = activeFilesServerId == gotifyTextServerId;
+    if (!removeText && !invalidFiles && webDav.length == servers.length) {
+      return this;
+    }
+    final fallback = webDav.where((s) => s.enabled).firstOrNull?.id;
+    return copyWithNullActiveServers(
+      servers: webDav,
+      clearText: removeText,
+      clearFiles: invalidFiles,
+    ).copyWith(activeTextServerId: removeText ? fallback : activeTextServerId);
+  }
 
   /// Bottom-navigation index for the configured startup page.
   int get startPageIndex => startPage == startPageFiles ? 1 : 0;
@@ -302,7 +335,7 @@ class AppConfig {
             ? Map<String, dynamic>.from(json['gotify'] as Map)
             : null,
       ),
-    );
+    ).normalizeServerSelections();
   }
 
   /// Migrate from v1 (single server) config.

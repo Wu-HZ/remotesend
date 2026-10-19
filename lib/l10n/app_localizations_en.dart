@@ -12,6 +12,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'RemoteSend';
 
   @override
+  String get gotifyTextServer => 'Gotify · Live text';
+
+  @override
+  String get gotifyRegisterTextServer => 'Register as a text server';
+
+  @override
+  String get gotifyRegisterTextHint =>
+      'Live text only. No files, history, or dates. Enable this option on both devices using compatible RemoteSend versions.';
+
+  @override
+  String get gotifySessionNotice =>
+      'This session is kept in memory only. No local history or offline delivery. Gotify may still retain message content on its server.';
+
+  @override
+  String get gotifyRealtimeEmpty => 'No live text yet';
+
+  @override
+  String get gotifyClearSession => 'Clear current session';
+
+  @override
+  String get gotifyTextNotReady =>
+      'Gotify is disabled, unconfigured, or not connected yet.';
+
+  @override
+  String get gotifyTextEmpty => 'Enter some text to send.';
+
+  @override
+  String get gotifyTextTooLarge =>
+      'Text exceeds the 32 KiB UTF-8 limit or the server request limit.';
+
+  @override
+  String get gotifyTextQueueFull =>
+      'The live text queue is full. Wait and retry; new text was not sent.';
+
+  @override
+  String get gotifyTextSendFailed =>
+      'Could not send to Gotify. Check the connection or credentials and retry.';
+
+  @override
+  String get gotifyTextUncertain =>
+      'The request timed out. Gotify may have accepted it; retrying uses the same message ID.';
+
+  @override
+  String get gotifyTextCapabilityUnknown =>
+      'Live text support is unconfirmed. Check the version and registration on this device; WebDAV notifications are unaffected.';
+
+  @override
+  String get gotifyTextSending => 'Sending…';
+
+  @override
+  String get gotifyTextSent => 'Sent to Gotify';
+
+  @override
+  String gotifyDroppedTexts(int count) {
+    return '$count background messages expired or exceeded the memory limit.';
+  }
+
+  @override
   String get autoClearTransferHistory => 'Auto-clear successful transfers';
 
   @override

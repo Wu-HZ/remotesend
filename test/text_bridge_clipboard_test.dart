@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remote_send/l10n/app_localizations.dart';
 import 'package:remote_send/models/server_config.dart';
+import 'package:remote_send/models/server_endpoint.dart';
+import 'package:remote_send/providers/text_endpoint_provider.dart';
 import 'package:remote_send/providers/config_provider.dart';
 import 'package:remote_send/providers/message_history_provider.dart';
 import 'package:remote_send/providers/webdav_provider.dart';
@@ -53,6 +55,17 @@ Future<ProviderContainer> _mount(
       overrides: [
         isTextConfiguredProvider.overrideWithValue(configured),
         activeTextServerProvider.overrideWith((ref) => ref.watch(_server)),
+        activeTextEndpointProvider.overrideWith(
+          (ref) => WebDavEndpoint(
+            ref.watch(_server) ??
+                ServerConfig.create(
+                  name: 'test',
+                  serverUrl: 'https://example.invalid',
+                  username: 'u',
+                  password: 'p',
+                ),
+          ),
+        ),
         textClipboardServiceProvider.overrideWithValue(clipboard),
         textConnectionStatusProvider.overrideWith((ref) => _Connection()),
         messageHistoryProvider.overrideWith((ref) => _History(ref)),
