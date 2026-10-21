@@ -39,6 +39,11 @@
 # Keep path_provider
 -keep class io.flutter.plugins.pathprovider.** { *; }
 
+# Launched by app_process rather than referenced by the Android manifest.
+-keep class com.remotesend.remote_send.clipboard.RootClipboardDaemon {
+    public static void main(java.lang.String[]);
+}
+
 # General
 -keepattributes EnclosingMethod
 -keepattributes InnerClasses

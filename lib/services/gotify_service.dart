@@ -170,6 +170,13 @@ class GotifyService {
     }
   }
 
+  /// Removes only a message ID returned by our own clipboard sync POST.
+  Future<void> deleteMessage(int id) async {
+    if (id <= 0) return;
+    await _dio.deleteUri(_endpoint('/message/$id'),
+      options: Options(headers: _tokenHeader(config.clientToken)));
+  }
+
   /// Validates both tokens without creating a notification.
   static Future<void> testConfiguration(GotifyConfig config) async {
     if (!config.hasCredentials) {

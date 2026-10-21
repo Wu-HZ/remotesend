@@ -2423,6 +2423,324 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'s'**
   String get countdownSeconds;
+
+  /// No description provided for @clipboardSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard sync'**
+  String get clipboardSyncTitle;
+
+  /// No description provided for @clipboardSyncHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard sharing history'**
+  String get clipboardSyncHistoryTitle;
+
+  /// No description provided for @clipboardSyncHistoryLocalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'History files and archives stay on this device and are never uploaded to Gotify or WebDAV. Sync text still passes through Gotify temporarily and deletion is requested. After 30 days records are archived by month, not deleted.'**
+  String get clipboardSyncHistoryLocalOnly;
+
+  /// No description provided for @clipboardSyncHistoryRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get clipboardSyncHistoryRecent;
+
+  /// No description provided for @clipboardSyncHistoryArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly archive'**
+  String get clipboardSyncHistoryArchive;
+
+  /// No description provided for @clipboardSyncHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No clipboard sharing records'**
+  String get clipboardSyncHistoryEmpty;
+
+  /// No description provided for @clipboardSyncHistorySent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get clipboardSyncHistorySent;
+
+  /// No description provided for @clipboardSyncHistoryReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get clipboardSyncHistoryReceived;
+
+  /// No description provided for @clipboardSyncHistoryClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all records'**
+  String get clipboardSyncHistoryClear;
+
+  /// No description provided for @clipboardSyncHistoryClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This deletes recent records and all local archives. This cannot be undone.'**
+  String get clipboardSyncHistoryClearConfirm;
+
+  /// No description provided for @clipboardSyncHistoryOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'View local sharing history'**
+  String get clipboardSyncHistoryOpen;
+
+  /// No description provided for @clipboardSyncNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Global clipboard sync uses your existing Gotify connection and target-device setting.'**
+  String get clipboardSyncNotice;
+
+  /// No description provided for @clipboardSyncStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start sync'**
+  String get clipboardSyncStart;
+
+  /// No description provided for @clipboardSyncStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop sync'**
+  String get clipboardSyncStop;
+
+  /// No description provided for @clipboardSyncStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get clipboardSyncStopped;
+
+  /// No description provided for @clipboardSyncConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting / requesting Root'**
+  String get clipboardSyncConnecting;
+
+  /// No description provided for @clipboardSyncWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected; waiting for peer handshake'**
+  String get clipboardSyncWaiting;
+
+  /// No description provided for @clipboardSyncRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization running'**
+  String get clipboardSyncRunning;
+
+  /// No description provided for @clipboardSyncReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected; reconnecting (no replay)'**
+  String get clipboardSyncReconnecting;
+
+  /// No description provided for @clipboardSyncPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused while device is locked'**
+  String get clipboardSyncPaused;
+
+  /// No description provided for @clipboardSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization stopped with an error'**
+  String get clipboardSyncFailed;
+
+  /// No description provided for @clipboardSyncCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready peers: {peers} · Sent: {sent} · Applied: {received}'**
+  String clipboardSyncCounts(int peers, int sent, int received);
+
+  /// No description provided for @clipboardSyncNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow notifications so the ongoing sync service and Stop action stay visible.'**
+  String get clipboardSyncNotification;
+
+  /// No description provided for @clipboardSyncError.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync issue ({code}). Check the Gotify connection and Android Root authorization.'**
+  String clipboardSyncError(String code);
+
+  /// No description provided for @clipboardSyncExclusive.
+  ///
+  /// In en, this message translates to:
+  /// **'Global clipboard sync is enabled. Stop it before using temporary auto-send.'**
+  String get clipboardSyncExclusive;
+
+  /// No description provided for @clipboardSyncSimpleNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn this on on both devices. It reuses RemoteSend’s existing Gotify text channel and receiving-device setting—no extra key or pairing. Clipboard text is sent in plain text to Gotify; the server can read and retain it. Use HTTPS.'**
+  String get clipboardSyncSimpleNotice;
+
+  /// No description provided for @clipboardSyncUsesGotifyTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the existing Gotify receiving-device setting:'**
+  String get clipboardSyncUsesGotifyTargets;
+
+  /// No description provided for @rootClipboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Root clipboard diagnostics'**
+  String get rootClipboardTitle;
+
+  /// No description provided for @rootClipboardNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental bridge only, not cross-device sync. Nothing is uploaded or saved. Root authorization is requested only when you start. Leaving this page stops the bridge; switching to another app keeps this test session running while RemoteSend stays alive.'**
+  String get rootClipboardNotice;
+
+  /// No description provided for @rootClipboardSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Start and authorize in your root manager.\n2. Copy text in another app, then return and check the change count.\n3. Read metadata, or write a test and paste it in another app. Also test lock/unlock. Clipboard contents are never displayed here.'**
+  String get rootClipboardSteps;
+
+  /// No description provided for @rootClipboardUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'These diagnostics are available on Android only.'**
+  String get rootClipboardUnsupported;
+
+  /// No description provided for @rootClipboardStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize and start'**
+  String get rootClipboardStart;
+
+  /// No description provided for @rootClipboardStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop bridge'**
+  String get rootClipboardStop;
+
+  /// No description provided for @rootClipboardRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read metadata'**
+  String get rootClipboardRead;
+
+  /// No description provided for @rootClipboardProbe.
+  ///
+  /// In en, this message translates to:
+  /// **'Write test text'**
+  String get rootClipboardProbe;
+
+  /// No description provided for @rootClipboardProbeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces your phone\'s clipboard, then reads it back to verify a fixed test containing spaces and a newline. The previous contents are not restored. Continue?'**
+  String get rootClipboardProbeConfirm;
+
+  /// No description provided for @rootClipboardIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get rootClipboardIdle;
+
+  /// No description provided for @rootClipboardStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting or stopping… Root authorization may take up to 60 seconds.'**
+  String get rootClipboardStarting;
+
+  /// No description provided for @rootClipboardActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Bridge connected (not network sync)'**
+  String get rootClipboardActive;
+
+  /// No description provided for @rootClipboardChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Observed changes: {count}'**
+  String rootClipboardChanges(int count);
+
+  /// No description provided for @rootClipboardEnvironment.
+  ///
+  /// In en, this message translates to:
+  /// **'Android API {sdk} · UID {uid} · user {user}\nInterface: {api}'**
+  String rootClipboardEnvironment(int sdk, int uid, int user, String api);
+
+  /// No description provided for @rootClipboardMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} · {bytes} bytes · {origin}'**
+  String rootClipboardMetadata(String kind, String bytes, String origin);
+
+  /// No description provided for @rootClipboardKindText.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain text'**
+  String get rootClipboardKindText;
+
+  /// No description provided for @rootClipboardKindEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty text'**
+  String get rootClipboardKindEmpty;
+
+  /// No description provided for @rootClipboardKindOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-text content skipped'**
+  String get rootClipboardKindOther;
+
+  /// No description provided for @rootClipboardKindSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Sensitive content skipped'**
+  String get rootClipboardKindSensitive;
+
+  /// No description provided for @rootClipboardKindLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Text over 32 KiB skipped'**
+  String get rootClipboardKindLarge;
+
+  /// No description provided for @rootClipboardKindUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty or currently unreadable (for example, locked)'**
+  String get rootClipboardKindUnavailable;
+
+  /// No description provided for @rootClipboardOriginBridge.
+  ///
+  /// In en, this message translates to:
+  /// **'Bridge-originated write'**
+  String get rootClipboardOriginBridge;
+
+  /// No description provided for @rootClipboardOriginOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other source'**
+  String get rootClipboardOriginOther;
+
+  /// No description provided for @rootClipboardProbePassed.
+  ///
+  /// In en, this message translates to:
+  /// **'Test write/read matched exactly, including whitespace.'**
+  String get rootClipboardProbePassed;
+
+  /// No description provided for @rootClipboardProbeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The test did not match, or the clipboard changed before verification.'**
+  String get rootClipboardProbeFailed;
+
+  /// No description provided for @rootClipboardError.
+  ///
+  /// In en, this message translates to:
+  /// **'Bridge error ({code}). Check root authorization and system compatibility. You can retry after a timeout.'**
+  String rootClipboardError(String code);
 }
 
 class _AppLocalizationsDelegate

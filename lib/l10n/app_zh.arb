@@ -1,6 +1,5 @@
 {
   "@@locale": "zh",
-
   "appTitle": "RemoteSend",
   "gotifyTextServer": "Gotify · 实时文本",
   "gotifyRegisterTextServer": "注册为文本服务器",
@@ -18,14 +17,18 @@
   "gotifyTextSending": "发送中…",
   "gotifyTextSent": "已发送至 Gotify",
   "gotifyDroppedTexts": "有 {count} 条后台消息已过期或超过内存上限。",
-  "@gotifyDroppedTexts": { "placeholders": { "count": { "type": "int" } } },
+  "@gotifyDroppedTexts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "autoClearTransferHistory": "自动清理成功记录",
   "autoClearTransferHistoryHint": "成功记录保留 5 分钟，队列空闲时清理；失败任务保留，不删除文件。",
-
   "openFileAccessDenied": "无法读取此文件。请在来源应用中重新选择打开方式，并允许文件访问。",
   "openFileUnavailable": "文件已不存在或来源应用无法提供文件，请重新选择文件。",
   "openFileImportFailed": "无法导入文件，请检查剩余存储空间后重试。",
-
   "takePhoto": "拍照",
   "takeAnotherPhoto": "继续拍照",
   "addPendingFiles": "添加文件",
@@ -36,11 +39,9 @@
   "cameraCaptureFailed": "拍照失败，请重试。",
   "cameraRecoveryFailed": "未能恢复上次拍摄的照片，请重新拍摄。",
   "photoPreviewUnavailable": "无法预览此图片，仍可作为文件发送。",
-
   "navText": "文本",
   "navFiles": "文件",
   "navSettings": "设置",
-
   "retry": "重试",
   "cancel": "取消",
   "save": "保存",
@@ -52,29 +53,23 @@
   "close": "关闭",
   "open": "打开",
   "confirm": "确认",
-
   "failedToLoadConfig": "加载配置失败：",
-
   "today": "今天",
   "yesterday": "昨天",
   "selectDate": "选择日期",
   "previousDay": "前一天",
   "nextDay": "后一天",
-
   "refresh": "刷新",
   "clearSelection": "清除选择",
   "selectAll": "全选",
   "selectedItems": "已选择 {count} 项",
   "switchServer": "切换服务器",
-
   "configureWebDavToSync": "请在设置中配置WebDAV连接以同步",
   "notConnectedTestInSettings": "未连接，请在设置中测试连接",
   "configureWebDavToUseFileDepot": "请在设置中配置WebDAV连接以使用文件仓库",
-
   "noMessagesYet": "暂无消息",
   "noMessagesOnThisDay": "当天没有消息",
   "sendMessageToGetStarted": "发送一条消息开始吧",
-
   "copiedToClipboard": "已复制到剪贴板",
   "sendClipboardContent": "发送剪贴板内容",
   "startClipboardAutoSend": "临时自动发送剪贴板文本",
@@ -86,13 +81,10 @@
   "undo": "撤销",
   "couldNotOpenLink": "无法打开链接",
   "errorOpeningLink": "打开链接时出错：{error}",
-
   "typeAMessage": "输入消息...",
-
   "fileDepot": "文件",
   "goBack": "返回",
   "openDownloadFolder": "打开下载文件夹",
-
   "downloadingFile": "正在下载：{fileName}",
   "downloadingFileWithProgress": "正在下载：{fileName}（{current}/{total}）",
   "uploadingFile": "正在上传：{fileName}（{current}/{total}）",
@@ -100,16 +92,13 @@
   "filesUploaded": "已上传 {completed}/{total} 个文件",
   "filesDownloaded": "已下载 {completed}/{total} 个文件",
   "idle": "空闲",
-
   "connectToWebDavToViewFiles": "连接WebDAV以查看文件",
   "noFilesYet": "暂无文件",
   "emptyFolder": "空文件夹",
   "tapFileOrFolderToUpload": "点击文件或文件夹按钮上传",
   "thisFolderIsEmpty": "此文件夹为空",
-
   "folder": "文件夹",
   "file": "文件",
-
   "download": "下载",
   "downloadFolder": "下载文件夹",
   "uploadToServer": "上传到服务器",
@@ -132,11 +121,9 @@
   "folderNameInvalid": "文件夹名称不能包含路径分隔符",
   "folderCreated": "文件夹已创建：{name}",
   "failedToCreateFolder": "创建文件夹失败",
-
   "todayTime": "今天 {time}",
   "yesterdayTime": "昨天 {time}",
   "daysAgo": "{days}天前",
-
   "couldNotAccessFiles": "无法访问文件",
   "pasteClipboardFiles": "粘贴发送图片或文件",
   "clipboardUnavailable": "剪贴板不可用",
@@ -144,14 +131,12 @@
   "addedFilesToQueue": "已添加 {count} 个文件到上传队列",
   "selectFolderToUpload": "选择要上传的文件夹",
   "addedFolderToQueue": "已添加文件夹 {name} 到上传队列",
-
   "downloaded": "已下载：{name}",
   "downloadedStatus": "已下载",
   "alreadyDownloaded": "已下载：{name}",
   "openFolder": "打开文件夹",
   "downloadFailed": "下载失败",
   "downloadedFolderWithCount": "已下载文件夹 {name}（{count}个文件）",
-
   "deleteFile": "删除文件",
   "deleteFileConfirm": "确定要删除 {name} 吗？\n\n此操作无法撤销。",
   "deleted": "已删除：{name}",
@@ -162,48 +147,38 @@
   "renameFileNameInvalid": "名称不能包含路径分隔符",
   "renamed": "已重命名：{name}",
   "failedToRenameFile": "重命名文件失败",
-
   "transferQueue": "传输队列",
   "retryFailed": "重试失败项",
   "clearCompleted": "清除已完成",
   "clearAll": "清除全部",
-
   "transferQueueEmpty": "传输队列为空",
   "filesWillAppearHere": "传输文件时会显示在这里",
-
   "uploadStatus": "上传：{status}",
   "downloadStatus": "下载：{status}",
   "filesCount": "{count} 个文件",
   "filesProgress": "{completed}/{total} 个文件",
-
   "elapsed": "已用时间",
   "duration": "总时长",
   "remaining": "剩余",
-
   "statusPending": "等待中",
   "statusUploading": "上传中",
   "statusDownloading": "下载中",
   "statusCompleted": "已完成",
   "statusFailed": "失败",
   "statusIdle": "空闲",
-
   "clearQueue": "清空队列",
   "clearQueueConfirm": "确定要清空整个上传队列吗？这将取消所有正在进行的上传。",
-
   "openFileFolderNotSupported": "此平台不支持打开文件夹",
   "failedToOpenFolder": "打开文件夹失败：{error}",
   "fileNotFound": "文件未找到",
   "openFileNotSupported": "此平台不支持打开文件",
   "failedToOpenFile": "打开文件失败：{error}",
   "openFile": "打开文件",
-
   "settings": "设置",
-
   "sectionConnection": "连接",
   "sectionGeneral": "通用",
   "sectionDownload": "下载",
   "sectionOthers": "其他",
-
   "configuredServers": "服务器",
   "longPressToEditDelete": "长按编辑/删除",
   "noServersConfigured": "未配置服务器",
@@ -216,35 +191,29 @@
   "serverDeleted": "服务器已删除",
   "failedToSaveServer": "保存服务器失败",
   "failedToDelete": "删除失败",
-
   "textLabel": "文本",
   "filesLabel": "文件",
   "enabledLabel": "已启用",
   "disabledLabel": "已禁用",
-
   "localName": "本地名称",
   "localNameHint": "例如：我的手机",
   "localNameDescription": "此名称将显示在从该设备发送的文本消息中。",
   "nameUpdated": "名称已更新",
   "failedToSave": "保存失败",
-
   "portableMode": "便携模式",
   "portableModeDescription": "将配置保存在程序旁边（用于U盘）",
   "portableModeConfig": "配置：{path}",
   "portableModeEnabled": "便携模式已启用",
   "portableModeDisabled": "便携模式已禁用",
   "portableModeDisableConfirm": "关闭便携模式后，配置将保存到系统目录。\n\n建议保持开启（配置文件放在软件目录下）。",
-
   "dataLocation": "数据位置",
   "dataLocationSystem": "系统目录",
   "dataLocationPortable": "便携模式",
   "failedToChangePortableMode": "更改便携模式失败",
-
   "connectionStatusConnected": "已连接",
   "connectionStatusConnecting": "连接中...",
   "connectionStatusError": "连接错误",
   "connectionStatusDisconnected": "未连接",
-
   "theme": "主题",
   "themeSystem": "跟随系统",
   "themeLight": "浅色",
@@ -253,11 +222,9 @@
   "startPageDescription": "将在下次启动应用时生效",
   "startPageText": "文本页",
   "startPageFiles": "文件页",
-
   "dynamicColor": "动态颜色",
   "dynamicColorDescription": "使用系统强调色（Material You）",
   "usingSystemColor": "使用系统颜色",
-
   "color": "颜色",
   "chooseColor": "选择颜色",
   "colorBlue": "蓝色",
@@ -273,11 +240,9 @@
   "colorBrown": "棕色",
   "colorBlueGrey": "蓝灰色",
   "colorCustom": "自定义",
-
   "language": "语言",
   "languageEnglish": "英语",
   "languageChinese": "简体中文",
-
   "autoDownload": "自动下载",
   "autoDownloadDescription": "检测到新文件时自动下载",
   "downloadLocation": "下载位置",
@@ -290,22 +255,17 @@
   "systemDefault": "系统默认",
   "downloadLocationUpdated": "下载位置已更新",
   "selectDownloadLocation": "选择下载位置",
-
   "showNotification": "显示通知",
   "showNotificationDescription": "下载完成时通知",
-
   "about": "关于",
   "aboutDescription": "RemoteSend v1.1.0",
   "aboutLegalese": "© 2026 Wu-HZ",
   "aboutAppDescription": "一款轻量级、便携的应用，用于通过WebDAV在设备之间传输文本和文件。",
-
   "sourceCode": "源代码",
   "sourceCodeUrl": "github.com/Wu-HZ/remotesend",
   "openGitHub": "打开GitHub",
-
   "donation": "捐赠",
   "donationDescription": "支持开发",
-
   "privacyPolicy": "隐私政策",
   "changelog": "更新日志",
   "changelog_1_1_0_1": "自适应图标（SVG 设计，平板填满图标区）",
@@ -336,9 +296,7 @@
   "changelog_1_0_0_8": "桌面端记住窗口大小和位置",
   "changelog_1_0_0_9": "便携模式（配置文件放在软件目录）",
   "changelog_1_0_0_10": "原始图标设计",
-
   "comingSoon": "{feature} - 即将推出",
-
   "serverName": "名称",
   "serverNameHint": "例如：家庭NAS",
   "serverNameRequired": "请输入名称",
@@ -353,9 +311,7 @@
   "testConnection": "测试连接",
   "testConnectionSuccess": "成功！已建立连接。",
   "testConnectionFailed": "失败：{error}",
-
   "error": "错误：{message}",
-
   "dropFilesToUpload": "拖放文件到此处上传",
   "chatOwnMessageLeftLabel": "自己消息显示在左侧",
   "chatOwnMessageLeftDescription": "将自己的消息也放在左侧，与远程消息对齐",
@@ -364,7 +320,6 @@
   "connectToWebDavFirstToUploadFiles": "请先连接WebDAV以上传文件",
   "addedFilesAndFolders": "已添加 {files} 个文件和 {folders} 个文件夹到上传队列",
   "addedFolders": "已添加 {count} 个文件夹到上传队列",
-
   "sectionTransferSetting": "传输",
   "sectionDataSetting": "数据",
   "dragModeLabel": "拖拽上传模式",
@@ -438,5 +393,58 @@
   "autoDownloadWifiOnly": "仅限 Wi-Fi 或有线网络",
   "autoDownloadLimit": "自动下载大小上限",
   "autoDownloadUnlimited": "不限大小",
-  "countdownSeconds": "秒"
+  "countdownSeconds": "秒",
+  "clipboardSyncTitle": "剪贴板同步",
+  "clipboardSyncHistoryTitle": "剪贴板共享记录",
+  "clipboardSyncHistoryLocalOnly": "共享记录文件和归档仅保存在本机，不会上传到 Gotify 或 WebDAV。同步文本仍会临时经过 Gotify，并请求服务端删除。30 天后按月归档，不自动删除。",
+  "clipboardSyncHistoryRecent": "最近 30 天",
+  "clipboardSyncHistoryArchive": "按月归档",
+  "clipboardSyncHistoryEmpty": "暂无共享记录",
+  "clipboardSyncHistorySent": "发送",
+  "clipboardSyncHistoryReceived": "接收",
+  "clipboardSyncHistoryClear": "清空所有记录",
+  "clipboardSyncHistoryClearConfirm": "将删除本机最近记录和全部归档，无法恢复。",
+  "clipboardSyncHistoryOpen": "查看本机共享记录",
+  "clipboardSyncNotice": "全局剪贴板同步复用现有 Gotify 连接和接收设备设置。",
+  "clipboardSyncSimpleNotice": "两台设备都打开此开关即可。同步复用 RemoteSend 现有的 Gotify 文本通道和接收设备设置，无需额外密钥或配对。剪贴板正文会明文发送到 Gotify，服务器可以读取并保留；请使用 HTTPS。",
+  "clipboardSyncUsesGotifyTargets": "沿用 Gotify 中现有的接收设备设置：",
+  "clipboardSyncStart": "开启同步",
+  "clipboardSyncStop": "停止同步",
+  "clipboardSyncStopped": "已停止",
+  "clipboardSyncConnecting": "连接中／等待 Root 授权",
+  "clipboardSyncWaiting": "已连接，等待对端握手",
+  "clipboardSyncRunning": "同步运行中",
+  "clipboardSyncReconnecting": "连接中断，正在重连（不补发）",
+  "clipboardSyncPaused": "设备已锁屏，暂停访问剪贴板",
+  "clipboardSyncFailed": "同步因错误停止",
+  "clipboardSyncCounts": "就绪对端：{peers} · 已发出：{sent} · 已写入：{received}",
+  "clipboardSyncNotification": "请允许通知，以便显示常驻同步服务及停止入口。",
+  "clipboardSyncError": "同步异常（{code}）。请检查 Gotify 连接和 Android Root 授权。",
+  "clipboardSyncExclusive": "全局剪贴板同步已开启，停止后才能使用临时自动发送。",
+  "rootClipboardTitle": "Root 剪贴板诊断",
+  "rootClipboardNotice": "当前仅为桥接验证，尚未接入跨设备同步。不上传、不保存正文，仅在点击启动时申请 Root。返回退出本页会停止桥接；切换到其他应用时，只要 RemoteSend 进程仍在，测试会话会继续运行。",
+  "rootClipboardSteps": "1. 启动并在 Root 管理器中授权。\n2. 切到其他应用复制文本，再回来查看变更次数。\n3. 读取元数据，或写入测试文本后到其他应用粘贴。也请测试锁屏和解锁。本页始终不展示剪贴板正文。",
+  "rootClipboardUnsupported": "此诊断仅支持 Android。",
+  "rootClipboardStart": "授权并启动",
+  "rootClipboardStop": "停止桥接",
+  "rootClipboardRead": "读取元数据",
+  "rootClipboardProbe": "写入测试文本",
+  "rootClipboardProbeConfirm": "这会覆盖手机当前剪贴板，随后读取并核对包含换行和空格的固定测试文本。不会恢复之前的内容，是否继续？",
+  "rootClipboardIdle": "已停止",
+  "rootClipboardStarting": "正在启动或停止… Root 授权最长等待 60 秒。",
+  "rootClipboardActive": "桥接已连接（非网络同步）",
+  "rootClipboardChanges": "已观察到 {count} 次变更",
+  "rootClipboardEnvironment": "Android API {sdk} · UID {uid} · 用户 {user}\n接口：{api}",
+  "rootClipboardMetadata": "{kind} · {bytes} 字节 · {origin}",
+  "rootClipboardKindText": "纯文本",
+  "rootClipboardKindEmpty": "空文本",
+  "rootClipboardKindOther": "已跳过非文本内容",
+  "rootClipboardKindSensitive": "已跳过敏感内容",
+  "rootClipboardKindLarge": "已跳过超过 32 KiB 的文本",
+  "rootClipboardKindUnavailable": "空剪贴板或暂不可读（例如锁屏）",
+  "rootClipboardOriginBridge": "桥接自身写入",
+  "rootClipboardOriginOther": "其他来源",
+  "rootClipboardProbePassed": "测试写入与读回完全一致，空格和换行均已保留。",
+  "rootClipboardProbeFailed": "测试内容不一致，或校验前剪贴板已被更改。",
+  "rootClipboardError": "桥接失败（{code}）。请检查 Root 授权与系统兼容性；启动超时可重试。"
 }

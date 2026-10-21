@@ -1,11 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="remote_send"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:fullBackupContent="@xml/clipboard_history_backup_rules"
+        android:dataExtractionRules="@xml/clipboard_history_data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -48,6 +53,10 @@
                 <data android:mimeType="*/*"/>
             </intent-filter>
         </activity>
+        <service
+            android:name=".clipboard.ClipboardSyncService"
+            android:exported="false"
+            android:foregroundServiceType="remoteMessaging" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

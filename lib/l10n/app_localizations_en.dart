@@ -1336,4 +1336,191 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get countdownSeconds => 's';
+
+  @override
+  String get clipboardSyncTitle => 'Clipboard sync';
+
+  @override
+  String get clipboardSyncHistoryTitle => 'Clipboard sharing history';
+
+  @override
+  String get clipboardSyncHistoryLocalOnly =>
+      'History files and archives stay on this device and are never uploaded to Gotify or WebDAV. Sync text still passes through Gotify temporarily and deletion is requested. After 30 days records are archived by month, not deleted.';
+
+  @override
+  String get clipboardSyncHistoryRecent => 'Last 30 days';
+
+  @override
+  String get clipboardSyncHistoryArchive => 'Monthly archive';
+
+  @override
+  String get clipboardSyncHistoryEmpty => 'No clipboard sharing records';
+
+  @override
+  String get clipboardSyncHistorySent => 'Sent';
+
+  @override
+  String get clipboardSyncHistoryReceived => 'Received';
+
+  @override
+  String get clipboardSyncHistoryClear => 'Clear all records';
+
+  @override
+  String get clipboardSyncHistoryClearConfirm =>
+      'This deletes recent records and all local archives. This cannot be undone.';
+
+  @override
+  String get clipboardSyncHistoryOpen => 'View local sharing history';
+
+  @override
+  String get clipboardSyncNotice =>
+      'Global clipboard sync uses your existing Gotify connection and target-device setting.';
+
+  @override
+  String get clipboardSyncStart => 'Start sync';
+
+  @override
+  String get clipboardSyncStop => 'Stop sync';
+
+  @override
+  String get clipboardSyncStopped => 'Stopped';
+
+  @override
+  String get clipboardSyncConnecting => 'Connecting / requesting Root';
+
+  @override
+  String get clipboardSyncWaiting => 'Connected; waiting for peer handshake';
+
+  @override
+  String get clipboardSyncRunning => 'Synchronization running';
+
+  @override
+  String get clipboardSyncReconnecting =>
+      'Disconnected; reconnecting (no replay)';
+
+  @override
+  String get clipboardSyncPaused => 'Paused while device is locked';
+
+  @override
+  String get clipboardSyncFailed => 'Synchronization stopped with an error';
+
+  @override
+  String clipboardSyncCounts(int peers, int sent, int received) {
+    return 'Ready peers: $peers · Sent: $sent · Applied: $received';
+  }
+
+  @override
+  String get clipboardSyncNotification =>
+      'Allow notifications so the ongoing sync service and Stop action stay visible.';
+
+  @override
+  String clipboardSyncError(String code) {
+    return 'Sync issue ($code). Check the Gotify connection and Android Root authorization.';
+  }
+
+  @override
+  String get clipboardSyncExclusive =>
+      'Global clipboard sync is enabled. Stop it before using temporary auto-send.';
+
+  @override
+  String get clipboardSyncSimpleNotice =>
+      'Turn this on on both devices. It reuses RemoteSend’s existing Gotify text channel and receiving-device setting—no extra key or pairing. Clipboard text is sent in plain text to Gotify; the server can read and retain it. Use HTTPS.';
+
+  @override
+  String get clipboardSyncUsesGotifyTargets =>
+      'Using the existing Gotify receiving-device setting:';
+
+  @override
+  String get rootClipboardTitle => 'Root clipboard diagnostics';
+
+  @override
+  String get rootClipboardNotice =>
+      'Experimental bridge only, not cross-device sync. Nothing is uploaded or saved. Root authorization is requested only when you start. Leaving this page stops the bridge; switching to another app keeps this test session running while RemoteSend stays alive.';
+
+  @override
+  String get rootClipboardSteps =>
+      '1. Start and authorize in your root manager.\n2. Copy text in another app, then return and check the change count.\n3. Read metadata, or write a test and paste it in another app. Also test lock/unlock. Clipboard contents are never displayed here.';
+
+  @override
+  String get rootClipboardUnsupported =>
+      'These diagnostics are available on Android only.';
+
+  @override
+  String get rootClipboardStart => 'Authorize and start';
+
+  @override
+  String get rootClipboardStop => 'Stop bridge';
+
+  @override
+  String get rootClipboardRead => 'Read metadata';
+
+  @override
+  String get rootClipboardProbe => 'Write test text';
+
+  @override
+  String get rootClipboardProbeConfirm =>
+      'This replaces your phone\'s clipboard, then reads it back to verify a fixed test containing spaces and a newline. The previous contents are not restored. Continue?';
+
+  @override
+  String get rootClipboardIdle => 'Stopped';
+
+  @override
+  String get rootClipboardStarting =>
+      'Starting or stopping… Root authorization may take up to 60 seconds.';
+
+  @override
+  String get rootClipboardActive => 'Bridge connected (not network sync)';
+
+  @override
+  String rootClipboardChanges(int count) {
+    return 'Observed changes: $count';
+  }
+
+  @override
+  String rootClipboardEnvironment(int sdk, int uid, int user, String api) {
+    return 'Android API $sdk · UID $uid · user $user\nInterface: $api';
+  }
+
+  @override
+  String rootClipboardMetadata(String kind, String bytes, String origin) {
+    return '$kind · $bytes bytes · $origin';
+  }
+
+  @override
+  String get rootClipboardKindText => 'Plain text';
+
+  @override
+  String get rootClipboardKindEmpty => 'Empty text';
+
+  @override
+  String get rootClipboardKindOther => 'Non-text content skipped';
+
+  @override
+  String get rootClipboardKindSensitive => 'Sensitive content skipped';
+
+  @override
+  String get rootClipboardKindLarge => 'Text over 32 KiB skipped';
+
+  @override
+  String get rootClipboardKindUnavailable =>
+      'Empty or currently unreadable (for example, locked)';
+
+  @override
+  String get rootClipboardOriginBridge => 'Bridge-originated write';
+
+  @override
+  String get rootClipboardOriginOther => 'Other source';
+
+  @override
+  String get rootClipboardProbePassed =>
+      'Test write/read matched exactly, including whitespace.';
+
+  @override
+  String get rootClipboardProbeFailed =>
+      'The test did not match, or the clipboard changed before verification.';
+
+  @override
+  String rootClipboardError(String code) {
+    return 'Bridge error ($code). Check root authorization and system compatibility. You can retry after a timeout.';
+  }
 }

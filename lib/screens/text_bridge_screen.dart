@@ -8,6 +8,7 @@ import '../models/text_message.dart';
 import '../services/clipboard_auto_send_session.dart';
 import '../services/text_clipboard_service.dart';
 import '../providers/config_provider.dart';
+import '../providers/clipboard_sync_provider.dart';
 import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
 import '../providers/message_history_provider.dart';
@@ -83,7 +84,9 @@ class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
     _clipboardAutoSend = ClipboardAutoSendSession(
       readText: clipboard.readText,
       sendText: (text) => ref.read(textSendControllerProvider).send(text),
-      canSend: () => !ref.read(textSendingProvider),
+      canSend: () =>
+          !ref.read(textSendingProvider) &&
+          !ref.read(clipboardSyncEnabledProvider),
       canRead: () {
         // Desktop must keep polling while the user copies in another window.
         final mobile =
@@ -232,6 +235,10 @@ class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
     final ownOnLeft =
         ref.watch(configProvider).valueOrNull?.chatOwnMessageLeft ?? false;
     final l10n = AppLocalizations.of(context)!;
+    final globalSync = ref.watch(clipboardSyncEnabledProvider);
+    ref.listen(clipboardSyncEnabledProvider, (_, enabled) {
+      if (enabled) _clipboardAutoSend.stop();
+    });
 
     if (widget.realtime) {
       ref.listen(gotifyProvider, (_, next) {
@@ -509,7 +516,7 @@ class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
                             ),
                           ),
                         if (widget.realtime || _isToday(selectedDate))
-                          _buildInputArea(canSync, isSending, l10n),
+                          _buildInputArea(canSync, isSending, l10n, globalSync),
                       ],
                     ),
                   ),
@@ -1155,7 +1162,12 @@ class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
     }
   }
 
-  Widget _buildInputArea(bool canSync, bool isSending, AppLocalizations l10n) {
+  Widget _buildInputArea(
+    bool canSync,
+    bool isSending,
+    AppLocalizations l10n,
+    bool globalSync,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1224,7 +1236,9 @@ class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
               IconButton(
                 key: const ValueKey('clipboard-auto-send-toggle'),
                 onPressed:
-                    _clipboardAutoSend.isActive || (canSync && widget.isActive)
+                    !globalSync &&
+                        (_clipboardAutoSend.isActive ||
+                            (canSync && widget.isActive))
                     ? _toggleClipboardAutoSend
                     : null,
                 isSelected: _clipboardAutoSend.isActive,
@@ -1235,7 +1249,9 @@ class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
                       ? Theme.of(context).colorScheme.primaryContainer
                       : null,
                 ),
-                tooltip: _clipboardAutoSend.isActive
+                tooltip: globalSync
+                    ? l10n.clipboardSyncExclusive
+                    : _clipboardAutoSend.isActive
                     ? l10n.stopClipboardAutoSend
                     : l10n.startClipboardAutoSend,
               ),
@@ -1274,7 +1290,7 @@ class _TextBridgeScreenState extends ConsumerState<_TextBridgePage> {
       _clipboardAutoSend.stop();
       return;
     }
-    _clipboardAutoSend.start();
+    if (!ref.read(clipboardSyncEnabledProvider)) _clipboardAutoSend.start();
   }
 
   Future<void> _sendMessage() async {

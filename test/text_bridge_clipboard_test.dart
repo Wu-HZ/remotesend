@@ -6,6 +6,7 @@ import 'package:remote_send/models/server_config.dart';
 import 'package:remote_send/models/server_endpoint.dart';
 import 'package:remote_send/providers/text_endpoint_provider.dart';
 import 'package:remote_send/providers/config_provider.dart';
+import 'package:remote_send/providers/clipboard_sync_provider.dart';
 import 'package:remote_send/providers/message_history_provider.dart';
 import 'package:remote_send/providers/webdav_provider.dart';
 import 'package:remote_send/screens/text_bridge_screen.dart';
@@ -40,6 +41,7 @@ class _Connection extends ConnectionNotifier {
 }
 
 final _active = StateProvider<bool>((ref) => true);
+final _globalSync = StateProvider<bool>((ref) => false);
 final _server = StateProvider<ServerConfig?>((ref) => null);
 const _toggle = ValueKey('clipboard-auto-send-toggle');
 const _tick = Duration(milliseconds: 500);
@@ -53,6 +55,9 @@ Future<ProviderContainer> _mount(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        clipboardSyncEnabledProvider.overrideWith(
+          (ref) => ref.watch(_globalSync),
+        ),
         isTextConfiguredProvider.overrideWithValue(configured),
         activeTextServerProvider.overrideWith((ref) => ref.watch(_server)),
         activeTextEndpointProvider.overrideWith(
@@ -88,6 +93,38 @@ Future<ProviderContainer> _mount(
 }
 
 void main() {
+  testWidgets(
+    'global sync stops and excludes temporary auto-send without resuming it later',
+    (tester) async {
+      final clipboard = _Clipboard();
+      final container = await _mount(tester, clipboard);
+      await tester.tap(find.byKey(_toggle));
+      await tester.pump();
+      expect(tester.widget<IconButton>(find.byKey(_toggle)).isSelected, isTrue);
+      container.read(_globalSync.notifier).state = true;
+      await tester.pump();
+      final button = tester.widget<IconButton>(find.byKey(_toggle));
+      expect(button.isSelected, isFalse);
+      expect(button.onPressed, isNull);
+      clipboard.text = 'global only';
+      await tester.pump(_tick);
+      expect(
+        (container.read(messageHistoryProvider.notifier) as _History).sent,
+        isEmpty,
+      );
+      container.read(_globalSync.notifier).state = false;
+      await tester.pump();
+      expect(
+        tester.widget<IconButton>(find.byKey(_toggle)).isSelected,
+        isFalse,
+      );
+      expect(
+        tester.widget<IconButton>(find.byKey(_toggle)).onPressed,
+        isNotNull,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   testWidgets(
     'toggle sends new copies, preserves drafts and can stop immediately',
     (tester) async {

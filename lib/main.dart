@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,6 +10,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:share_handler/share_handler.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/app_visibility_provider.dart';
+import 'providers/clipboard_sync_provider.dart';
 import 'providers/config_provider.dart';
 import 'providers/gotify_coordinator_provider.dart';
 import 'providers/text_send_provider.dart';
@@ -19,6 +21,12 @@ import 'providers/camera_capture_provider.dart';
 import 'providers/opened_file_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/window_service.dart';
+import 'services/clipboard_sync_background.dart';
+
+@pragma('vm:entry-point')
+void clipboardSyncBackgroundMain() {
+  unawaited(startClipboardSyncBackground());
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,11 +66,7 @@ void main() async {
     });
   }
 
-  runApp(
-    const ProviderScope(
-      child: RemoteSendApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: RemoteSendApp()));
 }
 
 class RemoteSendApp extends ConsumerStatefulWidget {
@@ -194,7 +198,9 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
           _pendingSharedMedia.clear();
           Future.microtask(() {
             if (mounted) {
-              for (final media in pending) { _processSharedMedia(media); }
+              for (final media in pending) {
+                _processSharedMedia(media);
+              }
             }
           });
         }
@@ -211,6 +217,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
 
     // Keep Gotify event handling alive while the app is running.
     ref.watch(gotifyCoordinatorProvider);
+    ref.watch(clipboardSyncProvider);
 
     // Watch theme settings
     final themeMode = ref.watch(themeModeProvider);
@@ -288,10 +295,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('en'),
-            Locale('zh'),
-          ],
+          supportedLocales: const [Locale('en'), Locale('zh')],
           locale: appLocale,
           theme: ThemeData(
             colorScheme: lightColorScheme,
@@ -302,16 +306,25 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
               border: lightInputBorder,
               focusedBorder: lightInputBorder,
               enabledBorder: lightInputBorder,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 0,
+                horizontal: 10,
+              ),
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
             ),
             fontFamily: fontFamily,
@@ -320,7 +333,9 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
             colorScheme: darkColorScheme,
             useMaterial3: true,
             navigationBarTheme: const NavigationBarThemeData(
-              iconTheme: WidgetStatePropertyAll(IconThemeData(color: Colors.white)),
+              iconTheme: WidgetStatePropertyAll(
+                IconThemeData(color: Colors.white),
+              ),
             ),
             inputDecorationTheme: InputDecorationTheme(
               filled: true,
@@ -328,17 +343,26 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
               border: darkInputBorder,
               focusedBorder: darkInputBorder,
               enabledBorder: darkInputBorder,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 0,
+                horizontal: 10,
+              ),
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
             ),
             fontFamily: fontFamily,
@@ -352,7 +376,8 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
 
   Widget _buildAppWithDropTarget() {
     final connectionStatus = ref.watch(filesConnectionStatusProvider);
-    final isConnected = connectionStatus.state == WebDavConnectionState.connected;
+    final isConnected =
+        connectionStatus.state == WebDavConnectionState.connected;
 
     return DropTarget(
       onDragEntered: (details) {
@@ -395,15 +420,19 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isConnected ? Icons.cloud_upload : Icons.cloud_off,
+                              isConnected
+                                  ? Icons.cloud_upload
+                                  : Icons.cloud_off,
                               size: 64,
                               color: Colors.white,
                             ),
                             const SizedBox(height: 16),
                             Text(
                               isConnected
-                                  ? (l10n?.dropFilesToUpload ?? 'Drop files here to upload')
-                                  : (l10n?.connectToWebDavFirst ?? 'Connect to WebDAV first'),
+                                  ? (l10n?.dropFilesToUpload ??
+                                        'Drop files here to upload')
+                                  : (l10n?.connectToWebDavFirst ??
+                                        'Connect to WebDAV first'),
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -413,7 +442,8 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
                             if (!isConnected) ...[
                               const SizedBox(height: 8),
                               Text(
-                                l10n?.goToSettingsToConfigureConnection ?? 'Go to Settings to configure connection',
+                                l10n?.goToSettingsToConfigureConnection ??
+                                    'Go to Settings to configure connection',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.white70,
@@ -442,7 +472,10 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n?.connectToWebDavFirstToUploadFiles ?? 'Connect to WebDAV first to upload files'),
+            content: Text(
+              l10n?.connectToWebDavFirstToUploadFiles ??
+                  'Connect to WebDAV first to upload files',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -498,18 +531,24 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
             final l10n = AppLocalizations.of(context);
             String message;
             if (folderPaths.isEmpty) {
-              message = l10n?.addedFilesToQueue(filePaths.length) ?? 'Added ${filePaths.length} file(s) to upload queue';
+              message =
+                  l10n?.addedFilesToQueue(filePaths.length) ??
+                  'Added ${filePaths.length} file(s) to upload queue';
             } else if (filePaths.isEmpty) {
-              message = l10n?.addedFolders(folderPaths.length) ?? 'Added ${folderPaths.length} folder(s) to upload queue';
+              message =
+                  l10n?.addedFolders(folderPaths.length) ??
+                  'Added ${folderPaths.length} folder(s) to upload queue';
             } else {
-              message = l10n?.addedFilesAndFolders(filePaths.length, folderPaths.length) ?? 'Added ${filePaths.length} file(s) and ${folderPaths.length} folder(s) to upload queue';
+              message =
+                  l10n?.addedFilesAndFolders(
+                    filePaths.length,
+                    folderPaths.length,
+                  ) ??
+                  'Added ${filePaths.length} file(s) and ${folderPaths.length} folder(s) to upload queue';
             }
 
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: Colors.green,
-              ),
+              SnackBar(content: Text(message), backgroundColor: Colors.green),
             );
           }
         });
@@ -539,7 +578,10 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
       if (config.activeTextServer?.isConfigured ?? false)
         _connectAtStartup(forText: true, serverId: config.activeTextServer!.id),
       if (config.isFilesConfigured)
-        _connectAtStartup(forText: false, serverId: config.activeFilesServer!.id),
+        _connectAtStartup(
+          forText: false,
+          serverId: config.activeFilesServer!.id,
+        ),
     ]);
   }
 

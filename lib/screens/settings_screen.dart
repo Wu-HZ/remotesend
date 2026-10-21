@@ -12,6 +12,7 @@ import '../models/gotify_models.dart';
 import '../models/server_config.dart';
 import '../models/server_endpoint.dart';
 import '../providers/text_endpoint_provider.dart';
+import '../providers/root_clipboard_provider.dart';
 import '../providers/config_provider.dart';
 import '../providers/download_path_provider.dart';
 import '../providers/gotify_coordinator_provider.dart';
@@ -21,6 +22,9 @@ import '../services/download_path_service.dart';
 import '../services/gotify_service.dart';
 import '../services/webdav_service.dart';
 import 'changelog_page.dart';
+import 'root_clipboard_screen.dart';
+import 'clipboard_sync_screen.dart';
+import 'clipboard_sync_history_screen.dart';
 
 /// Settings screen with Connection, General, Download, and Others sections.
 enum _DownloadLocationMode { system, portable, custom }
@@ -720,6 +724,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : '${gotify.targetDeviceIds.length}',
             onTap: () => _showGotifyTargetsDialog(l10n),
           ),
+        if (gotify.enabled && (Platform.isWindows || Platform.isAndroid)) ...[
+          _ButtonEntry(
+            label: l10n.clipboardSyncTitle,
+            buttonLabel: l10n.open,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ClipboardSyncScreen(),
+              ),
+            ),
+          ),
+          _ButtonEntry(
+            label: l10n.clipboardSyncHistoryOpen,
+            buttonLabel: l10n.open,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ClipboardSyncHistoryScreen(),
+              ),
+            ),
+          ),
+        ],
         if (gotify.enabled)
           _ButtonEntry(
             label: l10n.gotifyHistoryLookback,
@@ -1780,6 +1804,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: l10n.sectionOthers,
       icon: Icons.more_horiz,
       children: [
+        if (ref.watch(rootClipboardSupportedProvider))
+          _ButtonEntry(
+            label: l10n.rootClipboardTitle,
+            buttonLabel: l10n.open,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const RootClipboardScreen(),
+              ),
+            ),
+          ),
         _ButtonEntry(
           label: l10n.about,
           buttonLabel: l10n.open,

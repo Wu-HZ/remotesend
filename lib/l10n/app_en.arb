@@ -1,6 +1,5 @@
 {
   "@@locale": "en",
-
   "appTitle": "RemoteSend",
   "gotifyTextServer": "Gotify · Live text",
   "gotifyRegisterTextServer": "Register as a text server",
@@ -18,14 +17,18 @@
   "gotifyTextSending": "Sending…",
   "gotifyTextSent": "Sent to Gotify",
   "gotifyDroppedTexts": "{count} background messages expired or exceeded the memory limit.",
-  "@gotifyDroppedTexts": { "placeholders": { "count": { "type": "int" } } },
+  "@gotifyDroppedTexts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "autoClearTransferHistory": "Auto-clear successful transfers",
   "autoClearTransferHistoryHint": "Keep successful records for 5 minutes, then clear when idle. Failed tasks and files are kept.",
-
   "openFileAccessDenied": "Cannot read this file. Open it again from the source app and allow file access.",
   "openFileUnavailable": "The file is missing or the source app cannot provide it. Please select it again.",
   "openFileImportFailed": "Could not import the file. Check available storage and try again.",
-
   "takePhoto": "Take photo",
   "takeAnotherPhoto": "Take another photo",
   "addPendingFiles": "Add files",
@@ -36,11 +39,9 @@
   "cameraCaptureFailed": "Could not take a photo. Please try again.",
   "cameraRecoveryFailed": "Could not recover the last photo. Please take it again.",
   "photoPreviewUnavailable": "Preview unavailable. You can still send this image as a file.",
-
   "navText": "Text",
   "navFiles": "Files",
   "navSettings": "Settings",
-
   "retry": "Retry",
   "cancel": "Cancel",
   "save": "Save",
@@ -52,15 +53,12 @@
   "close": "Close",
   "open": "Open",
   "confirm": "Confirm",
-
   "failedToLoadConfig": "Failed to load configuration:",
-
   "today": "Today",
   "yesterday": "Yesterday",
   "selectDate": "Select Date",
   "previousDay": "Previous day",
   "nextDay": "Next day",
-
   "refresh": "Refresh",
   "clearSelection": "Clear selection",
   "selectAll": "Select all",
@@ -71,15 +69,12 @@
     }
   },
   "switchServer": "Switch server",
-
   "configureWebDavToSync": "Configure WebDAV connection in Settings to sync",
   "notConnectedTestInSettings": "Not connected. Test connection in Settings",
   "configureWebDavToUseFileDepot": "Configure WebDAV connection in Settings to use File Depot",
-
   "noMessagesYet": "No messages yet",
   "noMessagesOnThisDay": "No messages on this day",
   "sendMessageToGetStarted": "Send a message to get started",
-
   "copiedToClipboard": "Copied to clipboard",
   "sendClipboardContent": "Send clipboard content",
   "startClipboardAutoSend": "Temporarily auto-send clipboard text",
@@ -96,13 +91,10 @@
       "error": {}
     }
   },
-
   "typeAMessage": "Type a message...",
-
   "fileDepot": "File",
   "goBack": "Go back",
   "openDownloadFolder": "Open download folder",
-
   "downloadingFile": "Downloading: {fileName}",
   "@downloadingFile": {
     "placeholders": {
@@ -141,16 +133,13 @@
     }
   },
   "idle": "Idle",
-
   "connectToWebDavToViewFiles": "Connect to WebDAV to view files",
   "noFilesYet": "No files yet",
   "emptyFolder": "Empty folder",
   "tapFileOrFolderToUpload": "Tap the File or Folder button to upload",
   "thisFolderIsEmpty": "This folder is empty",
-
   "folder": "Folder",
   "file": "File",
-
   "download": "Download",
   "downloadFolder": "Download Folder",
   "uploadToServer": "Upload to Server",
@@ -216,7 +205,6 @@
     }
   },
   "failedToCreateFolder": "Failed to create folder",
-
   "todayTime": "Today {time}",
   "@todayTime": {
     "placeholders": {
@@ -235,7 +223,6 @@
       "days": {}
     }
   },
-
   "couldNotAccessFiles": "Could not access files",
   "pasteClipboardFiles": "Paste and send images or files",
   "clipboardUnavailable": "Clipboard is unavailable",
@@ -253,7 +240,6 @@
       "name": {}
     }
   },
-
   "downloaded": "Downloaded: {name}",
   "@downloaded": {
     "placeholders": {
@@ -276,7 +262,6 @@
       "count": {}
     }
   },
-
   "deleteFile": "Delete File",
   "deleteFileConfirm": "Are you sure you want to delete \"{name}\"?\n\nThis cannot be undone.",
   "@deleteFileConfirm": {
@@ -302,15 +287,12 @@
     }
   },
   "failedToRenameFile": "Failed to rename file",
-
   "transferQueue": "Transfer Queue",
   "retryFailed": "Retry failed",
   "clearCompleted": "Clear completed",
   "clearAll": "Clear all",
-
   "transferQueueEmpty": "Transfer queue is empty",
   "filesWillAppearHere": "Files will appear here when transferring",
-
   "uploadStatus": "Upload: {status}",
   "@uploadStatus": {
     "placeholders": {
@@ -336,21 +318,17 @@
       "total": {}
     }
   },
-
   "elapsed": "Elapsed",
   "duration": "Duration",
   "remaining": "remaining",
-
   "statusPending": "Pending",
   "statusUploading": "Uploading",
   "statusDownloading": "Downloading",
   "statusCompleted": "Completed",
   "statusFailed": "Failed",
   "statusIdle": "Idle",
-
   "clearQueue": "Clear Queue",
   "clearQueueConfirm": "Are you sure you want to clear the entire upload queue? This will cancel any ongoing uploads.",
-
   "openFileFolderNotSupported": "Open folder not supported on this platform",
   "failedToOpenFolder": "Failed to open folder: {error}",
   "@failedToOpenFolder": {
@@ -367,14 +345,11 @@
     }
   },
   "openFile": "Open file",
-
   "settings": "Settings",
-
   "sectionConnection": "Connection",
   "sectionGeneral": "General",
   "sectionDownload": "Download",
   "sectionOthers": "Others",
-
   "configuredServers": "Servers",
   "longPressToEditDelete": "Long press to edit/delete",
   "noServersConfigured": "No servers configured",
@@ -392,18 +367,15 @@
   "serverDeleted": "Server deleted",
   "failedToSaveServer": "Failed to save server",
   "failedToDelete": "Failed to delete",
-
   "textLabel": "Text",
   "filesLabel": "Files",
   "enabledLabel": "Enabled",
   "disabledLabel": "Disabled",
-
   "localName": "Local Name",
   "localNameHint": "e.g., My Phone",
   "localNameDescription": "This name will be shown in Text Bridge messages sent from this device.",
   "nameUpdated": "Name updated",
   "failedToSave": "Failed to save",
-
   "portableMode": "Portable Mode",
   "portableModeDescription": "Save config next to executable (for USB drives)",
   "portableModeConfig": "Config: {path}",
@@ -415,17 +387,14 @@
   "portableModeEnabled": "Portable mode enabled",
   "portableModeDisabled": "Portable mode disabled",
   "portableModeDisableConfirm": "Disabling portable mode will store config in system directories instead.\n\nIt is recommended to keep it enabled (config stays next to the app).",
-
   "dataLocation": "Data location",
   "dataLocationSystem": "System directory",
   "dataLocationPortable": "Portable",
   "failedToChangePortableMode": "Failed to change portable mode",
-
   "connectionStatusConnected": "Connected",
   "connectionStatusConnecting": "Connecting...",
   "connectionStatusError": "Connection error",
   "connectionStatusDisconnected": "Not connected",
-
   "theme": "Theme",
   "themeSystem": "System default",
   "themeLight": "Light",
@@ -434,11 +403,9 @@
   "startPageDescription": "Applied the next time the app starts",
   "startPageText": "Text page",
   "startPageFiles": "Files page",
-
   "dynamicColor": "Dynamic Color",
   "dynamicColorDescription": "Use system accent color (Material You)",
   "usingSystemColor": "Using system color",
-
   "color": "Color",
   "chooseColor": "Choose Color",
   "colorBlue": "Blue",
@@ -454,11 +421,9 @@
   "colorBrown": "Brown",
   "colorBlueGrey": "Blue Grey",
   "colorCustom": "Custom",
-
   "language": "Language",
   "languageEnglish": "English",
   "languageChinese": "Chinese (Simplified)",
-
   "autoDownload": "Auto-download",
   "autoDownloadDescription": "Automatically download new files when detected",
   "downloadLocation": "Download location",
@@ -471,22 +436,17 @@
   "systemDefault": "System default",
   "downloadLocationUpdated": "Download location updated",
   "selectDownloadLocation": "Select download location",
-
   "showNotification": "Show notification",
   "showNotificationDescription": "Notify when download completes",
-
   "about": "About",
   "aboutDescription": "RemoteSend v1.1.0",
   "aboutLegalese": "© 2026 Wu-HZ",
   "aboutAppDescription": "A lightweight, portable app to transfer text and files between devices using WebDAV.",
-
   "sourceCode": "Source code",
   "sourceCodeUrl": "github.com/Wu-HZ/remotesend",
   "openGitHub": "Open GitHub",
-
   "donation": "Donation",
   "donationDescription": "Support the development",
-
   "privacyPolicy": "Privacy Policy",
   "changelog": "Changelog",
   "changelog_1_1_0_1": "Adaptive icon (SVG design, fills tablet icon area)",
@@ -517,14 +477,12 @@
   "changelog_1_0_0_8": "Window size/position remembered on desktop",
   "changelog_1_0_0_9": "Portable mode (config.json next to executable)",
   "changelog_1_0_0_10": "Original app icon design",
-
   "comingSoon": "{feature} - coming soon",
   "@comingSoon": {
     "placeholders": {
       "feature": {}
     }
   },
-
   "serverName": "Name",
   "serverNameHint": "e.g., Home NAS",
   "serverNameRequired": "Please enter a name",
@@ -544,14 +502,12 @@
       "error": {}
     }
   },
-
   "error": "Error: {message}",
   "@error": {
     "placeholders": {
       "message": {}
     }
   },
-
   "dropFilesToUpload": "Drop files here to upload",
   "chatOwnMessageLeftLabel": "Show own messages on left",
   "chatOwnMessageLeftDescription": "Place your own messages on the left side like remote messages",
@@ -571,7 +527,6 @@
       "count": {}
     }
   },
-
   "sectionTransferSetting": "Transfer",
   "sectionDataSetting": "Data",
   "dragModeLabel": "Drag & drop mode",
@@ -626,8 +581,8 @@
   "selectServerLabel": "Select server",
   "dropFilesToStart": "Drop files to start",
   "currentServerLabel": "Current server",
-  "expandText": "Expand \u2193",
-  "collapseText": "Collapse \u2191",
+  "expandText": "Expand ↓",
+  "collapseText": "Collapse ↑",
   "openLink": "Open",
   "storageUsed": "Used space",
   "clearStorageTitle": "Confirm deletion",
@@ -712,5 +667,121 @@
   "autoDownloadWifiOnly": "Only on Wi-Fi or Ethernet",
   "autoDownloadLimit": "Auto-download size limit",
   "autoDownloadUnlimited": "Unlimited",
-  "countdownSeconds": "s"
+  "countdownSeconds": "s",
+  "clipboardSyncTitle": "Clipboard sync",
+  "clipboardSyncHistoryTitle": "Clipboard sharing history",
+  "clipboardSyncHistoryLocalOnly": "History files and archives stay on this device and are never uploaded to Gotify or WebDAV. Sync text still passes through Gotify temporarily and deletion is requested. After 30 days records are archived by month, not deleted.",
+  "clipboardSyncHistoryRecent": "Last 30 days",
+  "clipboardSyncHistoryArchive": "Monthly archive",
+  "clipboardSyncHistoryEmpty": "No clipboard sharing records",
+  "clipboardSyncHistorySent": "Sent",
+  "clipboardSyncHistoryReceived": "Received",
+  "clipboardSyncHistoryClear": "Clear all records",
+  "clipboardSyncHistoryClearConfirm": "This deletes recent records and all local archives. This cannot be undone.",
+  "clipboardSyncHistoryOpen": "View local sharing history",
+  "clipboardSyncNotice": "Global clipboard sync uses your existing Gotify connection and target-device setting.",
+  "clipboardSyncStart": "Start sync",
+  "clipboardSyncStop": "Stop sync",
+  "clipboardSyncStopped": "Stopped",
+  "clipboardSyncConnecting": "Connecting / requesting Root",
+  "clipboardSyncWaiting": "Connected; waiting for peer handshake",
+  "clipboardSyncRunning": "Synchronization running",
+  "clipboardSyncReconnecting": "Disconnected; reconnecting (no replay)",
+  "clipboardSyncPaused": "Paused while device is locked",
+  "clipboardSyncFailed": "Synchronization stopped with an error",
+  "clipboardSyncCounts": "Ready peers: {peers} · Sent: {sent} · Applied: {received}",
+  "@clipboardSyncCounts": {
+    "placeholders": {
+      "peers": {
+        "type": "int"
+      },
+      "sent": {
+        "type": "int"
+      },
+      "received": {
+        "type": "int"
+      }
+    }
+  },
+  "clipboardSyncNotification": "Allow notifications so the ongoing sync service and Stop action stay visible.",
+  "clipboardSyncError": "Sync issue ({code}). Check the Gotify connection and Android Root authorization.",
+  "@clipboardSyncError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "clipboardSyncExclusive": "Global clipboard sync is enabled. Stop it before using temporary auto-send.",
+  "clipboardSyncSimpleNotice": "Turn this on on both devices. It reuses RemoteSend’s existing Gotify text channel and receiving-device setting—no extra key or pairing. Clipboard text is sent in plain text to Gotify; the server can read and retain it. Use HTTPS.",
+  "clipboardSyncUsesGotifyTargets": "Using the existing Gotify receiving-device setting:",
+  "rootClipboardTitle": "Root clipboard diagnostics",
+  "rootClipboardNotice": "Experimental bridge only, not cross-device sync. Nothing is uploaded or saved. Root authorization is requested only when you start. Leaving this page stops the bridge; switching to another app keeps this test session running while RemoteSend stays alive.",
+  "rootClipboardSteps": "1. Start and authorize in your root manager.\n2. Copy text in another app, then return and check the change count.\n3. Read metadata, or write a test and paste it in another app. Also test lock/unlock. Clipboard contents are never displayed here.",
+  "rootClipboardUnsupported": "These diagnostics are available on Android only.",
+  "rootClipboardStart": "Authorize and start",
+  "rootClipboardStop": "Stop bridge",
+  "rootClipboardRead": "Read metadata",
+  "rootClipboardProbe": "Write test text",
+  "rootClipboardProbeConfirm": "This replaces your phone's clipboard, then reads it back to verify a fixed test containing spaces and a newline. The previous contents are not restored. Continue?",
+  "rootClipboardIdle": "Stopped",
+  "rootClipboardStarting": "Starting or stopping… Root authorization may take up to 60 seconds.",
+  "rootClipboardActive": "Bridge connected (not network sync)",
+  "rootClipboardChanges": "Observed changes: {count}",
+  "@rootClipboardChanges": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rootClipboardEnvironment": "Android API {sdk} · UID {uid} · user {user}\nInterface: {api}",
+  "@rootClipboardEnvironment": {
+    "placeholders": {
+      "sdk": {
+        "type": "int"
+      },
+      "uid": {
+        "type": "int"
+      },
+      "user": {
+        "type": "int"
+      },
+      "api": {
+        "type": "String"
+      }
+    }
+  },
+  "rootClipboardMetadata": "{kind} · {bytes} bytes · {origin}",
+  "@rootClipboardMetadata": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "bytes": {
+        "type": "String"
+      },
+      "origin": {
+        "type": "String"
+      }
+    }
+  },
+  "rootClipboardKindText": "Plain text",
+  "rootClipboardKindEmpty": "Empty text",
+  "rootClipboardKindOther": "Non-text content skipped",
+  "rootClipboardKindSensitive": "Sensitive content skipped",
+  "rootClipboardKindLarge": "Text over 32 KiB skipped",
+  "rootClipboardKindUnavailable": "Empty or currently unreadable (for example, locked)",
+  "rootClipboardOriginBridge": "Bridge-originated write",
+  "rootClipboardOriginOther": "Other source",
+  "rootClipboardProbePassed": "Test write/read matched exactly, including whitespace.",
+  "rootClipboardProbeFailed": "The test did not match, or the clipboard changed before verification.",
+  "rootClipboardError": "Bridge error ({code}). Check root authorization and system compatibility. You can retry after a timeout.",
+  "@rootClipboardError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  }
 }

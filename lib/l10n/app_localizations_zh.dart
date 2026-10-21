@@ -1284,4 +1284,180 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get countdownSeconds => '秒';
+
+  @override
+  String get clipboardSyncTitle => '剪贴板同步';
+
+  @override
+  String get clipboardSyncHistoryTitle => '剪贴板共享记录';
+
+  @override
+  String get clipboardSyncHistoryLocalOnly =>
+      '共享记录文件和归档仅保存在本机，不会上传到 Gotify 或 WebDAV。同步文本仍会临时经过 Gotify，并请求服务端删除。30 天后按月归档，不自动删除。';
+
+  @override
+  String get clipboardSyncHistoryRecent => '最近 30 天';
+
+  @override
+  String get clipboardSyncHistoryArchive => '按月归档';
+
+  @override
+  String get clipboardSyncHistoryEmpty => '暂无共享记录';
+
+  @override
+  String get clipboardSyncHistorySent => '发送';
+
+  @override
+  String get clipboardSyncHistoryReceived => '接收';
+
+  @override
+  String get clipboardSyncHistoryClear => '清空所有记录';
+
+  @override
+  String get clipboardSyncHistoryClearConfirm => '将删除本机最近记录和全部归档，无法恢复。';
+
+  @override
+  String get clipboardSyncHistoryOpen => '查看本机共享记录';
+
+  @override
+  String get clipboardSyncNotice => '全局剪贴板同步复用现有 Gotify 连接和接收设备设置。';
+
+  @override
+  String get clipboardSyncStart => '开启同步';
+
+  @override
+  String get clipboardSyncStop => '停止同步';
+
+  @override
+  String get clipboardSyncStopped => '已停止';
+
+  @override
+  String get clipboardSyncConnecting => '连接中／等待 Root 授权';
+
+  @override
+  String get clipboardSyncWaiting => '已连接，等待对端握手';
+
+  @override
+  String get clipboardSyncRunning => '同步运行中';
+
+  @override
+  String get clipboardSyncReconnecting => '连接中断，正在重连（不补发）';
+
+  @override
+  String get clipboardSyncPaused => '设备已锁屏，暂停访问剪贴板';
+
+  @override
+  String get clipboardSyncFailed => '同步因错误停止';
+
+  @override
+  String clipboardSyncCounts(int peers, int sent, int received) {
+    return '就绪对端：$peers · 已发出：$sent · 已写入：$received';
+  }
+
+  @override
+  String get clipboardSyncNotification => '请允许通知，以便显示常驻同步服务及停止入口。';
+
+  @override
+  String clipboardSyncError(String code) {
+    return '同步异常（$code）。请检查 Gotify 连接和 Android Root 授权。';
+  }
+
+  @override
+  String get clipboardSyncExclusive => '全局剪贴板同步已开启，停止后才能使用临时自动发送。';
+
+  @override
+  String get clipboardSyncSimpleNotice =>
+      '两台设备都打开此开关即可。同步复用 RemoteSend 现有的 Gotify 文本通道和接收设备设置，无需额外密钥或配对。剪贴板正文会明文发送到 Gotify，服务器可以读取并保留；请使用 HTTPS。';
+
+  @override
+  String get clipboardSyncUsesGotifyTargets => '沿用 Gotify 中现有的接收设备设置：';
+
+  @override
+  String get rootClipboardTitle => 'Root 剪贴板诊断';
+
+  @override
+  String get rootClipboardNotice =>
+      '当前仅为桥接验证，尚未接入跨设备同步。不上传、不保存正文，仅在点击启动时申请 Root。返回退出本页会停止桥接；切换到其他应用时，只要 RemoteSend 进程仍在，测试会话会继续运行。';
+
+  @override
+  String get rootClipboardSteps =>
+      '1. 启动并在 Root 管理器中授权。\n2. 切到其他应用复制文本，再回来查看变更次数。\n3. 读取元数据，或写入测试文本后到其他应用粘贴。也请测试锁屏和解锁。本页始终不展示剪贴板正文。';
+
+  @override
+  String get rootClipboardUnsupported => '此诊断仅支持 Android。';
+
+  @override
+  String get rootClipboardStart => '授权并启动';
+
+  @override
+  String get rootClipboardStop => '停止桥接';
+
+  @override
+  String get rootClipboardRead => '读取元数据';
+
+  @override
+  String get rootClipboardProbe => '写入测试文本';
+
+  @override
+  String get rootClipboardProbeConfirm =>
+      '这会覆盖手机当前剪贴板，随后读取并核对包含换行和空格的固定测试文本。不会恢复之前的内容，是否继续？';
+
+  @override
+  String get rootClipboardIdle => '已停止';
+
+  @override
+  String get rootClipboardStarting => '正在启动或停止… Root 授权最长等待 60 秒。';
+
+  @override
+  String get rootClipboardActive => '桥接已连接（非网络同步）';
+
+  @override
+  String rootClipboardChanges(int count) {
+    return '已观察到 $count 次变更';
+  }
+
+  @override
+  String rootClipboardEnvironment(int sdk, int uid, int user, String api) {
+    return 'Android API $sdk · UID $uid · 用户 $user\n接口：$api';
+  }
+
+  @override
+  String rootClipboardMetadata(String kind, String bytes, String origin) {
+    return '$kind · $bytes 字节 · $origin';
+  }
+
+  @override
+  String get rootClipboardKindText => '纯文本';
+
+  @override
+  String get rootClipboardKindEmpty => '空文本';
+
+  @override
+  String get rootClipboardKindOther => '已跳过非文本内容';
+
+  @override
+  String get rootClipboardKindSensitive => '已跳过敏感内容';
+
+  @override
+  String get rootClipboardKindLarge => '已跳过超过 32 KiB 的文本';
+
+  @override
+  String get rootClipboardKindUnavailable => '空剪贴板或暂不可读（例如锁屏）';
+
+  @override
+  String get rootClipboardOriginBridge => '桥接自身写入';
+
+  @override
+  String get rootClipboardOriginOther => '其他来源';
+
+  @override
+  String get rootClipboardProbePassed => '测试写入与读回完全一致，空格和换行均已保留。';
+
+  @override
+  String get rootClipboardProbeFailed => '测试内容不一致，或校验前剪贴板已被更改。';
+
+  @override
+  String rootClipboardError(String code) {
+    return '桥接失败（$code）。请检查 Root 授权与系统兼容性；启动超时可重试。';
+  }
 }
