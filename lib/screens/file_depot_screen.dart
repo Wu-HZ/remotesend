@@ -18,6 +18,7 @@ import '../providers/download_state_provider.dart';
 import '../providers/pending_upload_provider.dart';
 import '../providers/camera_capture_provider.dart';
 import '../providers/download_path_provider.dart';
+import '../services/android_folder_opener_service.dart';
 import '../services/webdav_service.dart';
 import '../utils/date_time_utils.dart';
 import '../widgets/server_list_panel.dart';
@@ -127,6 +128,12 @@ class _FileDepotScreenState extends ConsumerState<FileDepotScreen> {
       if (!await opener(directory) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.openFileFolderNotSupported)),
+        );
+      }
+    } on SelectedFolderOpenerUnavailable {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.androidFolderOpenerUnavailable)),
         );
       }
     } catch (e) {

@@ -200,6 +200,78 @@ abstract class AppLocalizations {
   /// **'{count} background messages expired or exceeded the memory limit.'**
   String gotifyDroppedTexts(int count);
 
+  /// No description provided for @localUploadApiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Local upload API'**
+  String get localUploadApiTitle;
+
+  /// No description provided for @localUploadApiToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow local scripts and AI to upload'**
+  String get localUploadApiToggle;
+
+  /// No description provided for @localUploadApiHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Desktop only while RemoteSend is running. Listens on 127.0.0.1. Anyone with the separate token can read and upload local files; only give it to trusted build scripts.'**
+  String get localUploadApiHint;
+
+  /// No description provided for @localUploadApiRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running: http://127.0.0.1:{port}'**
+  String localUploadApiRunning(int port);
+
+  /// No description provided for @localUploadApiStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get localUploadApiStopped;
+
+  /// No description provided for @localUploadApiBindFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start. Check whether local port 38764 is in use, then toggle this setting off and on.'**
+  String get localUploadApiBindFailed;
+
+  /// No description provided for @localUploadApiCopyToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy API token'**
+  String get localUploadApiCopyToken;
+
+  /// No description provided for @localUploadApiRotateToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate token'**
+  String get localUploadApiRotateToken;
+
+  /// No description provided for @localUploadApiRotateConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'The old token will stop working immediately; existing scripts must be updated. Continue?'**
+  String get localUploadApiRotateConfirm;
+
+  /// No description provided for @localUploadApiCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Token copied. Clear the clipboard afterwards; do not commit it to a repository.'**
+  String get localUploadApiCopied;
+
+  /// No description provided for @localUploadApiTokenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The token is saved in RemoteSend\'s settings. Keep it private after copying it to the clipboard.'**
+  String get localUploadApiTokenHint;
+
+  /// No description provided for @localUploadApiSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the local upload API setting.'**
+  String get localUploadApiSaveFailed;
+
   /// No description provided for @autoClearTransferHistory.
   ///
   /// In en, this message translates to:
@@ -1535,6 +1607,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download location'**
   String get downloadLocation;
+
+  /// No description provided for @androidFolderOpener.
+  ///
+  /// In en, this message translates to:
+  /// **'App for opening download folders'**
+  String get androidFolderOpener;
+
+  /// No description provided for @androidFolderOpenerSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System chooser (default)'**
+  String get androidFolderOpenerSystem;
+
+  /// No description provided for @androidFolderOpenerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open directly in this app instead of asking Android every time.'**
+  String get androidFolderOpenerHint;
+
+  /// No description provided for @androidFolderOpenerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No app found for this folder. Check that MT Manager is installed.'**
+  String get androidFolderOpenerEmpty;
+
+  /// No description provided for @androidFolderOpenerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected app cannot open this folder. Choose another app in Settings → Downloads.'**
+  String get androidFolderOpenerUnavailable;
 
   /// No description provided for @systemDownloadsOption.
   ///

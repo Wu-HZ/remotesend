@@ -64,6 +64,45 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get localUploadApiTitle => '本机上传 API';
+
+  @override
+  String get localUploadApiToggle => '允许本机脚本和 AI 上传';
+
+  @override
+  String get localUploadApiHint =>
+      '仅桌面端运行时开放 127.0.0.1 接口；调用者需持有专用令牌，可读取并上传本机文件。请仅交给可信的构建脚本。';
+
+  @override
+  String localUploadApiRunning(int port) {
+    return '运行中：http://127.0.0.1:$port';
+  }
+
+  @override
+  String get localUploadApiStopped => '已停止';
+
+  @override
+  String get localUploadApiBindFailed => '启动失败；请检查本机端口 38764 是否被占用，修复后重新开关此功能。';
+
+  @override
+  String get localUploadApiCopyToken => '复制 API 令牌';
+
+  @override
+  String get localUploadApiRotateToken => '重置令牌';
+
+  @override
+  String get localUploadApiRotateConfirm => '重置后旧令牌立即失效，已有脚本需更新令牌。确定继续？';
+
+  @override
+  String get localUploadApiCopied => '令牌已复制；使用后请清除剪贴板，勿提交到代码仓库。';
+
+  @override
+  String get localUploadApiTokenHint => '令牌保存在 RemoteSend 配置中；复制到剪贴板后请妥善保管。';
+
+  @override
+  String get localUploadApiSaveFailed => '无法保存本机上传 API 设置。';
+
+  @override
   String get autoClearTransferHistory => '自动清理成功记录';
 
   @override
@@ -803,6 +842,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get downloadLocation => '下载位置';
+
+  @override
+  String get androidFolderOpener => '打开下载文件夹的应用';
+
+  @override
+  String get androidFolderOpenerSystem => '系统选择（默认）';
+
+  @override
+  String get androidFolderOpenerHint => '选定后直接用该应用打开，不再弹出系统打开方式。';
+
+  @override
+  String get androidFolderOpenerEmpty => '未找到能打开此文件夹的应用。请确认 MT 管理器已安装。';
+
+  @override
+  String get androidFolderOpenerUnavailable => '所选应用无法打开下载文件夹，请到设置 → 下载中重新选择。';
 
   @override
   String get systemDownloadsOption => '系统下载文件夹（默认）';

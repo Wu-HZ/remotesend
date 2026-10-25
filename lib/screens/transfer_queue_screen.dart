@@ -9,13 +9,15 @@ import '../providers/config_provider.dart';
 import '../providers/upload_queue_provider.dart';
 import '../providers/download_state_provider.dart';
 import '../providers/download_path_provider.dart';
+import '../services/android_folder_opener_service.dart';
 
 /// Screen for viewing and managing the transfer queue (uploads and downloads).
 class TransferQueueScreen extends ConsumerStatefulWidget {
   const TransferQueueScreen({super.key});
 
   @override
-  ConsumerState<TransferQueueScreen> createState() => _TransferQueueScreenState();
+  ConsumerState<TransferQueueScreen> createState() =>
+      _TransferQueueScreenState();
 }
 
 class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
@@ -29,17 +31,16 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
   }
 
   Future<void> _initDownloadLocation() async {
-    final configured = ref.read(configProvider).valueOrNull?.downloadLocation ?? '';
+    final configured =
+        ref.read(configProvider).valueOrNull?.downloadLocation ?? '';
     try {
-      final location = await ref.read(downloadPathServiceProvider).rootPath(configured);
+      final location = await ref
+          .read(downloadPathServiceProvider)
+          .rootPath(configured);
       if (mounted) setState(() => _downloadLocation = location);
     } catch (_) {
       // The configured location may not be supported on this platform.
     }
-  }
-
-  Future<void> _openFolderAndroid(String path) async {
-    await _openPathAndroid(path);
   }
 
   Future<void> _openPathAndroid(String path) async {
@@ -52,7 +53,10 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     } else {
       contentUri = 'content://$authority/root$path';
     }
-    await launchUrl(Uri.parse(contentUri), mode: LaunchMode.externalApplication);
+    await launchUrl(
+      Uri.parse(contentUri),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   Future<void> _openDownloadFolder() async {
@@ -60,14 +64,21 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
 
     final l10n = AppLocalizations.of(context)!;
     try {
-      if (Platform.isWindows) {
+      if (ref.read(androidFolderOpenerSupportedProvider)) {
+        final opened = await ref.read(openLocalDirectoryProvider)(
+          _downloadLocation!,
+        );
+        if (!opened && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.openFileFolderNotSupported)),
+          );
+        }
+      } else if (Platform.isWindows) {
         await Process.run('explorer', [_downloadLocation!]);
       } else if (Platform.isMacOS) {
         await Process.run('open', [_downloadLocation!]);
       } else if (Platform.isLinux) {
         await Process.run('xdg-open', [_downloadLocation!]);
-      } else if (Platform.isAndroid) {
-        await _openFolderAndroid(_downloadLocation!);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -75,10 +86,19 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
           );
         }
       }
+    } on SelectedFolderOpenerUnavailable {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.androidFolderOpenerUnavailable)),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.failedToOpenFolder(e.toString())), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.failedToOpenFolder(e.toString())),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -91,7 +111,10 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
       if (!await file.exists()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.fileNotFound), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(l10n.fileNotFound),
+              backgroundColor: Colors.red,
+            ),
           );
         }
         return;
@@ -108,15 +131,18 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
         await _openPathAndroid(filePath);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.openFileNotSupported)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.openFileNotSupported)));
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.failedToOpenFile(e.toString())), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.failedToOpenFile(e.toString())),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -177,17 +203,29 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
             title: Text(l10n.autoClearTransferHistory),
             subtitle: Text(l10n.autoClearTransferHistoryHint),
             value: autoCleanup,
-            onChanged: configReady && !_savingAutoCleanup ? _setAutoCleanup : null,
+            onChanged: configReady && !_savingAutoCleanup
+                ? _setAutoCleanup
+                : null,
           ),
           const Divider(height: 1),
-          Expanded(child: _buildBody(context, l10n, uploadState, downloadState)),
+          Expanded(
+            child: _buildBody(context, l10n, uploadState, downloadState),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, AppLocalizations l10n, UploadQueueState uploadState, DownloadState downloadState) {
-    final hasDownloads = downloadState.items.isNotEmpty || downloadState.isDownloading || downloadState.error != null;
+  Widget _buildBody(
+    BuildContext context,
+    AppLocalizations l10n,
+    UploadQueueState uploadState,
+    DownloadState downloadState,
+  ) {
+    final hasDownloads =
+        downloadState.items.isNotEmpty ||
+        downloadState.isDownloading ||
+        downloadState.error != null;
     final hasUploads = uploadState.items.isNotEmpty;
 
     if (!hasDownloads && !hasUploads) {
@@ -199,18 +237,26 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
         // Download section with items
         if (hasDownloads) ...[
           _buildDownloadSection(context, l10n, downloadState),
-          ...downloadState.items.map((item) => _buildDownloadItem(context, l10n, item)),
+          ...downloadState.items.map(
+            (item) => _buildDownloadItem(context, l10n, item),
+          ),
           if (downloadState.items.isNotEmpty) const Divider(height: 1),
         ],
 
         // Upload section with items
         _buildUploadSection(context, l10n, uploadState),
-        ...uploadState.items.map((item) => _buildUploadItem(context, l10n, item)),
+        ...uploadState.items.map(
+          (item) => _buildUploadItem(context, l10n, item),
+        ),
       ],
     );
   }
 
-  Widget _buildDownloadSection(BuildContext context, AppLocalizations l10n, DownloadState state) {
+  Widget _buildDownloadSection(
+    BuildContext context,
+    AppLocalizations l10n,
+    DownloadState state,
+  ) {
     final isActive = state.isDownloading;
     final progressPercent = (state.progress * 100).toStringAsFixed(1);
 
@@ -331,13 +377,17 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                       Icon(
                         Icons.timer_outlined,
                         size: 16,
-                        color: Theme.of(context).colorScheme.onSecondaryContainer,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSecondaryContainer,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         state.displayRemainingTime,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -346,7 +396,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                       Text(
                         l10n.remaining,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSecondaryContainer.withAlpha(180),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer.withAlpha(180),
                           fontSize: 12,
                         ),
                       ),
@@ -362,8 +414,12 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
             LinearProgressIndicator(
               value: state.progress,
               backgroundColor: isActive
-                  ? Theme.of(context).colorScheme.onSecondaryContainer.withAlpha(50)
-                  : Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(50),
+                  ? Theme.of(
+                      context,
+                    ).colorScheme.onSecondaryContainer.withAlpha(50)
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withAlpha(50),
             ),
           ],
 
@@ -393,7 +449,11 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     }
   }
 
-  Widget _buildDownloadTimeInfo(BuildContext context, String label, String value) {
+  Widget _buildDownloadTimeInfo(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -401,7 +461,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Theme.of(context).colorScheme.onSecondaryContainer.withAlpha(150),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSecondaryContainer.withAlpha(150),
           ),
         ),
         Text(
@@ -415,7 +477,11 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     );
   }
 
-  Widget _buildUploadSection(BuildContext context, AppLocalizations l10n, UploadQueueState state) {
+  Widget _buildUploadSection(
+    BuildContext context,
+    AppLocalizations l10n,
+    UploadQueueState state,
+  ) {
     final isActive = state.isProcessing;
     final progressPercent = (state.overallProgress * 100).toStringAsFixed(1);
 
@@ -529,7 +595,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                       Text(
                         state.displayRemainingTime,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -538,7 +606,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
                       Text(
                         l10n.remaining,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(180),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer.withAlpha(180),
                           fontSize: 12,
                         ),
                       ),
@@ -554,8 +624,12 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
             LinearProgressIndicator(
               value: state.overallProgress,
               backgroundColor: isActive
-                  ? Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(50)
-                  : Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(50),
+                  ? Theme.of(
+                      context,
+                    ).colorScheme.onPrimaryContainer.withAlpha(50)
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withAlpha(50),
             ),
           ],
         ],
@@ -576,7 +650,12 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     }
   }
 
-  Widget _buildTimeInfo(BuildContext context, String label, String value, bool isActive) {
+  Widget _buildTimeInfo(
+    BuildContext context,
+    String label,
+    String value,
+    bool isActive,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -584,7 +663,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(150),
+            color: Theme.of(
+              context,
+            ).colorScheme.onPrimaryContainer.withAlpha(150),
           ),
         ),
         Text(
@@ -619,22 +700,21 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
           const SizedBox(height: 8),
           Text(
             l10n.filesWillAppearHere,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.outline,
-            ),
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUploadItem(BuildContext context, AppLocalizations l10n, UploadItem item) {
+  Widget _buildUploadItem(
+    BuildContext context,
+    AppLocalizations l10n,
+    UploadItem item,
+  ) {
     return ListTile(
       leading: _buildStatusIcon(context, item),
-      title: Text(
-        item.fileName,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: Text(item.fileName, overflow: TextOverflow.ellipsis),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -651,7 +731,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
             const SizedBox(height: 4),
             LinearProgressIndicator(
               value: item.progress,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
             ),
           ],
           if (item.error != null)
@@ -695,15 +777,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
           ),
         );
       case UploadStatus.completed:
-        return const Icon(
-          Icons.check_circle,
-          color: Colors.green,
-        );
+        return const Icon(Icons.check_circle, color: Colors.green);
       case UploadStatus.failed:
-        return const Icon(
-          Icons.error,
-          color: Colors.red,
-        );
+        return const Icon(Icons.error, color: Colors.red);
     }
   }
 
@@ -720,13 +796,14 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     }
   }
 
-  Widget _buildDownloadItem(BuildContext context, AppLocalizations l10n, DownloadItem item) {
+  Widget _buildDownloadItem(
+    BuildContext context,
+    AppLocalizations l10n,
+    DownloadItem item,
+  ) {
     return ListTile(
       leading: _buildDownloadItemStatusIcon(context, item),
-      title: Text(
-        item.fileName,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: Text(item.fileName, overflow: TextOverflow.ellipsis),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -743,7 +820,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
             const SizedBox(height: 4),
             LinearProgressIndicator(
               value: item.progress,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
               color: Theme.of(context).colorScheme.secondary,
             ),
           ],
@@ -763,7 +842,11 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     );
   }
 
-  Widget? _buildDownloadItemTrailing(BuildContext context, AppLocalizations l10n, DownloadItem item) {
+  Widget? _buildDownloadItemTrailing(
+    BuildContext context,
+    AppLocalizations l10n,
+    DownloadItem item,
+  ) {
     if (item.status == DownloadStatus.downloading) {
       return Text(
         '${(item.progress * 100).toStringAsFixed(0)}%',
@@ -801,15 +884,9 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
           ),
         );
       case DownloadStatus.completed:
-        return const Icon(
-          Icons.check_circle,
-          color: Colors.green,
-        );
+        return const Icon(Icons.check_circle, color: Colors.green);
       case DownloadStatus.failed:
-        return const Icon(
-          Icons.error,
-          color: Colors.red,
-        );
+        return const Icon(Icons.error, color: Colors.red);
     }
   }
 
@@ -826,7 +903,10 @@ class _TransferQueueScreenState extends ConsumerState<TransferQueueScreen> {
     }
   }
 
-  void _clearCompleted(UploadQueueState uploadState, DownloadState downloadState) {
+  void _clearCompleted(
+    UploadQueueState uploadState,
+    DownloadState downloadState,
+  ) {
     if (!uploadState.isProcessing) {
       ref.read(uploadQueueProvider.notifier).clearCompleted();
     }

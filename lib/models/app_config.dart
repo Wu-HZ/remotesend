@@ -67,7 +67,9 @@ class AppConfig {
   // Version 11 adds the configurable startup page.
   // Version 12 adds the transfer-history auto-cleanup preference.
   // Version 13 adds the optional Gotify real-time text endpoint.
-  static const int currentVersion = 13;
+  // Version 14 adds the desktop loopback upload API opt-in and token.
+  // Version 15 remembers the Android app selected to open download folders.
+  static const int currentVersion = 15;
 
   static const String startPageText = 'text';
   static const String startPageFiles = 'files';
@@ -81,6 +83,10 @@ class AppConfig {
   final String? activeFilesServerId; // Server for File Depot
   final bool portableMode;
   final String downloadLocation;
+
+  /// Empty uses the Android system resolver; otherwise a flattened Activity component.
+  final String androidFolderOpenerComponent;
+  final String androidFolderOpenerLabel;
   final String localName; // Local device name for chat display
   final String themeMode; // 'system', 'light', 'dark'
   final int primaryColor; // Color value as int (e.g., 0xFF2196F3)
@@ -92,6 +98,10 @@ class AppConfig {
   final GotifyConfig gotify;
   final bool autoClearTransferHistory;
 
+  /// Desktop-only loopback upload API (disabled unless explicitly enabled).
+  final bool localUploadApiEnabled;
+  final String localUploadApiToken;
+
   AppConfig({
     this.version = currentVersion,
     this.servers = const [],
@@ -99,6 +109,8 @@ class AppConfig {
     this.activeFilesServerId,
     this.portableMode = false,
     this.downloadLocation = '',
+    this.androidFolderOpenerComponent = '',
+    this.androidFolderOpenerLabel = '',
     String? localName,
     this.themeMode = 'system',
     this.primaryColor = defaultPrimaryColor,
@@ -108,6 +120,8 @@ class AppConfig {
     this.startPage = startPageText,
     this.chatOwnMessageLeft = false,
     this.autoClearTransferHistory = true,
+    this.localUploadApiEnabled = false,
+    this.localUploadApiToken = '',
     GotifyConfig? gotify,
   }) : localName = localName ?? _generateRandomName(),
        gotify = gotify ?? GotifyConfig();
@@ -195,6 +209,8 @@ class AppConfig {
     String? activeFilesServerId,
     bool? portableMode,
     String? downloadLocation,
+    String? androidFolderOpenerComponent,
+    String? androidFolderOpenerLabel,
     String? localName,
     String? themeMode,
     int? primaryColor,
@@ -204,6 +220,8 @@ class AppConfig {
     String? startPage,
     bool? chatOwnMessageLeft,
     bool? autoClearTransferHistory,
+    bool? localUploadApiEnabled,
+    String? localUploadApiToken,
     GotifyConfig? gotify,
   }) {
     return AppConfig(
@@ -213,6 +231,10 @@ class AppConfig {
       activeFilesServerId: activeFilesServerId ?? this.activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
       downloadLocation: downloadLocation ?? this.downloadLocation,
+      androidFolderOpenerComponent:
+          androidFolderOpenerComponent ?? this.androidFolderOpenerComponent,
+      androidFolderOpenerLabel:
+          androidFolderOpenerLabel ?? this.androidFolderOpenerLabel,
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
       primaryColor: primaryColor ?? this.primaryColor,
@@ -224,6 +246,9 @@ class AppConfig {
       gotify: gotify ?? this.gotify,
       autoClearTransferHistory:
           autoClearTransferHistory ?? this.autoClearTransferHistory,
+      localUploadApiEnabled:
+          localUploadApiEnabled ?? this.localUploadApiEnabled,
+      localUploadApiToken: localUploadApiToken ?? this.localUploadApiToken,
     );
   }
 
@@ -233,6 +258,8 @@ class AppConfig {
     List<ServerConfig>? servers,
     bool? portableMode,
     String? downloadLocation,
+    String? androidFolderOpenerComponent,
+    String? androidFolderOpenerLabel,
     String? localName,
     String? themeMode,
     int? primaryColor,
@@ -242,6 +269,8 @@ class AppConfig {
     String? startPage,
     bool? chatOwnMessageLeft,
     bool? autoClearTransferHistory,
+    bool? localUploadApiEnabled,
+    String? localUploadApiToken,
     GotifyConfig? gotify,
     bool clearText = false,
     bool clearFiles = false,
@@ -253,6 +282,10 @@ class AppConfig {
       activeFilesServerId: clearFiles ? null : activeFilesServerId,
       portableMode: portableMode ?? this.portableMode,
       downloadLocation: downloadLocation ?? this.downloadLocation,
+      androidFolderOpenerComponent:
+          androidFolderOpenerComponent ?? this.androidFolderOpenerComponent,
+      androidFolderOpenerLabel:
+          androidFolderOpenerLabel ?? this.androidFolderOpenerLabel,
       localName: localName ?? this.localName,
       themeMode: themeMode ?? this.themeMode,
       primaryColor: primaryColor ?? this.primaryColor,
@@ -264,6 +297,9 @@ class AppConfig {
       gotify: gotify ?? this.gotify,
       autoClearTransferHistory:
           autoClearTransferHistory ?? this.autoClearTransferHistory,
+      localUploadApiEnabled:
+          localUploadApiEnabled ?? this.localUploadApiEnabled,
+      localUploadApiToken: localUploadApiToken ?? this.localUploadApiToken,
     );
   }
 
@@ -276,6 +312,8 @@ class AppConfig {
       'activeFilesServerId': activeFilesServerId,
       'portableMode': portableMode,
       'downloadLocation': downloadLocation,
+      'androidFolderOpenerComponent': androidFolderOpenerComponent,
+      'androidFolderOpenerLabel': androidFolderOpenerLabel,
       'localName': localName,
       'themeMode': themeMode,
       'primaryColor': primaryColor,
@@ -286,6 +324,8 @@ class AppConfig {
       'chatOwnMessageLeft': chatOwnMessageLeft,
       'gotify': gotify.toJson(),
       'autoClearTransferHistory': autoClearTransferHistory,
+      'localUploadApiEnabled': localUploadApiEnabled,
+      'localUploadApiToken': localUploadApiToken,
     };
   }
 
@@ -318,6 +358,10 @@ class AppConfig {
       activeFilesServerId: json['activeFilesServerId'] as String?,
       portableMode: json['portableMode'] as bool? ?? false,
       downloadLocation: json['downloadLocation'] as String? ?? '',
+      androidFolderOpenerComponent:
+          json['androidFolderOpenerComponent'] as String? ?? '',
+      androidFolderOpenerLabel:
+          json['androidFolderOpenerLabel'] as String? ?? '',
       localName: json['localName'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
       primaryColor: json['primaryColor'] as int? ?? defaultPrimaryColor,
@@ -330,6 +374,8 @@ class AppConfig {
       chatOwnMessageLeft: json['chatOwnMessageLeft'] as bool? ?? false,
       autoClearTransferHistory:
           json['autoClearTransferHistory'] as bool? ?? true,
+      localUploadApiEnabled: json['localUploadApiEnabled'] as bool? ?? false,
+      localUploadApiToken: json['localUploadApiToken'] as String? ?? '',
       gotify: GotifyConfig.fromJson(
         json['gotify'] is Map
             ? Map<String, dynamic>.from(json['gotify'] as Map)
@@ -431,6 +477,8 @@ class AppConfig {
         other.activeFilesServerId != activeFilesServerId ||
         other.portableMode != portableMode ||
         other.downloadLocation != downloadLocation ||
+        other.androidFolderOpenerComponent != androidFolderOpenerComponent ||
+        other.androidFolderOpenerLabel != androidFolderOpenerLabel ||
         other.localName != localName ||
         other.themeMode != themeMode ||
         other.primaryColor != primaryColor ||
@@ -440,6 +488,8 @@ class AppConfig {
         other.startPage != startPage ||
         other.chatOwnMessageLeft != chatOwnMessageLeft ||
         other.autoClearTransferHistory != autoClearTransferHistory ||
+        other.localUploadApiEnabled != localUploadApiEnabled ||
+        other.localUploadApiToken != localUploadApiToken ||
         other.gotify != gotify ||
         other.servers.length != servers.length) {
       return false;
@@ -459,6 +509,8 @@ class AppConfig {
       activeFilesServerId,
       portableMode,
       downloadLocation,
+      androidFolderOpenerComponent,
+      androidFolderOpenerLabel,
       localName,
       themeMode,
       primaryColor,
@@ -469,6 +521,8 @@ class AppConfig {
       chatOwnMessageLeft,
       gotify,
       autoClearTransferHistory,
+      localUploadApiEnabled,
+      localUploadApiToken,
     );
   }
 

@@ -86,6 +86,11 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:mimeType="resource/folder"/>
         </intent>
+        <!-- Discover apps (including MT Manager) that can handle our folder content URI. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="content" android:mimeType="*/*"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:mimeType="*/*"/>

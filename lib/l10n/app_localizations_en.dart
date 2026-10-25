@@ -70,6 +70,50 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get localUploadApiTitle => 'Local upload API';
+
+  @override
+  String get localUploadApiToggle => 'Allow local scripts and AI to upload';
+
+  @override
+  String get localUploadApiHint =>
+      'Desktop only while RemoteSend is running. Listens on 127.0.0.1. Anyone with the separate token can read and upload local files; only give it to trusted build scripts.';
+
+  @override
+  String localUploadApiRunning(int port) {
+    return 'Running: http://127.0.0.1:$port';
+  }
+
+  @override
+  String get localUploadApiStopped => 'Stopped';
+
+  @override
+  String get localUploadApiBindFailed =>
+      'Failed to start. Check whether local port 38764 is in use, then toggle this setting off and on.';
+
+  @override
+  String get localUploadApiCopyToken => 'Copy API token';
+
+  @override
+  String get localUploadApiRotateToken => 'Rotate token';
+
+  @override
+  String get localUploadApiRotateConfirm =>
+      'The old token will stop working immediately; existing scripts must be updated. Continue?';
+
+  @override
+  String get localUploadApiCopied =>
+      'Token copied. Clear the clipboard afterwards; do not commit it to a repository.';
+
+  @override
+  String get localUploadApiTokenHint =>
+      'The token is saved in RemoteSend\'s settings. Keep it private after copying it to the clipboard.';
+
+  @override
+  String get localUploadApiSaveFailed =>
+      'Could not save the local upload API setting.';
+
+  @override
   String get autoClearTransferHistory => 'Auto-clear successful transfers';
 
   @override
@@ -830,6 +874,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadLocation => 'Download location';
+
+  @override
+  String get androidFolderOpener => 'App for opening download folders';
+
+  @override
+  String get androidFolderOpenerSystem => 'System chooser (default)';
+
+  @override
+  String get androidFolderOpenerHint =>
+      'Open directly in this app instead of asking Android every time.';
+
+  @override
+  String get androidFolderOpenerEmpty =>
+      'No app found for this folder. Check that MT Manager is installed.';
+
+  @override
+  String get androidFolderOpenerUnavailable =>
+      'The selected app cannot open this folder. Choose another app in Settings → Downloads.';
 
   @override
   String get systemDownloadsOption => 'System Downloads (default)';

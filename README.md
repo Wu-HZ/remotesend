@@ -81,7 +81,7 @@ Gotify 服务器不能作为文件目标。它只有当前运行期间的内存�
 - 复用 Gotify 实时文本通道和现有令牌，不使用独立的同步密钥。剪贴板正文会以明文 HTTPS 请求经过 Gotify，服务端可读取；发送成功后软件会请求删除该 Gotify 消息（尽力而为，删除失败时仍可能按服务器策略保留）。
 - Android 点击开启时请求 Root 并启动独立 Flutter 引擎和常驻通知服务；通知可停止同步。点击开启前需允许通知。重新打开 RemoteSend 不会静默再次提权／启用；如果 Android 服务仍运行会继续上报状态。系统杀进程后的实际重启能力取决于 Root 管理器、ROM 和省电策略。
 - 断线不会补发或重放；重连及锁屏状态变化会重建会话，旧会话／过期消息会丢弃。不会读取 Gotify 历史；握手控制消息和已发送的剪贴板消息都会请求从 Gotify 删除，但失败时服务器可能仍保留。
-- 全局同步与文本页“临时自动发送”互斥；停止全局同步后，临时功能不会自动恢复。使用系统剪贴板会让获准设备能读取新复制内容；应用会按上述规则在本机保存共享记录，但不上传这份历史。剪贴板本身、接收设备和相关系统组件仍属于信任边界。系统未标记敏感的密码内容无法可靠识别。
+- Windows 收到并成功写入剪贴板后，会在当前屏幕右下角显示带 RemoteSend 图标、接收提示和正文预览的浮层，不抢占当前应用焦点；长文本只截取浮层预览，实际剪贴板和本机记录保留完整内容。系统托盘通知仍是辅助提醒；提示文案遵循应用语言设置。全局同步与文本页“临时自动发送”互斥；停止全局同步后，临时功能不会自动恢复。使用系统剪贴板会让获准设备能读取新复制内容；应用会按上述规则在本机保存共享记录，但不上传这份历史。剪贴板本身、接收设备和相关系统组件仍属于信任边界。系统未标记敏感的密码内容无法可靠识别。
 
 这是显式选择的 Gotify 同步通道，不等同于在设备间自动同步所有聊天消息。详见 [剪贴板同步协议与平台说明](docs/design/clipboard-sync-root-bridge.md)。
 
@@ -105,6 +105,8 @@ Root 桥接已在设备上验证；Android 后台常驻仍受 Root 管理器和�
 6. 接收设备还可按本机策略自动下载（开关、网络类型、大小上限和目录）
 
 Android 也可在文件管理器或其他应用的“打开方式／使用其他应用打开”中选择 RemoteSend。支持 `content://` 和 `file://` 文件，不接管网页链接；文件会先复制到应用私有暂存区并加入待发送列表，无论普通分享是否设为立即发送，都需要你确认发送。支持未启动和已运行时接收；需要来源应用提供可读取的文件及临时访问授权，原文件不会被修改或删除。部分应用自行限制可选应用时，仍可能不会显示 RemoteSend。
+
+桌面版还可在 **设置 → 本机上传 API** 中手动开启仅供本机脚本/AI 使用的上传入口。编译其他项目后运行 `python remotesend_upload.py <产物路径>` 即可复用 RemoteSend 的文件服务器、传输队列及 Gotify 通知；软件必须保持运行。Pi 专用的“通过 RemoteSend 上传”插件在独立仓库 [remotesend-pi-upload](https://github.com/Wu-HZ/remotesend-pi-upload) 发布，供其它设备下载安装。详见 [本机上传 API 使用说明](docs/local-upload-api.md)。
 
 传输队列页顶部可开启或关闭“自动清理成功记录”，默认开启，选择会保存并在重启后恢复。关闭时停止自动清理，重新开启后现有成功记录重新计时 5 分钟。
 
@@ -156,7 +158,7 @@ flutter build apk --release --target-platform android-arm64
 
 ```json
 {
-  "version": 13,
+  "version": 15,
   "servers": [
     {
       "id": "uuid",
@@ -173,6 +175,8 @@ flutter build apk --release --target-platform android-arm64
   "activeFilesServerId": "uuid",
   "portableMode": true,
   "downloadLocation": "",
+  "androidFolderOpenerComponent": "",
+  "androidFolderOpenerLabel": "",
   "localName": "我的电脑",
   "themeMode": "system",
   "primaryColor": 4280391411,
@@ -182,6 +186,8 @@ flutter build apk --release --target-platform android-arm64
   "startPage": "text",
   "chatOwnMessageLeft": false,
   "autoClearTransferHistory": true,
+  "localUploadApiEnabled": false,
+  "localUploadApiToken": "",
   "gotify": {
     "enabled": true,
     "registerAsTextServer": false,
@@ -202,6 +208,8 @@ flutter build apk --release --target-platform android-arm64
 ```
 
 设置中的「下载位置」可选系统下载文件夹（默认）、程序旁的 Downloads（适合 U 盘）或自定义文件夹。选程序旁下载时，请同时启用便携模式保存配置；`downloadLocation` 会保存为 `portable://Downloads`，每次运行时按当前程序位置解析。实际文件存放在 `程序目录/Downloads/服务器子目录/`；切换位置不会移动已有文件。
+
+Android 可在「设置 → 下载 → 打开下载文件夹的应用」查看各应用图标、名称与包名并选择 MT 管理器等已安装应用，以后在文件页或传输队列点「打开下载文件夹」时直接打开所选应用，不再依赖系统“始终”的记录。默认仍由系统选择；如果选定的应用卸载或不支持该目录，会提示返回设置重新选择。
 
 ## 技术栈
 

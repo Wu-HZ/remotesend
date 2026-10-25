@@ -12,7 +12,7 @@ class _Clipboard implements SyncClipboard {
   String text = 'existing clipboard';
   bool isLocked = false, internal = false, sensitive = false;
   final writes = <String>[];
-  final notifications = <String>[];
+  final notifications = <(String, String)>[];
   @override
   bool get eventDriven => false;
   @override
@@ -20,8 +20,8 @@ class _Clipboard implements SyncClipboard {
   @override
   Future<void> start() async {}
   @override
-  Future<void> notifyReceived(String deviceName) async =>
-      notifications.add(deviceName);
+  Future<void> notifyReceived(String deviceName, String text) async =>
+      notifications.add((deviceName, text));
   @override
   Future<void> stop() async {}
   @override
@@ -224,7 +224,7 @@ void main() {
         stage = 'first-to-second copy';
         await until(() => b.text == '  你好 ✓\n  ');
         expect(b.text, '  你好 ✓\n  ');
-        expect(b.notifications, ['a']);
+        expect(b.notifications, [('a', '  你好 ✓\n  ')]);
         final first = broker.messages.lastWhere(
           (m) => m.message == 'Clipboard sync text',
         );
@@ -242,7 +242,7 @@ void main() {
         stage = 'second-to-first copy';
         await until(() => a.text == 'reply');
         expect(a.text, 'reply');
-        expect(a.notifications, ['b']);
+        expect(a.notifications, [('b', 'reply')]);
         final clipIds = broker.messages
             .where((m) => m.message == 'Clipboard sync text')
             .map((m) => m.id);

@@ -10,6 +10,7 @@ class MainActivity : FlutterActivity() {
     private var openedFiles: OpenedFileHandler? = null
     private var rootClipboard: RootClipboardHandler? = null
     private var clipboardSync: ClipboardSyncChannel? = null
+    private var folderOpener: FolderOpenerHandler? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -17,6 +18,7 @@ class MainActivity : FlutterActivity() {
         openedFiles?.receive(intent)
         rootClipboard = RootClipboardHandler(this, flutterEngine.dartExecutor.binaryMessenger)
         clipboardSync = ClipboardSyncChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        folderOpener = FolderOpenerHandler(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -26,6 +28,8 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        folderOpener?.dispose()
+        folderOpener = null
         clipboardSync?.dispose()
         clipboardSync = null
         rootClipboard?.dispose()

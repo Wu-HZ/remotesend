@@ -23,7 +23,8 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   int _nextItemId = 0;
   late final TransferHistoryRetention _historyRetention;
 
-  UploadQueueNotifier(this._service, this._ref) : super(const UploadQueueState()) {
+  UploadQueueNotifier(this._service, this._ref)
+    : super(const UploadQueueState()) {
     _historyRetention = TransferHistoryRetention(
       canPrune: () => !state.isProcessing,
       onExpired: _removeCompleted,
@@ -42,34 +43,66 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   }
 
   /// Add files to the upload queue.
-  Future<void> addFiles(List<String> localPaths, {String? remoteBasePath}) async {
+  Future<void> addFiles(
+    List<String> localPaths, {
+    String? remoteBasePath,
+  }) async {
+    await _enqueueFiles(localPaths, remoteBasePath: remoteBasePath);
+  }
+
+  /// Automated uploads keep terminal failures in the queue for status queries.
+  Future<String?> addAutomatedFile(
+    String path, {
+    required String remoteName,
+  }) async {
+    final ids = await _enqueueFiles(
+      [path],
+      remoteName: remoteName,
+      automated: true,
+    );
+    return ids.firstOrNull;
+  }
+
+  Future<List<String>> _enqueueFiles(
+    List<String> localPaths, {
+    String? remoteBasePath,
+    String? remoteName,
+    bool automated = false,
+  }) async {
     final newItems = <UploadItem>[];
-    int totalSize = state.totalBytes;
+    final serverId = automated
+        ? _ref.read(activeFilesServerProvider)?.id
+        : null;
+    int addedSize = 0;
 
     for (final localPath in localPaths) {
       final file = File(localPath);
       if (await file.exists()) {
         final stat = await file.stat();
-        final fileName = p.basename(localPath);
+        final fileName = remoteName ?? p.basename(localPath);
         final remotePath = remoteBasePath != null
             ? '$remoteBasePath/$fileName'
             : '/RemoteSend/Files/$fileName';
 
-        newItems.add(UploadItem(
-          id: 'upload_${_nextItemId++}',
-          localPath: localPath,
-          remotePath: remotePath,
-          fileName: fileName,
-          fileSize: stat.size,
-        ));
-        totalSize += stat.size;
+        newItems.add(
+          UploadItem(
+            id: 'upload_${_nextItemId++}',
+            localPath: localPath,
+            remotePath: remotePath,
+            fileName: fileName,
+            fileSize: stat.size,
+            automated: automated,
+            serverId: serverId,
+          ),
+        );
+        addedSize += stat.size;
       }
     }
 
     if (newItems.isNotEmpty) {
       state = state.copyWith(
         items: [...state.items, ...newItems],
-        totalBytes: totalSize,
+        totalBytes: state.totalBytes + addedSize,
       );
 
       // Start processing if not already running
@@ -77,6 +110,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
         _startProcessing();
       }
     }
+    return newItems.map((item) => item.id).toList();
   }
 
   /// Add a folder to the upload queue (flattens all files).
@@ -96,7 +130,9 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
     await for (final entity in folder.list(recursive: true)) {
       if (entity is File) {
         final stat = await entity.stat();
-        final relativePath = p.relative(entity.path, from: localFolderPath).replaceAll('\\', '/');
+        final relativePath = p
+            .relative(entity.path, from: localFolderPath)
+            .replaceAll('\\', '/');
         final fileName = p.basename(entity.path);
         final remotePath = '$remoteBasePath/$relativePath';
 
@@ -106,13 +142,15 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
           await _service.createRemoteDirectory('$remoteBasePath/$parentDir');
         }
 
-        newItems.add(UploadItem(
-          id: 'upload_${_nextItemId++}',
-          localPath: entity.path,
-          remotePath: remotePath,
-          fileName: fileName,
-          fileSize: stat.size,
-        ));
+        newItems.add(
+          UploadItem(
+            id: 'upload_${_nextItemId++}',
+            localPath: entity.path,
+            remotePath: remotePath,
+            fileName: fileName,
+            fileSize: stat.size,
+          ),
+        );
         totalSize += stat.size;
       }
     }
@@ -137,10 +175,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
     _isRunning = true;
     _lastProgressTime = DateTime.now();
     _lastUploadedBytes = state.uploadedBytes;
-    state = state.copyWith(
-      isProcessing: true,
-      startTime: DateTime.now(),
-    );
+    state = state.copyWith(isProcessing: true, startTime: DateTime.now());
     _processNext();
   }
 
@@ -149,14 +184,13 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
     if (!mounted || !_isRunning) return;
 
     // Find the next pending item
-    final pendingIndex = state.items.indexWhere((i) => i.status == UploadStatus.pending);
+    final pendingIndex = state.items.indexWhere(
+      (i) => i.status == UploadStatus.pending,
+    );
     if (pendingIndex == -1) {
       // No more items to process
       _isRunning = false;
-      state = state.copyWith(
-        isProcessing: false,
-        currentSpeed: 0,
-      );
+      state = state.copyWith(isProcessing: false, currentSpeed: 0);
       // Refresh file list when done
       _ref.read(fileListProvider.notifier).refresh();
       return;
@@ -164,46 +198,65 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 
     // Update item status to uploading
     final items = List<UploadItem>.from(state.items);
-    items[pendingIndex] = items[pendingIndex].copyWith(status: UploadStatus.uploading);
+    items[pendingIndex] = items[pendingIndex].copyWith(
+      status: UploadStatus.uploading,
+    );
     state = state.copyWith(items: items);
 
     final item = items[pendingIndex];
 
     _cancelToken = CancelToken();
 
-    final result = await _service.uploadFileToPath(
-      item.localPath,
-      item.remotePath,
-      cancelToken: _cancelToken,
-      onProgress: (progress) {
-        if (!mounted) return;
+    final serverBeforeUpload = _ref.read(activeFilesServerProvider);
+    final serverChanged =
+        item.automated && serverBeforeUpload?.id != item.serverId;
+    final result = serverChanged
+        ? const WebDavResult<bool>.failure(
+            WebDavConfigException(
+              message: 'Files server changed before upload',
+              userMessage: 'Files server changed before upload',
+            ),
+          )
+        : await _service.uploadFileToPath(
+            item.localPath,
+            item.remotePath,
+            cancelToken: _cancelToken,
+            onProgress: (progress) {
+              if (!mounted) return;
 
-        // Calculate speed
-        final now = DateTime.now();
-        final itemUploadedBytes = (item.fileSize * progress).round();
-        final totalUploaded = _calculateTotalUploaded(pendingIndex, itemUploadedBytes);
+              // Calculate speed
+              final now = DateTime.now();
+              final itemUploadedBytes = (item.fileSize * progress).round();
+              final totalUploaded = _calculateTotalUploaded(
+                pendingIndex,
+                itemUploadedBytes,
+              );
 
-        if (_lastProgressTime != null) {
-          final elapsed = now.difference(_lastProgressTime!).inMilliseconds;
-          if (elapsed > 500) {
-            // Update speed every 500ms
-            final bytesUploaded = totalUploaded - _lastUploadedBytes;
-            final speed = bytesUploaded / (elapsed / 1000);
-            state = state.copyWith(currentSpeed: speed);
-            _lastProgressTime = now;
-            _lastUploadedBytes = totalUploaded;
-          }
-        }
+              if (_lastProgressTime != null) {
+                final elapsed = now
+                    .difference(_lastProgressTime!)
+                    .inMilliseconds;
+                if (elapsed > 500) {
+                  // Update speed every 500ms
+                  final bytesUploaded = totalUploaded - _lastUploadedBytes;
+                  final speed = bytesUploaded / (elapsed / 1000);
+                  state = state.copyWith(currentSpeed: speed);
+                  _lastProgressTime = now;
+                  _lastUploadedBytes = totalUploaded;
+                }
+              }
 
-        // Update item progress
-        final updatedItems = List<UploadItem>.from(state.items);
-        updatedItems[pendingIndex] = updatedItems[pendingIndex].copyWith(progress: progress);
-        state = state.copyWith(
-          items: updatedItems,
-          uploadedBytes: totalUploaded,
-        );
-      },
-    );
+              // Update item progress
+              final updatedItems = List<UploadItem>.from(state.items);
+              updatedItems[pendingIndex] = updatedItems[pendingIndex].copyWith(
+                progress: progress,
+              );
+              state = state.copyWith(
+                items: updatedItems,
+                uploadedBytes: totalUploaded,
+              );
+            },
+          );
 
     _cancelToken = null;
 
@@ -211,32 +264,38 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 
     // Update item status based on result
     final updatedItems = List<UploadItem>.from(state.items);
-    if (result.isSuccess) {
+    final server = _ref.read(activeFilesServerProvider);
+    final changedDuringUpload = item.automated && server?.id != item.serverId;
+    if (result.isSuccess && !changedDuringUpload) {
       updatedItems[pendingIndex] = updatedItems[pendingIndex].copyWith(
         status: UploadStatus.completed,
         progress: 1.0,
       );
-      final server = _ref.read(activeFilesServerProvider);
       if (server != null) {
-        await _ref.read(gotifyProvider.notifier).publishFileReady(
-          server: server,
-          remotePath: item.remotePath,
-          fileName: item.fileName,
-          fileSize: item.fileSize,
-        );
+        await _ref
+            .read(gotifyProvider.notifier)
+            .publishFileReady(
+              server: server,
+              remotePath: item.remotePath,
+              fileName: item.fileName,
+              fileSize: item.fileSize,
+            );
+        if (!mounted || !_isRunning) return;
       }
     } else {
       updatedItems[pendingIndex] = updatedItems[pendingIndex].copyWith(
         status: UploadStatus.failed,
-        error: result.error?.userMessage,
+        error: changedDuringUpload
+            ? 'Files server changed during upload; remote result uncertain'
+            : result.error?.userMessage,
       );
 
       // If the error is connection/auth/timeout-related,
       // move remaining files to pending upload page as fallback.
-      if (_isConnectionError(result.error)) {
+      if (!item.automated && _isConnectionError(result.error)) {
         final pendingPaths = <String>[];
         for (final item in updatedItems) {
-          if (item.status == UploadStatus.pending) {
+          if (item.status == UploadStatus.pending && !item.automated) {
             pendingPaths.add(item.localPath);
           }
         }
@@ -251,9 +310,12 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 
         // Remove these items from the queue
         final remaining = updatedItems
-            .where((i) =>
-                i.status == UploadStatus.completed ||
-                (i.status == UploadStatus.failed && i.localPath != item.localPath))
+            .where(
+              (i) =>
+                  i.status == UploadStatus.completed ||
+                  (i.status == UploadStatus.failed && i.id != item.id) ||
+                  (i.status == UploadStatus.pending && i.automated),
+            )
             .toList();
 
         _isRunning = false;
@@ -262,9 +324,16 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
         } else {
           state = state.copyWith(
             items: remaining,
+            totalBytes: remaining.fold<int>(0, (sum, i) => sum + i.fileSize),
+            uploadedBytes: remaining
+                .where((i) => i.status == UploadStatus.completed)
+                .fold<int>(0, (sum, i) => sum + i.fileSize),
             isProcessing: false,
             currentSpeed: 0,
           );
+        }
+        if (remaining.any((i) => i.status == UploadStatus.pending)) {
+          _startProcessing();
         }
         return;
       }
@@ -281,7 +350,7 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
     for (int i = 0; i < state.items.length; i++) {
       if (i < currentIndex &&
           (state.items[i].status == UploadStatus.completed ||
-           state.items[i].status == UploadStatus.failed)) {
+              state.items[i].status == UploadStatus.failed)) {
         total += state.items[i].fileSize;
       } else if (i == currentIndex) {
         total += currentItemUploaded;
@@ -304,14 +373,18 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   void _removeCompleted(Set<String> ids) {
     if (!mounted || state.isProcessing || ids.isEmpty) return;
     final remaining = state.items
-        .where((item) =>
-            item.status != UploadStatus.completed || !ids.contains(item.id))
+        .where(
+          (item) =>
+              item.status != UploadStatus.completed || !ids.contains(item.id),
+        )
         .toList();
     if (remaining.length == state.items.length) return;
     final total = remaining.fold<int>(0, (sum, item) => sum + item.fileSize);
     final removedBytes = state.items
-        .where((item) =>
-            ids.contains(item.id) && item.status == UploadStatus.completed)
+        .where(
+          (item) =>
+              ids.contains(item.id) && item.status == UploadStatus.completed,
+        )
         .fold<int>(0, (sum, item) => sum + item.fileSize);
     state = remaining.isEmpty
         ? state.clear()
@@ -340,14 +413,19 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
   void retryFailed() {
     final updatedItems = state.items.map((item) {
       if (item.status == UploadStatus.failed) {
-        return item.copyWith(status: UploadStatus.pending, progress: 0, error: null);
+        return item.copyWith(
+          status: UploadStatus.pending,
+          progress: 0,
+          error: null,
+        );
       }
       return item;
     }).toList();
 
     state = state.copyWith(items: updatedItems);
 
-    if (!_isRunning && updatedItems.any((i) => i.status == UploadStatus.pending)) {
+    if (!_isRunning &&
+        updatedItems.any((i) => i.status == UploadStatus.pending)) {
       _startProcessing();
     }
   }
@@ -366,11 +444,13 @@ class UploadQueueNotifier extends StateNotifier<UploadQueueState> {
 /// Provider for upload queue state management (uses Files service).
 final uploadQueueProvider =
     StateNotifierProvider<UploadQueueNotifier, UploadQueueState>((ref) {
-  final service = ref.watch(webDavFilesServiceProvider);
-  final notifier = UploadQueueNotifier(service, ref);
-  notifier.setAutoCleanupEnabled(ref.read(autoClearTransferHistoryProvider));
-  ref.listen<bool>(autoClearTransferHistoryProvider, (_, enabled) {
-    notifier.setAutoCleanupEnabled(enabled);
-  });
-  return notifier;
-});
+      final service = ref.watch(webDavFilesServiceProvider);
+      final notifier = UploadQueueNotifier(service, ref);
+      notifier.setAutoCleanupEnabled(
+        ref.read(autoClearTransferHistoryProvider),
+      );
+      ref.listen<bool>(autoClearTransferHistoryProvider, (_, enabled) {
+        notifier.setAutoCleanupEnabled(enabled);
+      });
+      return notifier;
+    });

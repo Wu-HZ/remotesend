@@ -16,6 +16,7 @@ import 'providers/gotify_coordinator_provider.dart';
 import 'providers/text_send_provider.dart';
 import 'providers/webdav_provider.dart';
 import 'providers/upload_queue_provider.dart';
+import 'providers/local_upload_api_provider.dart';
 import 'providers/pending_upload_provider.dart';
 import 'providers/camera_capture_provider.dart';
 import 'providers/opened_file_provider.dart';
@@ -218,6 +219,7 @@ class _RemoteSendAppState extends ConsumerState<RemoteSendApp>
     // Keep Gotify event handling alive while the app is running.
     ref.watch(gotifyCoordinatorProvider);
     ref.watch(clipboardSyncProvider);
+    if (_isDesktop) ref.watch(localUploadApiProvider);
 
     // Watch theme settings
     final themeMode = ref.watch(themeModeProvider);

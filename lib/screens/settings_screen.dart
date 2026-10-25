@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,13 +17,16 @@ import '../models/server_endpoint.dart';
 import '../providers/text_endpoint_provider.dart';
 import '../providers/root_clipboard_provider.dart';
 import '../providers/config_provider.dart';
+import '../providers/local_upload_api_provider.dart';
 import '../providers/download_path_provider.dart';
 import '../providers/gotify_coordinator_provider.dart';
 import '../providers/gotify_provider.dart';
 import '../providers/webdav_provider.dart';
+import '../services/android_folder_opener_service.dart';
 import '../services/download_path_service.dart';
 import '../services/gotify_service.dart';
 import '../services/webdav_service.dart';
+import '../services/local_upload_api_server.dart';
 import 'changelog_page.dart';
 import 'root_clipboard_screen.dart';
 import 'clipboard_sync_screen.dart';
@@ -38,6 +44,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isSaving = false;
+  bool _apiSaving = false;
 
   late final Future<String> _systemDownloadsPath;
   late final Future<String>? _portableDownloadsPath;
@@ -94,6 +101,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 // Transfer Section
                 _buildTransferSection(l10n),
                 const SizedBox(height: 24),
+
+                if (_supportsPortableDownloads) ...[
+                  _buildLocalUploadApiSection(l10n),
+                  const SizedBox(height: 24),
+                ],
 
                 // Data Section
                 _buildDataSection(l10n),
@@ -1380,6 +1392,139 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(configProvider.notifier).updateConfig(newConfig);
   }
 
+  // ==================== Local Upload API (Desktop) ====================
+  Widget _buildLocalUploadApiSection(AppLocalizations l10n) {
+    final config = ref.watch(configProvider).valueOrNull;
+    final api = ref.watch(localUploadApiProvider);
+    return _SettingsSection(
+      title: l10n.localUploadApiTitle,
+      icon: Icons.code,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.localUploadApiToggle),
+          value: config?.localUploadApiEnabled ?? false,
+          onChanged: config == null || _apiSaving
+              ? null
+              : (enabled) => _setLocalUploadApiEnabled(enabled),
+        ),
+        Text(
+          l10n.localUploadApiHint,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          api.error != null
+              ? l10n.localUploadApiBindFailed
+              : api.running
+              ? l10n.localUploadApiRunning(
+                  api.port ?? LocalUploadApiServer.defaultPort,
+                )
+              : l10n.localUploadApiStopped,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        if (config?.localUploadApiToken.isNotEmpty ?? false) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(
+                    ClipboardData(text: config!.localUploadApiToken),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.localUploadApiCopied)),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.copy),
+                label: Text(l10n.localUploadApiCopyToken),
+              ),
+              TextButton.icon(
+                onPressed: _apiSaving ? null : _rotateLocalUploadApiToken,
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.localUploadApiRotateToken),
+              ),
+            ],
+          ),
+          Text(
+            l10n.localUploadApiTokenHint,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  static String _generateLocalUploadToken() {
+    final random = Random.secure();
+    return base64UrlEncode(
+      List<int>.generate(32, (_) => random.nextInt(256)),
+    ).replaceAll('=', '');
+  }
+
+  Future<void> _setLocalUploadApiEnabled(bool enabled) async {
+    final current = ref.read(configProvider).valueOrNull;
+    if (current == null) return;
+    setState(() => _apiSaving = true);
+    final updated = current.copyWith(
+      localUploadApiEnabled: enabled,
+      localUploadApiToken: enabled && current.localUploadApiToken.isEmpty
+          ? _generateLocalUploadToken()
+          : current.localUploadApiToken,
+    );
+    final saved = await ref.read(configProvider.notifier).updateConfig(updated);
+    if (!mounted) return;
+    setState(() => _apiSaving = false);
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.localUploadApiSaveFailed),
+        ),
+      );
+    }
+  }
+
+  Future<void> _rotateLocalUploadApiToken() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.localUploadApiRotateToken),
+        content: Text(l10n.localUploadApiRotateConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final current = ref.read(configProvider).valueOrNull;
+    if (current == null) return;
+    setState(() => _apiSaving = true);
+    final saved = await ref
+        .read(configProvider.notifier)
+        .updateConfig(
+          current.copyWith(localUploadApiToken: _generateLocalUploadToken()),
+        );
+    if (!mounted) return;
+    setState(() => _apiSaving = false);
+    if (!saved) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.localUploadApiSaveFailed)));
+    }
+  }
+
   // ==================== Data Section ====================
   Widget _buildDataSection(AppLocalizations l10n) {
     return _SettingsSection(
@@ -1526,8 +1671,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final gotify = ref.watch(gotifyConfigProvider);
     // The empty value means the system default. Never replace it with the
     // displayed absolute path, or moving the app would change the selection.
-    final location =
-        ref.watch(configProvider).valueOrNull?.downloadLocation ?? '';
+    final config = ref.watch(configProvider).valueOrNull;
+    final location = config?.downloadLocation ?? '';
     final mode = location.isEmpty
         ? _DownloadLocationMode.system
         : location == DownloadPathService.portableDownloadsLocation
@@ -1568,6 +1713,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
           onTap: () => _showDownloadLocationDialog(l10n, location),
         ),
+        if (ref.watch(androidFolderOpenerSupportedProvider))
+          _ButtonEntry(
+            key: const ValueKey('android-folder-opener-setting'),
+            label: l10n.androidFolderOpener,
+            buttonLabel: config?.androidFolderOpenerComponent.isNotEmpty == true
+                ? (config!.androidFolderOpenerLabel.isNotEmpty
+                      ? config.androidFolderOpenerLabel
+                      : config.androidFolderOpenerComponent.split('/').first)
+                : l10n.androidFolderOpenerSystem,
+            enabled: config != null && !_isSaving,
+            onTap: () => _showAndroidFolderOpenerDialog(l10n),
+          ),
       ],
     );
   }
@@ -1669,6 +1826,126 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showAndroidFolderOpenerDialog(AppLocalizations l10n) async {
+    final config = ref.read(configProvider).valueOrNull;
+    if (config == null) return;
+    try {
+      final directory = await ref
+          .read(downloadPathServiceProvider)
+          .rootPath(config.downloadLocation);
+      final apps = await ref
+          .read(androidFolderOpenerServiceProvider)
+          .available(directory);
+      if (!mounted) return;
+      final selected = await showDialog<AndroidFolderOpener>(
+        context: context,
+        builder: (dialogContext) => SimpleDialog(
+          title: Text(l10n.androidFolderOpener),
+          children: [
+            SimpleDialogOption(
+              key: const ValueKey('android-folder-opener-system'),
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                const AndroidFolderOpener(component: '', label: ''),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 48,
+                    child: Icon(Icons.settings_applications_outlined, size: 36),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(l10n.androidFolderOpenerSystem)),
+                  if (config.androidFolderOpenerComponent.isEmpty)
+                    const Icon(Icons.check),
+                ],
+              ),
+            ),
+            ...apps.map(
+              (app) => SimpleDialogOption(
+                key: ValueKey('android-folder-opener-${app.component}'),
+                onPressed: () => Navigator.pop(dialogContext, app),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 48,
+                      child: app.iconPng == null
+                          ? const Icon(Icons.apps, size: 36)
+                          : Image.memory(
+                              app.iconPng!,
+                              key: ValueKey(
+                                'android-folder-icon-${app.component}',
+                              ),
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) =>
+                                  const Icon(Icons.apps, size: 36),
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(app.label),
+                          Text(
+                            app.component.split('/').first,
+                            style: Theme.of(dialogContext).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (config.androidFolderOpenerComponent == app.component)
+                      const Icon(Icons.check),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Text(
+                apps.isEmpty
+                    ? l10n.androidFolderOpenerEmpty
+                    : l10n.androidFolderOpenerHint,
+                style: Theme.of(dialogContext).textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      );
+      if (selected == null || !mounted) return;
+      final current = ref.read(configProvider).valueOrNull;
+      if (current == null ||
+          (current.androidFolderOpenerComponent == selected.component &&
+              current.androidFolderOpenerLabel == selected.label)) {
+        return;
+      }
+      setState(() => _isSaving = true);
+      final saved = await ref
+          .read(configProvider.notifier)
+          .updateConfig(
+            current.copyWith(
+              androidFolderOpenerComponent: selected.component,
+              androidFolderOpenerLabel: selected.label,
+            ),
+          );
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      if (!saved) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToSave)));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.error(e.toString()))));
+    }
   }
 
   Future<void> _saveGotifyConfig(GotifyConfig gotify) async {
@@ -2639,6 +2916,7 @@ class _ButtonEntry extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ButtonEntry({
+    super.key,
     required this.label,
     required this.buttonLabel,
     this.enabled = true,

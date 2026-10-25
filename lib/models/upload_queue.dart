@@ -1,10 +1,5 @@
 /// Status of an upload item.
-enum UploadStatus {
-  pending,
-  uploading,
-  completed,
-  failed,
-}
+enum UploadStatus { pending, uploading, completed, failed }
 
 /// Represents a single file in the upload queue.
 class UploadItem {
@@ -17,6 +12,10 @@ class UploadItem {
   final double progress;
   final String? error;
 
+  /// Automated jobs stay in the queue on connection errors for API status queries.
+  final bool automated;
+  final String? serverId;
+
   const UploadItem({
     required this.id,
     required this.localPath,
@@ -26,11 +25,14 @@ class UploadItem {
     this.status = UploadStatus.pending,
     this.progress = 0.0,
     this.error,
+    this.automated = false,
+    this.serverId,
   });
 
   String get displaySize {
     if (fileSize < 1024) return '$fileSize B';
-    if (fileSize < 1024 * 1024) return '${(fileSize / 1024).toStringAsFixed(1)} KB';
+    if (fileSize < 1024 * 1024)
+      return '${(fileSize / 1024).toStringAsFixed(1)} KB';
     if (fileSize < 1024 * 1024 * 1024) {
       return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
@@ -46,6 +48,8 @@ class UploadItem {
     UploadStatus? status,
     double? progress,
     String? error,
+    bool? automated,
+    String? serverId,
   }) {
     return UploadItem(
       id: id ?? this.id,
@@ -56,6 +60,8 @@ class UploadItem {
       status: status ?? this.status,
       progress: progress ?? this.progress,
       error: error,
+      automated: automated ?? this.automated,
+      serverId: serverId ?? this.serverId,
     );
   }
 }
@@ -79,19 +85,22 @@ class UploadQueueState {
   });
 
   /// Get count of pending items.
-  int get pendingCount => items.where((i) => i.status == UploadStatus.pending).length;
+  int get pendingCount =>
+      items.where((i) => i.status == UploadStatus.pending).length;
 
   /// Get count of completed items.
-  int get completedCount => items.where((i) => i.status == UploadStatus.completed).length;
+  int get completedCount =>
+      items.where((i) => i.status == UploadStatus.completed).length;
 
   /// Get count of failed items.
-  int get failedCount => items.where((i) => i.status == UploadStatus.failed).length;
+  int get failedCount =>
+      items.where((i) => i.status == UploadStatus.failed).length;
 
   /// Get the currently uploading item.
   UploadItem? get currentItem => items.cast<UploadItem?>().firstWhere(
-        (i) => i?.status == UploadStatus.uploading,
-        orElse: () => null,
-      );
+    (i) => i?.status == UploadStatus.uploading,
+    orElse: () => null,
+  );
 
   /// Get overall progress (0.0 to 1.0).
   double get overallProgress {
@@ -102,7 +111,8 @@ class UploadQueueState {
   /// Get display string for total size.
   String get displayTotalSize {
     if (totalBytes < 1024) return '$totalBytes B';
-    if (totalBytes < 1024 * 1024) return '${(totalBytes / 1024).toStringAsFixed(1)} KB';
+    if (totalBytes < 1024 * 1024)
+      return '${(totalBytes / 1024).toStringAsFixed(1)} KB';
     if (totalBytes < 1024 * 1024 * 1024) {
       return '${(totalBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
@@ -112,7 +122,8 @@ class UploadQueueState {
   /// Get display string for uploaded size.
   String get displayUploadedSize {
     if (uploadedBytes < 1024) return '$uploadedBytes B';
-    if (uploadedBytes < 1024 * 1024) return '${(uploadedBytes / 1024).toStringAsFixed(1)} KB';
+    if (uploadedBytes < 1024 * 1024)
+      return '${(uploadedBytes / 1024).toStringAsFixed(1)} KB';
     if (uploadedBytes < 1024 * 1024 * 1024) {
       return '${(uploadedBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
@@ -122,7 +133,8 @@ class UploadQueueState {
   /// Get display string for speed.
   String get displaySpeed {
     if (currentSpeed < 1024) return '${currentSpeed.toStringAsFixed(0)} B/s';
-    if (currentSpeed < 1024 * 1024) return '${(currentSpeed / 1024).toStringAsFixed(1)} KB/s';
+    if (currentSpeed < 1024 * 1024)
+      return '${(currentSpeed / 1024).toStringAsFixed(1)} KB/s';
     if (currentSpeed < 1024 * 1024 * 1024) {
       return '${(currentSpeed / (1024 * 1024)).toStringAsFixed(1)} MB/s';
     }

@@ -15,7 +15,7 @@ abstract class SyncClipboard {
   Future<bool> locked();
   Future<RootClipboardSnapshot> read();
   Future<void> write(String text);
-  Future<void> notifyReceived(String deviceName) async {}
+  Future<void> notifyReceived(String deviceName, String text) async {}
   Future<void> stop();
 }
 
@@ -594,7 +594,7 @@ class ClipboardSyncEngine {
       ++_revision;
       await clipboard.write(text);
       if (!_current(g)) return;
-      await clipboard.notifyReceived(value.event.senderName);
+      await clipboard.notifyReceived(value.event.senderName, text);
       if (!_current(g)) return;
       _order = value.order;
       _received++;

@@ -15,6 +15,11 @@ class ClipboardSyncBridge {
   HWND window_;
   unsigned long last_write_ = 0;
   bool tray_icon_added_ = false;
-  void ShowClipboardNotification(const std::string& device_name);
+  HWND receipt_popup_ = nullptr;
+  std::wstring receipt_title_;
+  std::wstring receipt_preview_;
+  static LRESULT CALLBACK ReceiptWindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+  void ShowClipboardNotification(const std::string& device_name, const std::string& text, const std::string& locale);
+  void ShowReceiptPopup();
 };
 #endif

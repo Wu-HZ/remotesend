@@ -229,7 +229,9 @@ class ClipboardSyncController extends StateNotifier<ClipboardSyncUiState> {
         late final ClipboardSyncEngine engine;
         engine = ClipboardSyncEngine(
           config: enabled,
-          clipboard: PlatformSyncClipboard(),
+          clipboard: PlatformSyncClipboard(
+            locale: () => _app?.locale ?? 'system',
+          ),
           onStatus: (status) {
             if (mounted && identical(_engine, engine)) {
               state = state.copyWith(status: status);

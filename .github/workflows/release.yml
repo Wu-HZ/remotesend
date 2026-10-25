@@ -29,6 +29,7 @@ jobs:
       - run: flutter gen-l10n
       - run: python generate_icon.py
       - run: flutter build windows --release
+      - run: Copy-Item tools/remotesend_upload.py build/windows/x64/runner/Release/remotesend_upload.py
 
       - name: Create ZIP
         run: |

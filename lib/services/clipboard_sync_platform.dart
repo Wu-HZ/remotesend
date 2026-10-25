@@ -42,10 +42,13 @@ class PlatformSyncClipboard implements SyncClipboard {
     RootClipboardService? root,
     ClipboardSyncPlatform platform = const ClipboardSyncPlatform(),
     bool? android,
+    String Function()? locale,
   }) : _android = android ?? Platform.isAndroid,
+       _locale = locale ?? (() => 'system'),
        _root = root ?? RootClipboardService(),
        _platform = platform;
   final bool _android;
+  final String Function() _locale;
   int? _lockEpoch;
   final RootClipboardService _root;
   final ClipboardSyncPlatform _platform;
@@ -103,12 +106,12 @@ class PlatformSyncClipboard implements SyncClipboard {
   }
 
   @override
-  Future<void> notifyReceived(String deviceName) async {
+  Future<void> notifyReceived(String deviceName, String text) async {
     if (_android) return;
     try {
       await ClipboardSyncPlatform.methods.invokeMethod<void>(
         'notifyClipboardReceived',
-        {'deviceName': deviceName},
+        {'deviceName': deviceName, 'text': text, 'locale': _locale()},
       );
     } catch (_) {
       // A missing notification channel must not block clipboard delivery.

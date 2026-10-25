@@ -1,4 +1,5 @@
 #include "clipboard_sync_bridge.h"
+#include "resource.h"
 #include <windows.h>
 #include <wincrypt.h>
 #include <shlobj.h>
@@ -135,15 +136,22 @@ ClipboardSyncBridge::ClipboardSyncBridge(flutter::BinaryMessenger* messenger, HW
       } else if (method == "writeClipboard") {
         WriteClipboard(window_, text()); last_write_ = GetClipboardSequenceNumber(); result->Success();
       } else if (method == "notifyClipboardReceived") {
-        std::wstring device = L"another device";
-        if (args) {
-          const auto it = args->find(V("deviceName"));
-          if (it != args->end() && std::holds_alternative<std::string>(it->second)) {
-            const auto& name = std::get<std::string>(it->second);
-            if (!name.empty() && name.size() <= 128) device = Wide(name);
-          }
+        if (!args) throw std::runtime_error("argument");
+        const auto body = args->find(V("text"));
+        if (body == args->end() || !std::holds_alternative<std::string>(body->second)) throw std::runtime_error("argument");
+        const auto& value = std::get<std::string>(body->second);
+        if (value.empty() || value.size() > 32768 || value.find('\0') != std::string::npos) throw std::runtime_error("text");
+        std::string name, locale = "system";
+        const auto device = args->find(V("deviceName"));
+        if (device != args->end() && std::holds_alternative<std::string>(device->second)) {
+          name = std::get<std::string>(device->second);
+          if (name.size() > 128) name.clear();
         }
-        ShowClipboardNotification(Utf8(device.c_str(), device.size()));
+        const auto language = args->find(V("locale"));
+        if (language != args->end() && std::holds_alternative<std::string>(language->second)) {
+          locale = std::get<std::string>(language->second);
+        }
+        ShowClipboardNotification(name, value, locale);
         result->Success();
       } else { result->NotImplemented(); }
     } catch (...) { result->Error("platform_failed", "Clipboard or encrypted storage operation failed"); }
@@ -151,6 +159,7 @@ ClipboardSyncBridge::ClipboardSyncBridge(flutter::BinaryMessenger* messenger, HW
 }
 
 ClipboardSyncBridge::~ClipboardSyncBridge() {
+  if (IsWindow(receipt_popup_)) DestroyWindow(receipt_popup_);
   if (tray_icon_added_) {
     NOTIFYICONDATAW icon{};
     icon.cbSize = sizeof(icon);
@@ -160,25 +169,127 @@ ClipboardSyncBridge::~ClipboardSyncBridge() {
   }
 }
 
-void ClipboardSyncBridge::ShowClipboardNotification(const std::string& device_name) {
+LRESULT CALLBACK ClipboardSyncBridge::ReceiptWindowProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+  if (message == WM_NCCREATE) {
+    auto* create = reinterpret_cast<CREATESTRUCTW*>(lparam);
+    SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(create->lpCreateParams));
+  }
+  auto* owner = reinterpret_cast<ClipboardSyncBridge*>(GetWindowLongPtrW(window, GWLP_USERDATA));
+  if (message == WM_TIMER) {
+    DestroyWindow(window);
+    return 0;
+  }
+  if (message == WM_NCHITTEST) return HTTRANSPARENT;
+  if (message == WM_PAINT) {
+    PAINTSTRUCT paint;
+    HDC dc = BeginPaint(window, &paint);
+    RECT rect;
+    GetClientRect(window, &rect);
+    HBRUSH background = CreateSolidBrush(RGB(37, 43, 57));
+    FillRect(dc, &rect, background);
+    DeleteObject(background);
+    HICON app_icon = static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_APP_ICON),
+                                                  IMAGE_ICON, 40, 40, LR_DEFAULTCOLOR));
+    if (app_icon) {
+      DrawIconEx(dc, 18, 17, app_icon, 40, 40, 0, nullptr, DI_NORMAL);
+      DestroyIcon(app_icon);
+    }
+    SetBkMode(dc, TRANSPARENT);
+    if (owner) {
+      RECT title{76, 14, rect.right - 16, 45};
+      HFONT title_font = CreateFontW(21, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                                     OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                                     DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
+      HGDIOBJ previous = title_font ? SelectObject(dc, title_font) : nullptr;
+      SetTextColor(dc, RGB(255, 255, 255));
+      DrawTextW(dc, owner->receipt_title_.c_str(), -1, &title,
+                DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+      if (previous) SelectObject(dc, previous);
+      if (title_font) DeleteObject(title_font);
+      HFONT text_font = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                                    OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                                    DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
+      previous = text_font ? SelectObject(dc, text_font) : nullptr;
+      SetTextColor(dc, RGB(222, 229, 240));
+      RECT body{76, 52, rect.right - 18, rect.bottom - 10};
+      DrawTextW(dc, owner->receipt_preview_.c_str(), -1, &body,
+                DT_WORDBREAK | DT_END_ELLIPSIS | DT_NOPREFIX);
+      if (previous) SelectObject(dc, previous);
+      if (text_font) DeleteObject(text_font);
+    }
+    EndPaint(window, &paint);
+    return 0;
+  }
+  if (message == WM_NCDESTROY && owner) owner->receipt_popup_ = nullptr;
+  return DefWindowProcW(window, message, wparam, lparam);
+}
+
+void ClipboardSyncBridge::ShowReceiptPopup() {
+  // Show the received text without activating the app, even when minimized.
+  // The preview is bounded; the complete text remains in the OS clipboard and local history.
+  static constexpr wchar_t kClass[] = L"RemoteSendClipboardReceipt";
+  WNDCLASSW cls{};
+  cls.lpfnWndProc = ReceiptWindowProc;
+  cls.hInstance = GetModuleHandleW(nullptr);
+  cls.lpszClassName = kClass;
+  if (!RegisterClassW(&cls) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return;
+  if (IsWindow(receipt_popup_)) DestroyWindow(receipt_popup_);
+  POINT cursor{};
+  GetCursorPos(&cursor);
+  MONITORINFO monitor{sizeof(MONITORINFO)};
+  if (!GetMonitorInfoW(MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST), &monitor)) return;
+  const int width = 440, height = 170;
+  receipt_popup_ = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE |
+                                    WS_EX_LAYERED | WS_EX_TRANSPARENT,
+                                    kClass, L"", WS_POPUP,
+                                    monitor.rcWork.right - width - 20, monitor.rcWork.bottom - height - 20,
+                                    width, height, nullptr, nullptr, cls.hInstance, this);
+  if (!receipt_popup_) return;
+  SetLayeredWindowAttributes(receipt_popup_, 0, 245, LWA_ALPHA);
+  ShowWindow(receipt_popup_, SW_SHOWNOACTIVATE);
+  SetWindowPos(receipt_popup_, HWND_TOPMOST, 0, 0, 0, 0,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+  SetTimer(receipt_popup_, 1, 4500, nullptr);
+}
+
+void ClipboardSyncBridge::ShowClipboardNotification(const std::string& device_name,
+                                                     const std::string& text, const std::string& locale) {
   if (!IsWindow(window_)) return;
+  const bool chinese = locale == "zh" || (locale == "system" &&
+      PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_CHINESE);
+  receipt_title_ = chinese ? L"剪贴板已同步" : L"Clipboard synced";
+  if (!device_name.empty()) {
+    auto name = Wide(device_name);
+    if (name.size() > 40) name.resize(40);
+    receipt_title_ += L"  ·  " + name;
+  }
+  receipt_preview_ = Wide(text);
+  // The popup has limited space; keep the first part readable and make
+  // truncation explicit. The actual clipboard contents are never truncated.
+  if (receipt_preview_.size() > 140) {
+    size_t end = 140;
+    if (receipt_preview_[end - 1] >= 0xD800 && receipt_preview_[end - 1] <= 0xDBFF) --end;
+    receipt_preview_.resize(end);
+    receipt_preview_ += L"…";
+  }
+  ShowReceiptPopup();
   NOTIFYICONDATAW icon{};
   icon.cbSize = sizeof(icon);
   icon.hWnd = window_;
   icon.uID = 0x52;
   if (!tray_icon_added_) {
     icon.uFlags = NIF_ICON | NIF_TIP;
-    icon.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    icon.hIcon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_APP_ICON));
     wcscpy_s(icon.szTip, L"RemoteSend");
     tray_icon_added_ = Shell_NotifyIconW(NIM_ADD, &icon) == TRUE;
   }
-  icon.uFlags = NIF_INFO;
-  wcscpy_s(icon.szInfoTitle, L"RemoteSend");
-  auto message = L"Clipboard copied from " + Wide(device_name);
-  if (message.size() >= std::size(icon.szInfo)) message.resize(std::size(icon.szInfo) - 1);
-  wcscpy_s(icon.szInfo, message.c_str());
-  icon.dwInfoFlags = NIIF_INFO;
-  Shell_NotifyIconW(NIM_MODIFY, &icon);
+  if (tray_icon_added_) {
+    icon.uFlags = NIF_INFO;
+    wcscpy_s(icon.szInfoTitle, receipt_title_.substr(0, 63).c_str());
+    wcscpy_s(icon.szInfo, receipt_preview_.c_str());
+    icon.dwInfoFlags = NIIF_INFO;
+    Shell_NotifyIconW(NIM_MODIFY, &icon);
+  }
   FLASHWINFO flash{sizeof(FLASHWINFO), window_, FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0};
   FlashWindowEx(&flash);
 }
