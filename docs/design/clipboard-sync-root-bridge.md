@@ -101,7 +101,7 @@ IPC 不开放 TCP、本地 socket 或导出的 Android service。只支持启动
 - 剪贴板帧仍有独立事件类型，以免被误当作文本页聊天消息；正文直接使用与现有 Gotify 实时文本相同的明文载荷，经已配置的连接传输。**Gotify 服务端可以读取或保留剪贴板正文。请使用 HTTPS，勿依赖同步系统密码／验证码。**
 - 新增开关外不增加配对流程。`ClipboardSyncConfig` 只保存 enabled 标记和运行所需的 Gotify 配置快照；前一版短暂试验的 v1 密钥／peer 字段会忽略并迁移到 v2，不再作为设置要求。同步选项和本机共享记录入口位于 **设置 → Gotify**。
 - 同步配置快照仍由 Android `noBackupFilesDir` + Android Keystore AES-GCM、Windows `%LocalAppData%/RemoteSend` + 当前用户 DPAPI 保护。剪贴板共享记录另存于应用本机私有支持目录；Android 云备份和设备迁移规则明确排除此目录。记录近 30 天显示在最近列表，超过 30 天按月归档并继续保留，直到用户手动清空；不会上传 Gotify/WebDAV。该记录文件不是端到端加密。
-- Android 显式启动带通知操作按钮的 `remoteMessaging` 前台服务和 headless Flutter engine；普通 RemoteSend 冷启动不重新提权。关闭 UI 不停止服务；用户停止／通知动作停服。Root 访问和厂商后台保活是两个不同限制。
+- Android 用户显式开启同步后，将启用状态保存在加密配置中；下次打开 RemoteSend 时，如服务仍运行则接管状态，若已停止且仍有通知权限则恢复 `remoteMessaging` 前台服务与 headless Flutter engine（可能再次请求 Root 授权）。用户手动关闭或通过通知停止会持久化关闭；不会在开机后不打开应用就自行启动。关闭 UI 不停止正在运行的服务。Root 访问和厂商后台保活是两个不同限制。
 - 每次启动先建立不发送的剪贴板基线。新变化合并为最新内容；本地复制优先于等待写入的远端内容；自写通过 OS clipboard sequence／Android ClipDescription origin 标记防回环。遇锁屏／系统长暂停时换运行 session 并重新握手，拒绝旧 session／超过 15 秒消息。停止或断线不排队、不离线补发，也不读 Gotify 历史。
 - 仍只同步新复制的单项纯文本，保留空格和换行；尊重 Android 敏感标记、Windows 剪贴板历史／云同步排除标记；跳过空白、非文本、NUL、超过 32 KiB。OS 剪贴板与 Gotify 服务端仍是信任边界。
 - FGS 与诊断页共用 Android 单一桥接租约，避免多个 Root helper 同时争用系统剪贴板。控制握手消息和成功发送的剪贴板数据消息都会请求 Gotify 删除各自刚创建的消息；删除依赖 Gotify 客户端令牌权限且为尽力而为，失败时服务器仍可能保留。客户端不拉历史。
@@ -111,7 +111,7 @@ IPC 不开放 TCP、本地 socket 或导出的 Android service。只支持启动
 
 - 全量 Dart 与 Android 原生测试、同步及本机历史定向测试通过；Windows x64 与 Android ARM64 Release 构建成功。
 - loopback Gotify REST/WebSocket 双客户端测试覆盖现有目标路由、双向空格／Unicode 明文、快速复制合并、本地复制优先、敏感内容、锁屏、过期帧丢弃、断线不补发和重连基线；没有读取历史接口。
-- 开关测试确认没有额外密钥／peer 配置，目标列表读取现有 Gotify 设置；同时覆盖新启动不自动 Root、Android service 接管、用户停止及 Gotify 连接变更。本机历史测试覆盖 30 天归档、月度分组及清空，不调用云端服务。
+- 开关测试确认没有额外密钥／peer 配置，目标列表读取现有 Gotify 设置；同时覆盖未曾开启时不自动 Root、已开启后重启恢复、Android service 接管、用户停止及 Gotify 连接变更。本机历史测试覆盖 30 天归档、月度分组及清空，不调用云端服务。
 
 ### 最终真机验收
 

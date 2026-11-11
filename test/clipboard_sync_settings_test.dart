@@ -11,12 +11,14 @@ import 'package:remote_send/providers/clipboard_sync_provider.dart';
 import 'package:remote_send/providers/gotify_provider.dart';
 import 'package:remote_send/screens/clipboard_sync_screen.dart';
 import 'package:remote_send/services/clipboard_sync_platform.dart';
+import 'package:remote_send/services/clipboard_sync_engine.dart';
 
 class _Platform extends ClipboardSyncPlatform {
   ClipboardSyncConfig? saved;
   ClipboardSyncStatus current = const ClipboardSyncStatus();
   final stream = StreamController<ClipboardSyncStatus>.broadcast(sync: true);
   int starts = 0, stops = 0;
+  bool failOnStart = false;
   @override
   Future<ClipboardSyncConfig?> load() async => saved;
   @override
@@ -31,6 +33,7 @@ class _Platform extends ClipboardSyncPlatform {
   @override
   Future<void> startAndroid() async {
     starts++;
+    if (failOnStart) throw StateError('service unavailable');
     current = const ClipboardSyncStatus(phase: 'waiting');
     stream.add(current);
   }
@@ -43,6 +46,26 @@ class _Platform extends ClipboardSyncPlatform {
     stream.add(current);
   }
 }
+
+class _Engine extends ClipboardSyncEngine {
+  _Engine(
+    ClipboardSyncConfig config,
+    void Function(ClipboardSyncStatus) onStatus,
+  ) : super(config: config, clipboard: _NoClipboard(), onStatus: onStatus);
+  int starts = 0, stops = 0;
+  @override
+  Future<void> start() async {
+    starts++;
+    onStatus(const ClipboardSyncStatus(phase: 'waiting'));
+  }
+
+  @override
+  Future<void> stop({bool report = true}) async {
+    stops++;
+  }
+}
+
+class _NoClipboard extends Fake implements SyncClipboard {}
 
 class _Gotify extends StateNotifier<GotifyState> implements GotifyNotifier {
   _Gotify() : super(const GotifyState());
@@ -86,7 +109,7 @@ void main() {
   );
 
   test(
-    'service is not auto-started; leaving UI preserves it; explicit stop disables',
+    'first launch stays off; active Android service survives UI restart; stop persists',
     () async {
       final platform = _Platform(), app = _app();
       var controller = ClipboardSyncController(platform, android: true);
@@ -114,9 +137,116 @@ void main() {
   );
 
   test(
-    'stale saved enabled flag does not automatically request Root on a fresh launch',
+    'previously enabled Android sync restarts after service/process exit',
     () async {
       final platform = _Platform(), app = _app();
+      platform.saved = ClipboardSyncConfig(
+        gotify: app.gotify,
+        name: app.localName,
+        enabled: true,
+      );
+      var controller = ClipboardSyncController(platform, android: true);
+      try {
+        await controller.configureConnection(app);
+        expect(platform.starts, 1);
+        expect(platform.saved!.enabled, isTrue);
+        expect(controller.state.config!.enabled, isTrue);
+        controller.dispose();
+        platform.current =
+            const ClipboardSyncStatus(); // Service was killed too.
+        controller = ClipboardSyncController(platform, android: true);
+        await controller.configureConnection(app);
+        expect(platform.starts, 2);
+        await controller.stop();
+        expect(platform.saved!.enabled, isFalse);
+        controller.dispose();
+        controller = ClipboardSyncController(platform, android: true);
+        await controller.configureConnection(app);
+        expect(platform.starts, 2);
+        expect(controller.state.config!.enabled, isFalse);
+      } finally {
+        controller.dispose();
+        await platform.stream.close();
+      }
+    },
+  );
+
+  test(
+    'Android resume does not silently request a revoked notification permission',
+    () async {
+      final platform = _Platform(), app = _app();
+      platform.saved = ClipboardSyncConfig(
+        gotify: app.gotify,
+        name: app.localName,
+        enabled: true,
+      );
+      final controller = ClipboardSyncController(
+        platform,
+        android: true,
+        canResumeAndroid: () async => false,
+      );
+      try {
+        await controller.configureConnection(app);
+        expect(platform.starts, 0);
+        expect(platform.saved!.enabled, isFalse);
+        expect(controller.state.config!.enabled, isFalse);
+        expect(controller.state.error, 'notification_permission');
+      } finally {
+        controller.dispose();
+        await platform.stream.close();
+      }
+    },
+  );
+
+  test(
+    'Windows recreates a saved active sync and does not resume after stop',
+    () async {
+      final platform = _Platform(), app = _app();
+      platform.saved = ClipboardSyncConfig(
+        gotify: app.gotify,
+        name: app.localName,
+        enabled: true,
+      );
+      final engines = <_Engine>[];
+      ClipboardSyncController createController() => ClipboardSyncController(
+        platform,
+        android: false,
+        desktopEngineBuilder: (config, onStatus) {
+          final engine = _Engine(config, onStatus);
+          engines.add(engine);
+          return engine;
+        },
+      );
+      var controller = createController();
+      try {
+        await controller.configureConnection(app);
+        expect(engines.single.starts, 1);
+        expect(controller.state.config!.enabled, isTrue);
+        expect(platform.saved!.enabled, isTrue);
+        controller.dispose();
+        controller = createController();
+        await controller.configureConnection(app);
+        expect(engines.length, 2);
+        expect(engines.last.starts, 1);
+        await controller.stop();
+        expect(platform.saved!.enabled, isFalse);
+        controller.dispose();
+        controller = createController();
+        await controller.configureConnection(app);
+        expect(engines.length, 2);
+        expect(controller.state.config!.enabled, isFalse);
+      } finally {
+        controller.dispose();
+        await platform.stream.close();
+      }
+    },
+  );
+
+  test(
+    'failed automatic restart turns the saved switch off with an error',
+    () async {
+      final platform = _Platform()..failOnStart = true;
+      final app = _app();
       platform.saved = ClipboardSyncConfig(
         gotify: app.gotify,
         name: app.localName,
@@ -125,9 +255,34 @@ void main() {
       final controller = ClipboardSyncController(platform, android: true);
       try {
         await controller.configureConnection(app);
-        expect(controller.state.config!.enabled, isFalse);
+        expect(platform.starts, 1);
         expect(platform.saved!.enabled, isFalse);
+        expect(controller.state.config!.enabled, isFalse);
+        expect(controller.state.error, 'startup_failed');
+      } finally {
+        controller.dispose();
+        await platform.stream.close();
+      }
+    },
+  );
+
+  test(
+    'changed Gotify targets never auto-resume an old Android session',
+    () async {
+      final platform = _Platform(), app = _app();
+      platform.saved = ClipboardSyncConfig(
+        gotify: app.gotify.copyWith(targetDeviceIds: ['old-phone']),
+        name: app.localName,
+        enabled: true,
+      );
+      platform.current = const ClipboardSyncStatus(phase: 'running');
+      final controller = ClipboardSyncController(platform, android: true);
+      try {
+        await controller.configureConnection(app);
+        expect(platform.stops, 1);
         expect(platform.starts, 0);
+        expect(platform.saved!.enabled, isFalse);
+        expect(platform.saved!.gotify.targetDeviceIds, ['phone']);
       } finally {
         controller.dispose();
         await platform.stream.close();

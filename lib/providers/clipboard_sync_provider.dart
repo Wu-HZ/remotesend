@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/app_config.dart';
 import '../models/clipboard_sync.dart';
 import '../models/gotify_text_message.dart';
@@ -56,11 +57,29 @@ class ClipboardSyncUiState {
   );
 }
 
+typedef ClipboardSyncEngineBuilder =
+    ClipboardSyncEngine Function(
+      ClipboardSyncConfig config,
+      void Function(ClipboardSyncStatus) onStatus,
+    );
+
 class ClipboardSyncController extends StateNotifier<ClipboardSyncUiState> {
-  ClipboardSyncController(this.platform, {bool? android})
-    : _android = android ?? Platform.isAndroid,
-      super(const ClipboardSyncUiState());
+  ClipboardSyncController(
+    this.platform, {
+    bool? android,
+    Future<bool> Function()? canResumeAndroid,
+    ClipboardSyncEngineBuilder? desktopEngineBuilder,
+  }) : _android = android ?? Platform.isAndroid,
+       _desktopEngineBuilder = desktopEngineBuilder,
+       _canResumeAndroid =
+           canResumeAndroid ??
+           (() async =>
+               !Platform.isAndroid ||
+               (await Permission.notification.status).isGranted),
+       super(const ClipboardSyncUiState());
   final bool _android;
+  final Future<bool> Function() _canResumeAndroid;
+  final ClipboardSyncEngineBuilder? _desktopEngineBuilder;
   final ClipboardSyncPlatform platform;
   StreamSubscription<ClipboardSyncStatus>? _status;
   ClipboardSyncEngine? _engine;
@@ -92,36 +111,53 @@ class ClipboardSyncController extends StateNotifier<ClipboardSyncUiState> {
             saved != null &&
             (gotifyTextIdentity(saved.gotify) !=
                     gotifyTextIdentity(current.gotify) ||
-                !current.gotify.enabled);
-        if (_android && mismatch && status.running) {
-          await platform.stopAndroid();
-          status = const ClipboardSyncStatus();
-        }
-        final config =
+                !current.gotify.enabled ||
+                !_sameTargets(
+                  saved.gotify.targetDeviceIds,
+                  current.gotify.targetDeviceIds,
+                ));
+        final updated =
             (saved ??
                     ClipboardSyncConfig(
                       gotify: current.gotify,
                       name: current.localName,
                     ))
-                .copyWith(
-                  gotify: current.gotify,
-                  name: current.localName,
-                  enabled:
-                      _android &&
-                      !mismatch &&
-                      status.running &&
-                      (saved?.enabled ?? false),
-                );
+                .copyWith(gotify: current.gotify, name: current.localName);
+        // The encrypted enabled flag is the user's previous choice, not a
+        // snapshot of whether this process happens to have a running engine.
+        final shouldResume =
+            saved?.enabled == true && !mismatch && updated.valid;
+        final config = updated.copyWith(enabled: shouldResume);
+        if (_android && status.running && !shouldResume) {
+          await platform.stopAndroid();
+          status = const ClipboardSyncStatus();
+        }
         if (saved != null) {
-          // Also migrates the former paired-key draft to the Gotify-only setup.
+          // Migrate old snapshots without erasing an enabled choice at startup.
           await platform.save(config);
         }
-        if (mounted) {
-          state = ClipboardSyncUiState(
-            loaded: true,
-            config: config,
-            status: status,
-          );
+        if (!mounted) return;
+        final alreadyRunning = _android && status.running && shouldResume;
+        state = ClipboardSyncUiState(
+          loaded: true,
+          busy: shouldResume && !alreadyRunning,
+          config: config.copyWith(enabled: alreadyRunning),
+          status: status,
+        );
+        if (shouldResume && !alreadyRunning) {
+          if (_android && !await _canResumeAndroid()) {
+            final disabled = config.copyWith(enabled: false);
+            await platform.save(disabled);
+            if (mounted) {
+              state = state.copyWith(
+                busy: false,
+                config: disabled,
+                error: 'notification_permission',
+              );
+            }
+            return;
+          }
+          if (mounted) await _start(restoring: true);
         }
       } on MissingPluginException {
         if (mounted) {
@@ -206,8 +242,10 @@ class ClipboardSyncController extends StateNotifier<ClipboardSyncUiState> {
     }
   }
 
-  Future<void> start() async {
-    if (state.busy || state.config?.enabled == true) return;
+  Future<void> start() => _start();
+
+  Future<void> _start({bool restoring = false}) async {
+    if ((state.busy && !restoring) || state.config?.enabled == true) return;
     final cfg = state.config;
     if (cfg == null || !cfg.valid) {
       state = state.copyWith(error: 'settings_invalid');
@@ -227,17 +265,21 @@ class ClipboardSyncController extends StateNotifier<ClipboardSyncUiState> {
         await platform.startAndroid();
       } else {
         late final ClipboardSyncEngine engine;
-        engine = ClipboardSyncEngine(
-          config: enabled,
-          clipboard: PlatformSyncClipboard(
-            locale: () => _app?.locale ?? 'system',
-          ),
-          onStatus: (status) {
-            if (mounted && identical(_engine, engine)) {
-              state = state.copyWith(status: status);
-            }
-          },
-        );
+        void onEngineStatus(ClipboardSyncStatus status) {
+          if (mounted && identical(_engine, engine)) {
+            state = state.copyWith(status: status);
+          }
+        }
+
+        engine =
+            _desktopEngineBuilder?.call(enabled, onEngineStatus) ??
+            ClipboardSyncEngine(
+              config: enabled,
+              clipboard: PlatformSyncClipboard(
+                locale: () => _app?.locale ?? 'system',
+              ),
+              onStatus: onEngineStatus,
+            );
         _engine = engine;
         await engine.start();
       }

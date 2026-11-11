@@ -99,7 +99,11 @@ class ClipboardSyncScreen extends ConsumerWidget {
               if (state.error != null || state.status.error != null) ...[
                 const SizedBox(height: 16),
                 Text(
-                  l10n.clipboardSyncError(state.error ?? state.status.error!),
+                  state.error == 'notification_permission'
+                      ? l10n.clipboardSyncNotification
+                      : l10n.clipboardSyncError(
+                          state.error ?? state.status.error!,
+                        ),
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
